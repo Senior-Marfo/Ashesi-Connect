@@ -15,7 +15,8 @@ export const STUDENT_NAV: NavItem[] = [
 
 export const ADMIN_NAV: NavItem[] = [
   { href: '/admin/', label: 'Student lookup' },
-  { href: '/admin/register/', label: 'Register' }
+  { href: '/admin/register/', label: 'Register' },
+  { href: '/admin/reports/', label: 'Reports' }
 ];
 
 export function AppShell({ title, eyebrow, nav, children }: { title: string; eyebrow: string; nav?: NavItem[]; children: ReactNode }) {

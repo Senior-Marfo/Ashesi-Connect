@@ -89,6 +89,22 @@ export interface Eligibility {
   issues: string[];
 }
 
+export type StandingCounts = Record<StandingLevel | 'UNDETERMINED', number>;
+export const NON_COMPLETION_REASONS = ['FAILED_COURSE', 'INCOMPLETE_COURSE', 'REQUIRED_COURSE_NOT_TAKEN', 'CAPSTONE_OUTSTANDING', 'ELECTIVES_SHORT', 'CREDIT_SHORTFALL', 'STILL_IN_PROGRESS'] as const;
+export type NonCompletionReason = (typeof NON_COMPLETION_REASONS)[number];
+export const GRADE_SCALE = ['A+', 'A', 'B+', 'B', 'C+', 'C', 'D+', 'D', 'E'] as const;
+
+export interface ReportFilters { programme?: string; yearGroup?: number }
+export interface Reports {
+  generatedAt: string;
+  totals: { students: number; assessed: number; graduatedCohorts: number[] };
+  standings: StandingCounts;
+  cohortOutcomes: Array<{ yearGroup: number; students: number; assessed: number; requirementsMet: number; completionRate: number | null; reasons: Record<NonCompletionReason, number> }>;
+  cohortProgress: Array<{ yearGroup: number; students: number; assessed: number; averagePercentComplete: number | null; standings: StandingCounts }>;
+  programmes: Array<{ programme: string; students: number; averagePassedCredits: number; completionRate: number | null; standings: StandingCounts }>;
+  courses: Array<{ courseCode: string; students: number; attempts: number; firstAttemptPassRate: number | null; unresolvedFailures: number; retakes: number; grades: Record<(typeof GRADE_SCALE)[number], number> }>;
+}
+
 export type RegisterFlag = 'UNRESOLVED_FAILURE' | 'INCOMPLETE' | 'NO_RECORDS';
 export type RegisterSort = 'studentId' | 'fullName' | 'programme' | 'yearGroup' | 'passedCredits' | 'inProgressCredits' | 'unresolvedFailures' | 'standing';
 export type RegisterStanding = StandingLevel | 'UNDETERMINED';
@@ -123,11 +139,12 @@ export interface RegisterPage {
   counts: { students: number } & Record<RegisterFlag, number> & Record<RegisterStanding, number>;
 }
 
-function registerParams(query: RegisterQuery): string {
+function queryString(query: object): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) if (value !== undefined && value !== '') params.set(key, String(value));
   return params.toString();
 }
+const registerParams = (query: RegisterQuery) => queryString(query);
 
 export class ApiError extends Error {
   constructor(readonly status: number, readonly code: string, message?: string) {
@@ -214,6 +231,12 @@ export function createApiClient(baseUrl: string, fetchImpl: Fetch = (input, init
     studentEligibility: (studentId: string) => authorised<Eligibility>(`/api/v1/admin/students/${encodeURIComponent(studentId)}/eligibility`),
     curricula: () => authorised<{ curricula: CurriculumSummary[] }>('/api/v1/admin/curricula'),
     register: (query: RegisterQuery) => authorised<RegisterPage>(`/api/v1/admin/register?${registerParams(query)}`),
+    reports: (filters: ReportFilters) => authorised<Reports>(`/api/v1/admin/reports?${queryString(filters)}`),
+    async reportCsv(section: 'cohorts' | 'programmes' | 'courses', filters: ReportFilters): Promise<Blob> {
+      const response = await sendAuthorised(`/api/v1/admin/reports/${section}.csv?${queryString(filters)}`);
+      if (!response.ok) await parse(response);
+      return response.blob();
+    },
     async registerCsv(query: RegisterQuery): Promise<Blob> {
       const response = await sendAuthorised(`/api/v1/admin/register.csv?${registerParams(query)}`);
       if (!response.ok) await parse(response);

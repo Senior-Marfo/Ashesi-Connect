@@ -1,19 +1,29 @@
 import type { StandingLevel } from '../domain/eligibility/standing.js';
-import type { Repositories, StudentSummary } from '../repositories/types.js';
-import { assessEligibility, type AppliedCurriculum } from './assess.js';
+import type { CourseRecord, Repositories, StudentSummary } from '../repositories/types.js';
+import { assessEligibility, type AppliedCurriculum, type EligibilityView } from './assess.js';
 import { curriculumFor } from './curriculum.js';
 
-/** Advisory standing for each student that has an applicable curriculum; others are left out. */
-export async function standingsFor(students: StudentSummary[], repositories: Repositories, today: Date): Promise<Map<string, StandingLevel>> {
+export interface AssessedStudent { assessment: EligibilityView; courses: CourseRecord[] }
+
+/** Assesses many students at once, loading each distinct curriculum only once. */
+export async function assessAll(students: StudentSummary[], repositories: Repositories, today: Date): Promise<Map<string, AssessedStudent>> {
   const courses = await repositories.students.coursesFor(students.map(student => student.studentId));
   const curricula = new Map<string, Promise<AppliedCurriculum | undefined>>();
-  const standings = new Map<string, StandingLevel>();
+  const assessed = new Map<string, AssessedStudent>();
   for (const student of students) {
     const key = `${student.synthetic ? 'synthetic' : 'reviewed'}|${student.programme}|${student.track}|${student.yearGroup}`;
     if (!curricula.has(key)) curricula.set(key, curriculumFor(student, repositories));
-    const curriculum = await curricula.get(key);
-    const { standing } = assessEligibility(student, courses.get(student.studentId) ?? [], curriculum, today);
-    if (standing) standings.set(student.studentId, standing.level);
+    const records = courses.get(student.studentId) ?? [];
+    assessed.set(student.studentId, { assessment: assessEligibility(student, records, await curricula.get(key), today), courses: records });
+  }
+  return assessed;
+}
+
+/** Advisory standing for each student that has an applicable curriculum; others are left out. */
+export async function standingsFor(students: StudentSummary[], repositories: Repositories, today: Date): Promise<Map<string, StandingLevel>> {
+  const standings = new Map<string, StandingLevel>();
+  for (const [studentId, { assessment }] of await assessAll(students, repositories, today)) {
+    if (assessment.standing) standings.set(studentId, assessment.standing.level);
   }
   return standings;
 }

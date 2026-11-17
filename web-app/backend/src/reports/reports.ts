@@ -1,0 +1,171 @@
+import type { EligibilityView } from '../eligibility/assess.js';
+import { PROVISIONAL_PASSING_GRADES } from '../register/provisional-pass.js';
+import type { CourseRecord } from '../repositories/types.js';
+
+const GRADES = ['A+', 'A', 'B+', 'B', 'C+', 'C', 'D+', 'D', 'E'] as const;
+type Grade = (typeof GRADES)[number];
+type StandingKey = 'RED' | 'YELLOW' | 'GREEN' | 'UNDETERMINED';
+
+/** Why an assessed student has not met every requirement; a student can have several. */
+export const NON_COMPLETION_REASONS = ['FAILED_COURSE', 'INCOMPLETE_COURSE', 'REQUIRED_COURSE_NOT_TAKEN', 'CAPSTONE_OUTSTANDING', 'ELECTIVES_SHORT', 'CREDIT_SHORTFALL', 'STILL_IN_PROGRESS'] as const;
+export type NonCompletionReason = (typeof NON_COMPLETION_REASONS)[number];
+
+export interface ReportStudent {
+  assessment: EligibilityView;
+  courses: CourseRecord[];
+  /** The year group's graduation term has ended. */
+  graduated: boolean;
+}
+
+export type StandingCounts = Record<StandingKey, number>;
+
+export interface CohortOutcome {
+  yearGroup: number;
+  students: number;
+  assessed: number;
+  requirementsMet: number;
+  /** Share of assessed students who met every requirement (a graduation-rate proxy); null when none assessed. */
+  completionRate: number | null;
+  reasons: Record<NonCompletionReason, number>;
+}
+
+export interface CohortProgress { yearGroup: number; students: number; assessed: number; averagePercentComplete: number | null; standings: StandingCounts }
+
+export interface ProgrammeComparison {
+  programme: string;
+  students: number;
+  averagePassedCredits: number;
+  /** Among students in graduated year groups. */
+  completionRate: number | null;
+  standings: StandingCounts;
+}
+
+export interface CourseOutcome {
+  courseCode: string;
+  students: number;
+  attempts: number;
+  /** Share of students whose first attempt passed (provisional D+ pass mark); null when none graded. */
+  firstAttemptPassRate: number | null;
+  /** Students whose latest attempt is still below the pass mark. */
+  unresolvedFailures: number;
+  /** Students who took the course more than once. */
+  retakes: number;
+  grades: Record<Grade, number>;
+}
+
+export interface Reports {
+  totals: { students: number; assessed: number; graduatedCohorts: number[] };
+  standings: StandingCounts;
+  cohortOutcomes: CohortOutcome[];
+  cohortProgress: CohortProgress[];
+  programmes: ProgrammeComparison[];
+  courses: CourseOutcome[];
+}
+
+const round = (value: number, places = 1) => Math.round(value * 10 ** places) / 10 ** places;
+const rate = (part: number, whole: number) => (whole > 0 ? round((100 * part) / whole) : null);
+const emptyStandings = (): StandingCounts => ({ RED: 0, YELLOW: 0, GREEN: 0, UNDETERMINED: 0 });
+const standingOf = (student: ReportStudent): StandingKey => student.assessment.standing?.level ?? 'UNDETERMINED';
+const isAssessed = (student: ReportStudent) => student.assessment.audit !== null;
+const isMet = (student: ReportStudent) => student.assessment.status === 'REQUIREMENTS_MET';
+
+function nonCompletionReasons(student: ReportStudent): Set<NonCompletionReason> {
+  const reasons = new Set<NonCompletionReason>();
+  for (const item of student.assessment.audit?.remainingRequirements ?? []) {
+    if (item.reason === 'FAILED') reasons.add('FAILED_COURSE');
+    else if (item.reason === 'INCOMPLETE') reasons.add('INCOMPLETE_COURSE');
+    else if (item.reason === 'NOT_TAKEN') reasons.add(item.category === 'Capstone' ? 'CAPSTONE_OUTSTANDING' : 'REQUIRED_COURSE_NOT_TAKEN');
+    else if (item.reason === 'ELECTIVE_SLOT_OPEN' || item.reason === 'AFRICAN_STUDIES_MISSING') reasons.add('ELECTIVES_SHORT');
+    else if (item.reason === 'CREDIT_SHORTFALL') reasons.add('CREDIT_SHORTFALL');
+    else if (item.reason === 'IN_PROGRESS') reasons.add('STILL_IN_PROGRESS');
+  }
+  if (student.assessment.audit?.remainingRequirements.some(item => item.reason === 'FAILED' && item.category === 'Capstone')) reasons.add('CAPSTONE_OUTSTANDING');
+  return reasons;
+}
+
+function groupBy<K>(students: ReportStudent[], key: (student: ReportStudent) => K): Map<K, ReportStudent[]> {
+  const groups = new Map<K, ReportStudent[]>();
+  for (const student of students) groups.set(key(student), [...(groups.get(key(student)) ?? []), student]);
+  return groups;
+}
+
+const passedCredits = (courses: CourseRecord[]) => courses.reduce((sum, course) => {
+  const latest = course.attempts.at(-1);
+  return sum + (latest?.status === 'COMPLETED' && latest.grade && PROVISIONAL_PASSING_GRADES.includes(latest.grade) ? latest.credits : 0);
+}, 0);
+
+function courseOutcomes(students: ReportStudent[]): CourseOutcome[] {
+  const byCourse = new Map<string, CourseRecord['attempts'][]>();
+  for (const student of students) for (const course of student.courses) byCourse.set(course.courseCode, [...(byCourse.get(course.courseCode) ?? []), course.attempts]);
+  return [...byCourse].map(([courseCode, records]) => {
+    const grades = Object.fromEntries(GRADES.map(grade => [grade, 0])) as Record<Grade, number>;
+    let firstGraded = 0;
+    let firstPassed = 0;
+    for (const attempts of records) {
+      for (const attempt of attempts) if (attempt.grade && attempt.grade in grades) grades[attempt.grade as Grade] += 1;
+      const first = attempts[0];
+      if (first?.status === 'COMPLETED' && first.grade) {
+        firstGraded += 1;
+        if (PROVISIONAL_PASSING_GRADES.includes(first.grade)) firstPassed += 1;
+      }
+    }
+    return {
+      courseCode,
+      students: records.length,
+      attempts: records.reduce((sum, attempts) => sum + attempts.length, 0),
+      firstAttemptPassRate: rate(firstPassed, firstGraded),
+      unresolvedFailures: records.filter(attempts => {
+        const latest = attempts.at(-1);
+        return latest?.status === 'COMPLETED' && latest.grade !== undefined && !PROVISIONAL_PASSING_GRADES.includes(latest.grade);
+      }).length,
+      retakes: records.filter(attempts => attempts.length > 1).length,
+      grades
+    };
+  }).sort((a, b) => a.courseCode.localeCompare(b.courseCode));
+}
+
+/**
+ * Aggregate reports for the Registry. Outcomes come from the same advisory assessment
+ * as the student screens; course statistics use the provisional D+ pass mark.
+ */
+export function buildReports(students: ReportStudent[]): Reports {
+  const standings = emptyStandings();
+  for (const student of students) standings[standingOf(student)] += 1;
+
+  const byYear = [...groupBy(students, student => student.assessment.student.yearGroup)].sort(([a], [b]) => a - b);
+  const cohortOutcomes = byYear.filter(([, group]) => group.every(student => student.graduated)).map(([yearGroup, group]) => {
+    const assessed = group.filter(isAssessed);
+    const reasons = Object.fromEntries(NON_COMPLETION_REASONS.map(reason => [reason, 0])) as Record<NonCompletionReason, number>;
+    for (const student of assessed.filter(student => !isMet(student))) for (const reason of nonCompletionReasons(student)) reasons[reason] += 1;
+    const requirementsMet = assessed.filter(isMet).length;
+    return { yearGroup, students: group.length, assessed: assessed.length, requirementsMet, completionRate: rate(requirementsMet, assessed.length), reasons };
+  });
+  const cohortProgress = byYear.filter(([, group]) => !group.every(student => student.graduated)).map(([yearGroup, group]) => {
+    const assessed = group.filter(isAssessed);
+    const counts = emptyStandings();
+    for (const student of group) counts[standingOf(student)] += 1;
+    const average = assessed.length ? round(assessed.reduce((sum, student) => sum + (student.assessment.audit?.percentComplete ?? 0), 0) / assessed.length) : null;
+    return { yearGroup, students: group.length, assessed: assessed.length, averagePercentComplete: average, standings: counts };
+  });
+  const programmes = [...groupBy(students, student => student.assessment.student.programme)].sort(([a], [b]) => a.localeCompare(b)).map(([programme, group]) => {
+    const counts = emptyStandings();
+    for (const student of group) counts[standingOf(student)] += 1;
+    const graduatedAssessed = group.filter(student => student.graduated && isAssessed(student));
+    return {
+      programme,
+      students: group.length,
+      averagePassedCredits: round(group.reduce((sum, student) => sum + passedCredits(student.courses), 0) / group.length),
+      completionRate: rate(graduatedAssessed.filter(isMet).length, graduatedAssessed.length),
+      standings: counts
+    };
+  });
+
+  return {
+    totals: { students: students.length, assessed: students.filter(isAssessed).length, graduatedCohorts: cohortOutcomes.map(cohort => cohort.yearGroup) },
+    standings,
+    cohortOutcomes,
+    cohortProgress,
+    programmes,
+    courses: courseOutcomes(students)
+  };
+}

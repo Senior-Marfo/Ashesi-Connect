@@ -51,6 +51,7 @@ export type AuditAction =
   | 'ADMIN_AUDIT_LOG_VIEWED'
   | 'ADMIN_REGISTER_VIEWED'
   | 'ADMIN_ELIGIBILITY_VIEWED'
+  | 'ADMIN_REPORTS_VIEWED'
   | 'ADMIN_REGISTER_EXPORTED';
 
 export interface AuditEntry {

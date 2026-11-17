@@ -8,6 +8,7 @@ Permissions are granted per role in `web-app/backend/src/auth/permissions.ts` an
 | `student:read:any` | | ✓ | `GET /api/v1/admin/students`, `GET /api/v1/admin/students/:studentId`, `GET /api/v1/admin/students/:studentId/eligibility`, `GET /api/v1/admin/register`, `GET /api/v1/admin/register.csv` |
 | `user:reset-password` | | ✓ | `POST /api/v1/admin/users/reset-password` |
 | `audit-log:read` | | ✓ | `GET /api/v1/admin/audit-log` |
+| `report:read` | | ✓ | `GET /api/v1/admin/reports`, `GET /api/v1/admin/reports/{cohorts,programmes,courses}.csv` |
 | `curriculum:read` | | ✓ | `GET /api/v1/admin/curricula` |
 | `curriculum:review` | | ✓ | `POST /api/v1/admin/curricula/review`, which also requires `ENABLE_CURRICULUM_REVIEW=yes` and the admin's user ID in `CURRICULUM_REVIEWER_IDS` |
 

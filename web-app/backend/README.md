@@ -44,6 +44,8 @@ npm test               # unit and HTTP tests; no database needed
 | GET | `/api/v1/students/me/academic-preview` | `student:read:own`; provisional, never a certification |
 | GET | `/api/v1/students/me/curriculum` | `student:read:own` |
 | GET | `/api/v1/students/me/audit-readiness` | `student:read:own` |
+| GET | `/api/v1/admin/reports` | `report:read`; filters `programme`, `yearGroup` |
+| GET | `/api/v1/admin/reports/{cohorts,programmes,courses}.csv` | `report:read`; same filters |
 | GET | `/api/v1/admin/curricula` | `curriculum:read` |
 | POST | `/api/v1/admin/curricula/review` | `curriculum:review` + `ENABLE_CURRICULUM_REVIEW=yes` + allowlisted in `CURRICULUM_REVIEWER_IDS` |
 

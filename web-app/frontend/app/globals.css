@@ -246,3 +246,55 @@ body { margin: 0; background: var(--surface); color: var(--ink); font: 16px/1.5 
 .register .standing { font-size: 12px; padding: 2px 8px 2px 6px; white-space: nowrap; }
 .register .standing svg { width: 12px; height: 12px; }
 @media (max-width: 559px) { .register-counts div + div { border-left: 0; padding-left: 0; } }
+
+/* Charts: one hue for magnitude; status fills only for standing, always with icon + label */
+:root {
+  --status-critical: #d03b3b; --status-warning: #fab219; --status-good: #0ca30c; --status-none: #c9c3bf;
+  --chart-fill: var(--maroon); --chart-track: var(--skeleton);
+}
+@media (prefers-color-scheme: dark) { :root { --status-none: #4a4342; } }
+.meter-list { list-style: none; margin: var(--space-3) 0; padding: 0; display: grid; gap: var(--space-2); }
+.meter-list li { display: grid; grid-template-columns: minmax(0, 200px) 1fr minmax(64px, auto); gap: var(--space-3); align-items: center; font-size: 14px; }
+.meter-list li:has(.meter-label:empty) { grid-template-columns: 1fr minmax(52px, auto); }
+.meter-label:empty { display: none; }
+.meter-track { height: 10px; border-radius: 4px; background: var(--chart-track); overflow: hidden; }
+.meter-fill { display: block; height: 100%; background: var(--chart-fill); border-radius: 0 4px 4px 0; }
+.meter-figure { font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+@media (max-width: 559px) { .meter-list li { grid-template-columns: 1fr auto; } .meter-list .meter-track { grid-column: 1 / -1; grid-row: 2; } }
+.split-bar { display: flex; gap: 2px; height: 36px; border-radius: 4px; overflow: hidden; }
+.split.compact .split-bar { height: 10px; min-width: 120px; }
+.split-part { display: grid; place-items: center; min-width: 4px; }
+.split-part.critical { background: var(--status-critical); color: #fff; }
+.split-part.warning { background: var(--status-warning); color: #0b0b0b; }
+.split-part.good { background: var(--status-good); color: #fff; }
+.split-part.none { background: var(--status-none); color: var(--ink); }
+.split-share { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.split-legend { list-style: none; padding: 0; margin: var(--space-3) 0 0; display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-5); }
+.split-legend li { display: flex; align-items: center; gap: var(--space-2); }
+.split-legend .figure { font-variant-numeric: tabular-nums; font-weight: 600; }
+.standing.none { color: var(--ink-soft); background: var(--info-bg); padding-left: 12px; }
+.columns { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: var(--space-2); height: 180px; align-items: end; padding-top: var(--space-5); border-bottom: 1px solid var(--line); }
+.column { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; position: relative; }
+.column-bar { width: min(24px, 70%); background: var(--chart-fill); border-radius: 4px 4px 0 0; min-height: 0; }
+.column-value { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ink-soft); margin-bottom: 4px; }
+.column-key { position: absolute; bottom: -22px; font-size: 12px; font-weight: 600; }
+.grade-distribution { margin-top: var(--space-6); padding-bottom: var(--space-6); }
+.report-section { margin: var(--space-7) 0 0; }
+.report-head { display: flex; justify-content: space-between; align-items: end; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-2); }
+.subhead { margin: var(--space-5) 0 var(--space-2); font: 600 15px var(--font-ui); }
+.report-columns { display: grid; gap: var(--space-5); }
+@media (min-width: 900px) { .report-columns { grid-template-columns: 1fr 1fr; } }
+.report-table td { vertical-align: middle; }
+.report-table .num { padding-right: var(--space-5); }
+.report-table td:has(.meter-list), .report-table td:has(.split) { padding-left: var(--space-3); }
+.report-table .meter-list { margin: 0; min-width: 160px; }
+.report-kpis { margin-top: var(--space-5); }
+.field.inline { grid-auto-flow: column; align-items: center; gap: var(--space-2); }
+
+@media print {
+  .topbar, .no-print, .filters, .skip { display: none !important; }
+  body { background: #fff; color: #000; }
+  .page { padding: 0; max-width: none; }
+  .report-section, .status-card, tr { break-inside: avoid; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

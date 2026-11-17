@@ -117,3 +117,19 @@ test('admin filters and sorts the register, then opens a student from it', async
   await expect(page).toHaveURL(/\/admin\/\?student=20280002/);
   await expect(page.getByRole('heading', { name: 'Kofi Synthetic Boateng' })).toBeVisible();
 });
+
+test('admin reads reports, filters them and exports a section', async ({ page }) => {
+  await signIn(page, 'STF-1001');
+  await page.getByRole('link', { name: 'Reports' }).click();
+  await expect(page.getByRole('heading', { name: 'Standing now' })).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Completion rate by year group' })).toContainText('Class of 2025');
+  await expect(page.getByRole('heading', { name: 'Programme comparison' })).toBeVisible();
+
+  await page.getByRole('combobox', { name: 'Programme', exact: true }).selectOption('CS');
+  await expect(page.locator('.report-table tbody tr')).not.toHaveCount(0);
+  await expect(page.getByRole('row', { name: /^BA/ })).toHaveCount(0);
+
+  const download = page.waitForEvent('download');
+  await page.locator('section', { has: page.getByRole('heading', { name: 'Courses' }) }).getByRole('button', { name: 'CSV' }).click();
+  expect((await download).suggestedFilename()).toBe('report-courses.csv');
+});

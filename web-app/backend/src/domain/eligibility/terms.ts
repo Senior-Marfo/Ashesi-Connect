@@ -21,3 +21,9 @@ export function termsRemaining(yearGroup: number, today: Date): number {
 export function termName(ordinal: number): string {
   return ordinal % 2 === 1 ? `${(ordinal - 1) / 2} Fall` : `${ordinal / 2} Spring`;
 }
+
+/** True once the year group's graduation term (Spring) is over. */
+export function graduationTermEnded(yearGroup: number, today: Date): boolean {
+  const now = currentTerm(today);
+  return graduationTerm(yearGroup) < now.ordinal || (graduationTerm(yearGroup) === now.ordinal && !now.inProgress);
+}

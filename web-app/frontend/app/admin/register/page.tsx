@@ -5,6 +5,7 @@ import { ADMIN_NAV, AppShell, FullPageLoading, Notice, SkeletonRows } from '../.
 import { StandingBadge } from '../../../components/standing';
 import type { RegisterFlag, RegisterPage, RegisterQuery, RegisterSort, RegisterStanding } from '../../../lib/api';
 import { standingLabels } from '../../../lib/labels';
+import { saveBlob } from '../../../lib/download';
 import { useRequireRole, useSession } from '../../../lib/session';
 
 const PROGRAMMES = ['BA', 'ECON', 'LLB', 'MIS', 'CS', 'CE', 'EE', 'ME', 'MT', 'BE'];
@@ -62,11 +63,7 @@ export default function RegisterPageView() {
     setExporting(true);
     setExportError(false);
     try {
-      const blob = await api.registerCsv(query);
-      const url = URL.createObjectURL(blob);
-      const link = Object.assign(document.createElement('a'), { href: url, download: 'student-register.csv' });
-      link.click();
-      URL.revokeObjectURL(url);
+      saveBlob(await api.registerCsv(query), 'student-register.csv');
     } catch {
       setExportError(true);
     } finally {
