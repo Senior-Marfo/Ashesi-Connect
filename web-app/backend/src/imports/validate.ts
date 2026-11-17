@@ -11,7 +11,7 @@ export const IMPORT_COLUMNS = {
 } as const;
 
 export const COURSE_CODE = /^[A-Z]{2,5} \d{3}[A-Z]?$/;
-const SEMESTER = /^\d{4} (Fall|Spring|Summer)$/;
+export const SEMESTER = /^\d{4} (Fall|Spring|Summer)$/;
 
 /** Row numbers match the spreadsheet: the header is row 1. */
 function readTable(text: string, kind: keyof typeof IMPORT_COLUMNS) {

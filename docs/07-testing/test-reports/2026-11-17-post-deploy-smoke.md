@@ -18,17 +18,16 @@
 
 ## Signed-in checks — still to record
 
-Sign-in, the student's status, admin search, the register and report generation use the accounts seeded in the earlier deployment session. No new accounts or secrets are needed:
+The signed-in checks use the accounts already in place on the live site:
 
-| Role | Account | Password secret (already set for the seeding workflows) |
+| Role | Account | Password |
 |---|---|---|
-| Student | a synthetic student, by default `92800001` (**Load or remove synthetic student records**) | `SYNTHETIC_STUDENT_PASSWORD` |
-| Admin | `STF-9001` (**seed-synthetic-staging**) | `DEMO_ADMIN_PASSWORD` |
+| Student | a synthetic student, by default `92800001` | `SYNTHETIC_STUDENT_PASSWORD` (already set for the seeding workflow) |
+| Admin | `STF-0001`, the live administrator | `SMOKE_ADMIN_PASSWORD`: add it once as a repository secret holding STF-0001's current password |
 
 Go to **Actions → Post-deploy smoke test (manual only) → Run workflow**. You can change the IDs there, and a blank ID skips that role. Copy the table from the run summary into a new dated report in this folder.
 
-- If an account's password was changed after seeding, its secret no longer matches. Sign-in then fails once and the remaining checks for that role are skipped. One failed attempt cannot lock the account.
-- If the live database is not the staging database, `STF-9001` may not exist. Enter another admin ID whose password matches `DEMO_ADMIN_PASSWORD`, or leave the field blank.
+- If a password secret no longer matches, sign-in fails once and the remaining checks for that role are skipped. One failed attempt cannot lock the account.
 
 The same script passed all 15 checks, signed-in ones included, against the local demo server (`npm run dev:demo`) on 2026-11-17.
 

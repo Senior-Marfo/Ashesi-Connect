@@ -14,6 +14,7 @@ import { settingsRoutes } from './settings-routes.js';
 import { adminMessageRoutes, studentMessageRoutes } from './message-routes.js';
 import { reportRoutes } from './report-routes.js';
 import { authenticate, requestId, requirePasswordChanged, CSRF_HEADER } from './middleware.js';
+import { recordRoutes } from './record-routes.js';
 import { studentProfileRoutes } from './student-profile-routes.js';
 import { studentRoutes } from './student-routes.js';
 
@@ -80,6 +81,7 @@ export function createApp({ config, repositories, isHealthy, now = () => new Dat
   app.use('/api/v1/admin/imports', ...protectedRoutes, importRoutes(config, repositories, now));
   app.use('/api/v1/admin/settings', ...protectedRoutes, settingsRoutes(config, repositories, now));
   app.use('/api/v1/admin/students', ...protectedRoutes, studentProfileRoutes(repositories, now));
+  app.use('/api/v1/admin/records', ...protectedRoutes, recordRoutes(config, repositories, now));
   app.use('/api/v1/admin', ...protectedRoutes, adminRoutes(repositories, auth, now), curriculumAdminRouter);
 
   if (config.staticDir) serveWebClient(app, resolve(config.staticDir));

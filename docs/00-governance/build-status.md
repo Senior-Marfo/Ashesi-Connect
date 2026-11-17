@@ -16,6 +16,7 @@ This branch is under active development and MUST NOT be deployed as a university
 - Controlled curriculum import, validation and review workflow from `feat/2028-workbook-safe-import`, merged 2026-11-17. Students see a provisional progress preview, and admins see a read-only curriculum catalogue. Review writes stay off unless `ENABLE_CURRICULUM_REVIEW=yes` is set and the reviewer is on the allowlist.
 - US-02 to US-05 student screens: status card with standing and progress ring, requirement tree, remaining-work plan, and courses marked Passed / Below pass mark. They use a Registry-reviewed curriculum for real students and illustrative synthetic rules for synthetic students only.
 - Settings: adjustable standing thresholds used by every assessment, admin account creation with temporary passwords, and an audit-log viewer.
+- Manual records: admins add a single student (with a locked account, as with imports), edit their details, and add, correct or remove course records with their full attempt history. Synthetic records are read-only. Every change is audit-logged with before and after values.
 - Course pass marks: admins set D+ or C per course, citing a source. Every audit, the register, reports and course summaries use them, and changes are audit-logged. No course is set to C until the Registry confirms one.
 - Record imports: CSV import of students and course records with a row-level preview, all-or-nothing apply, batch history and exact undo. New student accounts stay locked until an admin issues a temporary password.
 - US-11 and US-12 messaging: admins compose messages (with templates) for all students, a programme, a year group, a standing or specific IDs, with a live recipient count, audit logging and read receipts. Students have an inbox with an unread badge and mark-as-read.
@@ -28,7 +29,7 @@ This branch is under active development and MUST NOT be deployed as a university
 ## Blocking work
 - Confirm the first green run of the CI `backend-mongodb` job; it has not run in the development container, which cannot download MongoDB.
 - Emailing reset notices and message copies (needs SMTP).
-- Signed-in part of the post-deploy smoke test: anonymous checks passed on 2026-11-17. The signed-in checks still need a run of the manual **Post-deploy smoke test** workflow, which uses the seeded accounts and their existing secrets.
+- Signed-in part of the post-deploy smoke test: anonymous checks passed on 2026-11-17. The signed-in checks still need a run of the manual **Post-deploy smoke test** workflow, which signs in as `STF-0001` (needs the `SMOKE_ADMIN_PASSWORD` secret) and a synthetic student.
 - Verified workbook ingestion, curriculum versioning, elective and track rules, and all eligibility cases.
 - Loading the official 2028 curriculum (needs `Degree_Audit_2028.xlsx` and Registry review) so real students get a standing. Then: imports, messaging, PDF exports, mobile app and deployment.
 - Registry confirmation of which courses need a C. Once confirmed, enter them under **Settings → Course pass marks**. Workbook discrepancies are still open.

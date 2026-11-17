@@ -14,10 +14,10 @@ on:
         required: false
         default: '92800001'
       admin_id:
-        description: 'Seeded staging admin (password: DEMO_ADMIN_PASSWORD secret); blank skips admin checks'
+        description: 'Admin to sign in as (password: SMOKE_ADMIN_PASSWORD secret, else DEMO_ADMIN_PASSWORD); blank skips admin checks'
         type: string
         required: false
-        default: STF-9001
+        default: STF-0001
 
 permissions:
   contents: read
@@ -35,11 +35,11 @@ jobs:
       - name: Run smoke test
         env:
           SMOKE_BASE_URL: ${{ inputs.base_url }}
-          # Reuses the credentials the seeding workflows already use; no new secrets.
+          # Student: the seeding workflow's secret. Admin: STF-0001's current password, which no seeding secret holds.
           SMOKE_STUDENT_ID: ${{ inputs.student_id }}
           SMOKE_STUDENT_PASSWORD: ${{ secrets.SYNTHETIC_STUDENT_PASSWORD }}
           SMOKE_ADMIN_ID: ${{ inputs.admin_id }}
-          SMOKE_ADMIN_PASSWORD: ${{ secrets.DEMO_ADMIN_PASSWORD }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD || secrets.DEMO_ADMIN_PASSWORD }}
         run: |
           set -o pipefail
           node web-app/backend/scripts/smoke-test.mjs | tee -a "$GITHUB_STEP_SUMMARY"

@@ -52,6 +52,9 @@ npm test               # unit and HTTP tests; no database needed
 | GET/POST | `/api/v1/admin/imports` (+ `/preview`, `/:id/rollback`) | `records:import`; CSV only, up to 4 MB |
 | GET/PUT | `/api/v1/admin/settings` (+ `/standing`) | `settings:manage` |
 | GET/POST | `/api/v1/admin/settings/admins` | `user:manage` |
+| POST | `/api/v1/admin/records/students` | `records:edit`; creates a student and a locked account |
+| PATCH | `/api/v1/admin/records/students/:studentId` | `records:edit`; name, programme, year group, track |
+| PUT/DELETE | `/api/v1/admin/records/students/:studentId/courses/:courseCode` | `records:edit`; body `{ attempts: [...] }`, oldest first; synthetic records refused (`409`) |
 | GET | `/api/v1/admin/settings/pass-marks` | `settings:manage`; per-course pass marks (default D+) |
 | PUT/DELETE | `/api/v1/admin/settings/pass-marks/:courseCode` | `settings:manage`; body `{ minimumGrade: 'D+' \| 'C', note? }`, audit-logged |
 | GET | `/api/v1/admin/reports` | `report:read`; filters `programme`, `yearGroup` |

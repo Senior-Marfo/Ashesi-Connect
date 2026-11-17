@@ -121,7 +121,8 @@ test('admin filters and sorts the register, then opens a student from it', async
   await signIn(page, 'STF-1001');
   await page.getByRole('link', { name: 'Register' }).click();
   await expect(page.getByRole('heading', { name: 'Student register' })).toBeVisible();
-  await expect(page.getByText(/Page 1 of \d+ · 63 students/)).toBeVisible();
+  // Other journeys may add real students to the shared demo server, so only the filtered count is exact.
+  await expect(page.getByText(/Page 1 of \d+ · \d+ students/)).toBeVisible();
 
   await page.getByLabel('Programme').selectOption('BA');
   await expect(page.getByText(/· 7 students/)).toBeVisible();
@@ -206,6 +207,8 @@ test('admin imports a student, issues a temporary password, then undoes the impo
   await expect(admin.getByText(/Imported students.csv: 1 new/)).toBeVisible();
 
   await admin.getByRole('link', { name: 'Student lookup' }).click();
+  // Wait for the client-side navigation; the Imports page also has a student ID field.
+  await expect(admin.getByRole('heading', { name: 'Student lookup' })).toBeVisible();
   await admin.getByLabel('Student ID').fill(id);
   await admin.getByRole('button', { name: new RegExp(id) }).click();
   admin.once('dialog', dialog => void dialog.accept());
@@ -269,4 +272,39 @@ test('admin sets a C pass mark, the student sees it on their requirements, then 
   await expect(section.getByText('MATH 141 passes at the default D+ again.')).toBeVisible();
   await student.reload();
   await expect(student.locator('.tree-items li', { hasText: 'MATH 141' })).toContainText('Pass mark D+');
+});
+
+test('admin adds a student by hand, corrects their details and records a course with a retake', async ({ page }, testInfo) => {
+  const id = testInfo.project.name === 'desktop' ? '20319001' : '20319002';
+  await signIn(page, 'STF-1001');
+  await page.getByRole('link', { name: 'Imports' }).click();
+  const add = page.getByRole('region', { name: 'Add one student' });
+  await add.getByLabel('New student ID').fill(id);
+  await add.getByLabel('Full name').fill('Yaa Manual Asantewaa');
+  await add.getByLabel('Programme').selectOption('MIS');
+  await add.getByLabel('Year group').fill('2031');
+  await add.getByRole('button', { name: 'Add student' }).click();
+  await expect(add.getByText(`Added ${id}.`)).toBeVisible();
+
+  await page.getByRole('link', { name: 'Student lookup' }).click();
+  await page.getByLabel('Student ID or name').fill(id);
+  await page.getByRole('button', { name: new RegExp(id) }).click();
+  await page.getByRole('button', { name: 'Edit record' }).click();
+  await page.getByLabel('Maths track').selectOption('pre-calculus');
+  await page.getByRole('button', { name: 'Save details' }).click();
+  await expect(page.getByText('Saved: track.')).toBeVisible();
+  await expect(page.locator('.facts')).toContainText('pre-calculus');
+
+  await page.getByLabel('Course code').fill('math 141');
+  await page.getByRole('group', { name: 'Attempt 1' }).getByLabel('Grade').selectOption('E');
+  await page.getByRole('button', { name: 'Add a retake' }).click();
+  await page.getByRole('group', { name: 'Attempt 2' }).getByLabel('Grade').selectOption('B');
+  await page.getByRole('button', { name: 'Add course' }).click();
+  await expect(page.getByText('Saved MATH 141 with 2 attempts.')).toBeVisible();
+  await expect(page.getByRole('row', { name: /MATH 141/ })).toContainText('B');
+
+  await page.getByLabel('Student ID or name').fill('20280002');
+  await page.getByRole('button', { name: /20280002/ }).click();
+  await page.getByRole('button', { name: 'Edit record' }).click();
+  await expect(page.getByText(/Synthetic records are managed by the seeding workflow/)).toBeVisible();
 });

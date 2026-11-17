@@ -4,6 +4,7 @@ import { ADMIN_NAV, AppShell, FullPageLoading, Notice, SkeletonRows } from '../.
 import { CurriculumCatalogue, type CatalogueLoad } from '../../components/curriculum-catalogue';
 import { RequirementTree } from '../../components/requirements';
 import { StatusCard } from '../../components/standing';
+import { RecordEditor } from '../../components/record-editor';
 import { StaffPanel } from '../../components/staff-panel';
 import { StudentProfile } from '../../components/student-record';
 import { ApiError, type Eligibility } from '../../lib/api';
@@ -39,6 +40,8 @@ export default function AdminPage() {
   const [catalogue, setCatalogue] = useState<CatalogueLoad>({ status: 'loading' });
   const [recent, setRecent] = useState<RecentStudent[]>([]);
   const [exportError, setExportError] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [reloads, setReloads] = useState(0);
   const validQuery = SEARCH_TEXT.test(query.trim());
 
   useEffect(() => { setRecent(loadRecentStudents()); }, []);
@@ -89,10 +92,13 @@ export default function AdminPage() {
     return () => { active = false; };
   }, [api, session]);
 
+  useEffect(() => { setEditing(false); }, [selected]);
+
   useEffect(() => {
     if (!selected) return;
     let active = true;
-    setProfile({ status: 'loading' });
+    // A reload after an edit keeps the current record on screen until the fresh one arrives.
+    setProfile(current => (current.status === 'ready' && current.record.student.studentId === selected ? current : { status: 'loading' }));
     api.studentRecord(selected)
       .then(async record => {
         const eligibility = await api.studentEligibility(selected).catch(() => undefined);
@@ -102,7 +108,7 @@ export default function AdminPage() {
       })
       .catch(() => { if (active) setProfile({ status: 'error' }); });
     return () => { active = false; };
-  }, [api, selected]);
+  }, [api, selected, reloads]);
 
   if (!session) return <FullPageLoading />;
 
@@ -162,12 +168,18 @@ export default function AdminPage() {
               <div className="report-head">
                 <h2 className="profile-title" id="profile-heading">{profile.record.student.fullName}</h2>
                 <div className="actions no-print">
+                  <button type="button" className="button ghost" aria-expanded={editing} onClick={() => setEditing(current => !current)}>{editing ? 'Close editor' : 'Edit record'}</button>
                   <button type="button" className="button ghost" onClick={() => void exportAudit(profile.record.student.studentId)}>Print or save audit PDF</button>
                   <button type="button" className="button ghost" onClick={() => void issuePassword(profile.record.student.studentId)}>Issue temporary password</button>
                 </div>
               </div>
               <p className="print-only caption">Graduation audit printed {new Date().toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' })}. Advisory only: not an official Registry certification.</p>
               {exportError && <Notice tone="error">The export could not be recorded, so it was not started. Try again.</Notice>}
+              {editing && (
+                <div className="no-print">
+                  <RecordEditor api={api} student={profile.record.student} courses={profile.record.courses} onSaved={() => setReloads(count => count + 1)} />
+                </div>
+              )}
               {temporary?.studentId === profile.record.student.studentId && <div className="synthetic-notice"><Notice tone={temporary.tone}>{temporary.text}</Notice></div>}
               <StudentProfile record={profile.record} passMarks={profile.eligibility && Object.fromEntries(profile.eligibility.requirements.flatMap(group => group.items.map(item => [item.code, item.minimumGrade])))}>
                 {profile.eligibility

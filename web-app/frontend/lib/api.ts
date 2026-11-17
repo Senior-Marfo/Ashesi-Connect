@@ -21,6 +21,8 @@ export interface StudentSearchResult extends StudentSummary {
 
 export interface StudentNote { id: string; studentId: string; body: string; author: string; createdAt: string }
 
+export type StudentDetails = Pick<StudentSummary, 'fullName' | 'programme' | 'yearGroup' | 'track'>;
+
 export interface CourseAttempt {
   credits: number;
   grade?: string;
@@ -295,6 +297,10 @@ export function createApiClient(baseUrl: string, fetchImpl: Fetch = (input, init
       return response.blob();
     },
     searchStudents: (query: string) => authorised<{ students: StudentSearchResult[] }>(`/api/v1/admin/students?q=${encodeURIComponent(query)}`),
+    createStudent: (student: StudentDetails & { studentId: string }) => authorised<{ student: StudentSummary; accountCreated: boolean }>('/api/v1/admin/records/students', { method: 'POST', body: JSON.stringify(student) }),
+    updateStudent: (studentId: string, changes: Partial<StudentDetails>) => authorised<{ student: StudentSummary; changed: string[] }>(`/api/v1/admin/records/students/${encodeURIComponent(studentId)}`, { method: 'PATCH', body: JSON.stringify(changes) }),
+    saveCourseRecord: (studentId: string, courseCode: string, attempts: CourseAttempt[]) => authorised<{ course: CourseRecord }>(`/api/v1/admin/records/students/${encodeURIComponent(studentId)}/courses/${encodeURIComponent(courseCode)}`, { method: 'PUT', body: JSON.stringify({ attempts }) }),
+    removeCourseRecord: (studentId: string, courseCode: string) => authorised<void>(`/api/v1/admin/records/students/${encodeURIComponent(studentId)}/courses/${encodeURIComponent(courseCode)}`, { method: 'DELETE' }),
     studentNotes: (studentId: string) => authorised<{ notes: StudentNote[] }>(`/api/v1/admin/students/${encodeURIComponent(studentId)}/notes`),
     addStudentNote: (studentId: string, body: string) => authorised<{ note: StudentNote }>(`/api/v1/admin/students/${encodeURIComponent(studentId)}/notes`, { method: 'POST', body: JSON.stringify({ body }) }),
     studentMessages: (studentId: string) => authorised<{ messages: InboxItem[] }>(`/api/v1/admin/students/${encodeURIComponent(studentId)}/messages`),

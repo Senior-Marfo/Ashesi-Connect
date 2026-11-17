@@ -291,6 +291,29 @@ body { margin: 0; background: var(--surface); color: var(--ink); font: 16px/1.5 
 .report-kpis { margin-top: var(--space-5); }
 .field.inline { grid-auto-flow: column; align-items: center; gap: var(--space-2); }
 
+/* Manual record editing */
+.record-editor { display: grid; gap: var(--space-6); margin: 0 0 var(--space-6); padding: var(--space-5); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.record-editor h3 { font: 400 22px/1.2 var(--font-display); margin: 0 0 var(--space-3); }
+.record-form { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); align-items: start; }
+.record-form .span-2 { grid-column: span 2; }
+.record-form .span-all, .record-form .record-actions { grid-column: 1 / -1; }
+@media (max-width: 559px) { .record-form .span-2 { grid-column: 1 / -1; } }
+.record-actions { display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: center; }
+.course-editor { display: grid; gap: var(--space-4); }
+.record-editor .input { width: 100%; min-width: 0; box-sizing: border-box; }
+.record-editor .field { min-width: 0; }
+.attempts { border: 0; padding: 0; margin: 0; display: grid; gap: var(--space-3); justify-items: start; }
+.attempts legend { font-weight: 600; font-size: 14px; margin-bottom: var(--space-2); padding: 0; }
+.attempt-row { display: grid; width: 100%; gap: var(--space-3); grid-template-columns: 24px repeat(4, minmax(0, 1fr)) auto; align-items: end; }
+.attempt-number { align-self: center; padding-top: 22px; font: 600 14px var(--font-ui); color: var(--ink-soft); }
+.attempt-row .link-button { padding-bottom: 14px; }
+.link-button:disabled { color: var(--ink-soft); cursor: not-allowed; text-decoration: none; }
+@media (max-width: 719px) {
+  .attempt-row { grid-template-columns: 24px 1fr 1fr; padding-bottom: var(--space-3); border-bottom: 1px solid var(--line); }
+  .attempt-row .attempt-number { grid-row: span 2; align-self: start; }
+  .attempt-row .link-button { grid-column: 2 / -1; padding-bottom: 0; }
+}
+
 /* Course pass marks */
 .pass-mark-form { display: grid; gap: var(--space-4); margin-bottom: var(--space-5); align-items: start; }
 @media (min-width: 960px) {

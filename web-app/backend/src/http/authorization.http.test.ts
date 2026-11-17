@@ -3,7 +3,7 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { ADMIN_PASSWORD, STUDENT_PASSWORD, buildTestApp } from '../testing/fixtures.js';
 
-const ADMIN_ROUTES: Array<['get' | 'post' | 'put' | 'delete', string]> = [
+const ADMIN_ROUTES: Array<['get' | 'post' | 'put' | 'patch' | 'delete', string]> = [
   ['get', '/api/v1/admin/students'],
   ['get', '/api/v1/admin/students/20260002'],
   ['get', '/api/v1/admin/audit-log'],
@@ -31,7 +31,11 @@ const ADMIN_ROUTES: Array<['get' | 'post' | 'put' | 'delete', string]> = [
   ['post', '/api/v1/admin/students/20260002/audit-export'],
   ['get', '/api/v1/admin/settings/pass-marks'],
   ['put', '/api/v1/admin/settings/pass-marks/MATH%20141'],
-  ['delete', '/api/v1/admin/settings/pass-marks/MATH%20141']
+  ['delete', '/api/v1/admin/settings/pass-marks/MATH%20141'],
+  ['post', '/api/v1/admin/records/students'],
+  ['patch', '/api/v1/admin/records/students/20260002'],
+  ['put', '/api/v1/admin/records/students/20260002/courses/CS%20111'],
+  ['delete', '/api/v1/admin/records/students/20260002/courses/CS%20111']
 ];
 
 async function tokenFor(app: Awaited<ReturnType<typeof buildTestApp>>['app'], identifier: string, password: string): Promise<string> {
