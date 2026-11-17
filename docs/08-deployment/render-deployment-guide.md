@@ -31,6 +31,29 @@ The whole application (API and web client) deploys as **one Render web service**
 2. Sign in with `SEED_ADMIN_STAFF_ID` and `SEED_ADMIN_PASSWORD`. You'll be asked to set a new password straight away.
 3. On Render, delete `SEED_ADMIN_PASSWORD` and `SEED_ADMIN_STAFF_ID` from the service's **Environment**. The account is created only once and never overwritten, but the temporary password shouldn't stay in the dashboard.
 
+## 4. Load synthetic student records (optional)
+
+A new database has no students. To demonstrate the site, load fictional records: 600 students across all ten programmes and the 2025–2030 year groups, with grades, failed courses, retakes and courses in progress. The course codes and plans are illustrative only, not the official curriculum.
+
+The safeguards:
+
+- Every record is marked `synthetic: true` and uses a reserved student ID range (`92500001`–`93099999`).
+- The admin screens label these records as "Synthetic".
+- Seeding refuses to run if the database already holds any non-synthetic student.
+- Removing them deletes only synthetic records.
+
+1. In GitHub, go to **Settings → Secrets and variables → Actions → New repository secret** and add:
+   - `MONGODB_URI`: the same connection string Render uses.
+   - `SYNTHETIC_STUDENT_PASSWORD`: one shared sign-in password for all synthetic students. It must follow the password rules (at least 12 characters, at least three of lowercase, uppercase, digits and symbols).
+2. Go to **Actions → Load or remove synthetic student records → Run workflow**.
+   - Run it first with **mode `dry-run`** to see the counts. This doesn't connect to the database.
+   - Then run with **mode `seed`** and confirmation `SYNTHETIC_RECORDS_ONLY`.
+3. Sign in to the site as an admin and search for `928` to see the 2028 cohort. Any synthetic student can sign in with their ID (e.g. `92800001`) and `SYNTHETIC_STUDENT_PASSWORD`.
+
+Running `seed` again regenerates the same records and keeps passwords that students have changed. To clear them before loading real data, run the workflow with **mode `remove`** and the same confirmation.
+
+You can also run it from a computer with Node.js 22: in `web-app/backend`, run `npm ci`, then `MODE=seed SEED_CONFIRM=SYNTHETIC_RECORDS_ONLY MONGODB_URI=... SYNTHETIC_STUDENT_PASSWORD=... npm run seed:synthetic`.
+
 ## Optional settings
 
 | Variable | Default | Purpose |

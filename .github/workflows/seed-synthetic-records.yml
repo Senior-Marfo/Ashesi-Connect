@@ -1,0 +1,62 @@
+name: Load or remove synthetic student records (manual only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry-run, seed or remove'
+        type: choice
+        required: true
+        default: dry-run
+        options: [dry-run, seed, remove]
+      count:
+        description: 'Number of synthetic students (seed only)'
+        type: string
+        required: false
+        default: '600'
+      confirmation:
+        description: 'For seed or remove, type SYNTHETIC_RECORDS_ONLY'
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: synthetic-records
+  cancel-in-progress: false
+
+jobs:
+  records:
+    if: ${{ github.repository == 'Senior-Marfo/Ashesi-Connect' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web-app/backend
+    steps:
+      - name: Check confirmation
+        working-directory: .
+        env:
+          MODE: ${{ inputs.mode }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          if [ "$MODE" != "dry-run" ] && [ "$CONFIRMATION" != "SYNTHETIC_RECORDS_ONLY" ]; then
+            echo "::error::Writing requires the confirmation SYNTHETIC_RECORDS_ONLY."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Run
+        env:
+          MODE: ${{ inputs.mode }}
+          SYNTHETIC_COUNT: ${{ inputs.count }}
+          SEED_CONFIRM: ${{ inputs.confirmation }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          SYNTHETIC_STUDENT_PASSWORD: ${{ secrets.SYNTHETIC_STUDENT_PASSWORD }}
+        run: npm run seed:synthetic
