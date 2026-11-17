@@ -66,3 +66,8 @@ test('an account with a temporary password must set a new one first', async ({ p
   await expect(page).toHaveURL(/\/student\/$/);
   await expect(page.getByRole('heading', { name: 'Hello, Esi' })).toBeVisible();
 });
+
+test('the legacy fictional demo stays available under /demo/', async ({ page }) => {
+  await page.goto('/demo/');
+  await expect(page.getByText('Demonstration only')).toBeVisible();
+});

@@ -21,7 +21,7 @@ const SessionContext = createContext<SessionContextValue | undefined>(undefined)
 export const homeFor = (role: Role) => (role === 'ADMIN' ? '/admin/' : '/student/');
 
 export function SessionProvider({ children, api: provided }: { children: ReactNode; api?: ApiClient }) {
-  const [api] = useState(() => provided ?? createApiClient(process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000'));
+  const [api] = useState(() => provided ?? createApiClient(process.env.NEXT_PUBLIC_API_BASE_URL ?? ''));
   const [state, setState] = useState<SessionState>({ status: 'loading' });
 
   useEffect(() => {

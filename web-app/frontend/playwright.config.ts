@@ -11,8 +11,13 @@ export default defineConfig({
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
     { name: 'mobile', use: { ...devices['Pixel 7'] } }
   ],
-  webServer: [
-    { command: 'npm run dev:demo', cwd: '../backend', url: 'http://localhost:4000/health', reuseExistingServer: false, timeout: 60_000 },
-    { command: 'node e2e/static-server.mjs out', url: 'http://localhost:3000/', reuseExistingServer: false }
-  ]
+  // Mirrors production: one server delivers the API and the static export from the same origin.
+  webServer: {
+    command: 'npm run dev:demo',
+    cwd: '../backend',
+    env: { PORT: '3000', STATIC_DIR: '../frontend/out' },
+    url: 'http://localhost:3000/health',
+    reuseExistingServer: false,
+    timeout: 60_000
+  }
 });
