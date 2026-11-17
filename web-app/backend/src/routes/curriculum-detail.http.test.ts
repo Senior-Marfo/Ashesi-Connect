@@ -59,6 +59,27 @@ describe('review access', () => {
   });
 });
 
+describe('reviewer list by staff ID', () => {
+  it('accepts a staff ID from the stored account, and only for admins', async () => {
+    process.env.ENABLE_CURRICULUM_REVIEW = 'yes';
+    process.env.CURRICULUM_REVIEWER_IDS = 'STF-9999, STF-1001';
+    const { app, get, repositories } = await setup();
+    expect((await get('/api/v1/admin/curricula/review-access')).body).toEqual({ enabled: true, allowed: true });
+    const token = (await request(app).post('/api/v1/auth/login').send({ identifier: 'STF-1001', password: ADMIN_PASSWORD })).body.accessToken as string;
+    const reviewed = await request(app).post('/api/v1/admin/curricula/review').auth(token, { type: 'bearer' })
+      .send({ programme: 'CS', track: 'standard', version: '2028-v1', evidenceReference: 'Registry memo 7' });
+    expect(reviewed.status).toBe(200);
+    expect(await repositories.curricula.findReviewed('CS', 'standard', 2028)).toBeDefined();
+  });
+
+  it('does not match a staff ID that belongs to someone else', async () => {
+    process.env.ENABLE_CURRICULUM_REVIEW = 'yes';
+    process.env.CURRICULUM_REVIEWER_IDS = 'STF-9999';
+    const { get } = await setup();
+    expect((await get('/api/v1/admin/curricula/review-access')).body).toEqual({ enabled: true, allowed: false });
+  });
+});
+
 describe('reviewing a draft', () => {
   const body = { programme: 'CS', track: 'standard', version: '2028-v1', evidenceReference: 'Registry memo 7' };
 
