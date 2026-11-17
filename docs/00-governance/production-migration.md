@@ -1,6 +1,6 @@
 # Production migration
 
-Target repository: obeng-21/ashesi-connect. This branch is a migration workstream and is not a production release.
+Target repository: Senior-Marfo/Ashesi-Connect. This branch is a migration workstream and is not a production release.
 
 The legacy browser-local demonstration must not be used as an authoritative graduation decision system. Replace its data flow with authenticated API calls backed by MongoDB and the validated, versioned 2028 workbook rules. Preserve the legacy UI until equivalent authenticated functionality passes tests.
 

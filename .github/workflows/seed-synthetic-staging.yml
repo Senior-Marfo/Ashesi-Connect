@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   seed:
-    if: ${{ github.repository == 'obeng-21/ashesi-connect' }}
+    if: ${{ github.repository == 'Senior-Marfo/Ashesi-Connect' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: ashesi-synthetic-staging

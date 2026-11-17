@@ -5,12 +5,12 @@ The previous GitHub Pages workflow was retired after GitHub denied the Pages ena
 ## Deploy
 
 1. Connect the Render app to your account (or sign in at https://dashboard.render.com).
-2. Create a **Blueprint** from GitHub repository `obeng-21/ashesi-connect` and branch `main`, using `render.yaml`.
+2. Create a **Blueprint** from GitHub repository `Senior-Marfo/Ashesi-Connect` and branch `main`, using `render.yaml`.
 3. Review the service `ashesi-graduation-tracker-demo` and approve the deployment.
 4. Wait for the Render service status to become **Live**, then open the exact URL shown in the Render dashboard.
 
 If deploying manually as a **Static Site** instead of Blueprint:
-- Repository: `obeng-21/ashesi-connect`
+- Repository: `Senior-Marfo/Ashesi-Connect`
 - Branch: `main`
 - Build command: `echo "Publishing static Ashesi Graduation Tracker demo"`
 - Publish directory: `web-app/frontend`

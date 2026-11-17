@@ -3,7 +3,7 @@ services:
   - type: web
     name: ashesi-graduation-tracker-demo
     runtime: static
-    repo: https://github.com/obeng-21/ashesi-connect
+    repo: https://github.com/Senior-Marfo/Ashesi-Connect
     branch: main
     buildCommand: echo "Publishing static Ashesi Graduation Tracker demo"
     staticPublishPath: ./web-app/frontend
