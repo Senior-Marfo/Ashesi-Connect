@@ -5,11 +5,13 @@ export type Permission =
   | 'student:read:own'
   | 'student:read:any'
   | 'user:reset-password'
-  | 'audit-log:read';
+  | 'audit-log:read'
+  | 'curriculum:read'
+  | 'curriculum:review';
 
 const rolePermissions: Record<Role, ReadonlySet<Permission>> = {
   STUDENT: new Set(['student:read:own']),
-  ADMIN: new Set(['student:read:any', 'user:reset-password', 'audit-log:read'])
+  ADMIN: new Set(['student:read:any', 'user:reset-password', 'audit-log:read', 'curriculum:read', 'curriculum:review'])
 };
 
 export function isRole(value: unknown): value is Role {

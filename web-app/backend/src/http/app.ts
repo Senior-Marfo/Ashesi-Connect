@@ -6,6 +6,7 @@ import { join, resolve } from 'node:path';
 import type { AppConfig } from '../config.js';
 import { AuthError, AuthService } from '../auth/service.js';
 import type { Repositories } from '../repositories/types.js';
+import { curriculumAdminRouter, curriculumStudentRouter } from '../routes/curriculum.js';
 import { adminRoutes } from './admin-routes.js';
 import { authRoutes } from './auth-routes.js';
 import { authenticate, requestId, requirePasswordChanged, CSRF_HEADER } from './middleware.js';
@@ -63,8 +64,8 @@ export function createApp({ config, repositories, isHealthy }: AppDependencies):
 
   const protectedRoutes = [authenticate(config.accessTokenSecret), requirePasswordChanged()];
   app.use('/api/v1/auth', authRoutes(config, auth));
-  app.use('/api/v1/students', ...protectedRoutes, studentRoutes(repositories));
-  app.use('/api/v1/admin', ...protectedRoutes, adminRoutes(repositories, auth));
+  app.use('/api/v1/students', ...protectedRoutes, studentRoutes(repositories), curriculumStudentRouter);
+  app.use('/api/v1/admin', ...protectedRoutes, adminRoutes(repositories, auth), curriculumAdminRouter);
 
   if (config.staticDir) serveWebClient(app, resolve(config.staticDir));
 
