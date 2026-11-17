@@ -10,7 +10,8 @@ export function testConfig(overrides: NodeJS.ProcessEnv = {}): AppConfig {
   return loadConfig({ NODE_ENV: 'test', JWT_ACCESS_SECRET: 'test-secret-that-is-at-least-32-characters', CORS_ORIGINS: 'http://localhost:3000', ...overrides });
 }
 
-export async function buildTestApp(overrides: NodeJS.ProcessEnv = {}) {
+/** `now` is the application clock; tests that need time to pass supply their own. */
+export async function buildTestApp(overrides: NodeJS.ProcessEnv = {}, now: () => Date = () => new Date('2026-11-17T00:00:00Z')) {
   const { repositories, store } = createMemoryRepositories();
   const [studentHash, adminHash] = await Promise.all([hashPassword(STUDENT_PASSWORD), hashPassword(ADMIN_PASSWORD)]);
   store.users.push(
@@ -26,6 +27,6 @@ export async function buildTestApp(overrides: NodeJS.ProcessEnv = {}) {
   store.courses.set('20260002', [{ courseCode: 'BUSA 101', attempts: [{ credits: 1, grade: 'A', status: 'COMPLETED', semester: '2024-FALL' }] }]);
 
   const config = testConfig(overrides);
-  const app = createApp({ config, repositories, isHealthy: () => true, now: () => new Date('2026-11-17T00:00:00Z') });
+  const app = createApp({ config, repositories, isHealthy: () => true, now });
   return { app, store, repositories, config };
 }

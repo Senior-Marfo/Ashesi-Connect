@@ -35,7 +35,8 @@ const ADMIN_ROUTES: Array<['get' | 'post' | 'put' | 'patch' | 'delete', string]>
   ['post', '/api/v1/admin/records/students'],
   ['patch', '/api/v1/admin/records/students/20260002'],
   ['put', '/api/v1/admin/records/students/20260002/courses/CS%20111'],
-  ['delete', '/api/v1/admin/records/students/20260002/courses/CS%20111']
+  ['delete', '/api/v1/admin/records/students/20260002/courses/CS%20111'],
+  ['delete', '/api/v1/admin/messages/message-1']
 ];
 
 async function tokenFor(app: Awaited<ReturnType<typeof buildTestApp>>['app'], identifier: string, password: string): Promise<string> {

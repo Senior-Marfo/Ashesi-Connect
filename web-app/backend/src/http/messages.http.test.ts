@@ -88,3 +88,35 @@ describe('messaging', () => {
     expect((await request(app).get('/api/v1/students/me/messages')).status).toBe(401);
   });
 });
+
+describe('scheduled messages', () => {
+  it('delivers at the scheduled time, shows as scheduled until then, and can be cancelled only before', async () => {
+    let clock = new Date('2026-11-17T09:00:00Z');
+    const built = await buildTestApp({}, () => clock);
+    const admin = await login(built.app, 'STF-1001', ADMIN_PASSWORD);
+    const one = await login(built.app, '20260001', STUDENT_PASSWORD);
+    const send = (sendAt: string, title = 'Audit week') => request(built.app).post('/api/v1/admin/messages').auth(admin, { type: 'bearer' })
+      .send({ title, body: 'Your audit review is next week.', audience: { kind: 'STUDENTS', studentIds: ['20260001'] }, sendAt });
+    const inbox = async () => (await request(built.app).get('/api/v1/students/me/messages').auth(one, { type: 'bearer' })).body;
+
+    for (const sendAt of ['2026-11-17T09:00:30Z', '2026-11-16T09:00:00Z', '2027-06-01T00:00:00Z', 'tomorrow']) {
+      expect((await send(sendAt)).status).toBe(400);
+    }
+    const scheduled = await send('2026-11-18T08:00:00+00:00');
+    expect(scheduled.status).toBe(201);
+    expect(built.store.auditLog.find(entry => entry.action === 'ADMIN_MESSAGE_SENT')?.metadata).toMatchObject({ scheduledFor: '2026-11-18T08:00:00.000Z' });
+    expect(await inbox()).toEqual({ messages: [], unread: 0 });
+    const listed = (await request(built.app).get('/api/v1/admin/messages').auth(admin, { type: 'bearer' })).body.messages;
+    expect(listed[0]).toMatchObject({ title: 'Audit week', scheduled: true, sentAt: '2026-11-18T08:00:00.000Z' });
+
+    clock = new Date('2026-11-18T08:00:01Z');
+    expect((await inbox()).unread).toBe(1);
+    expect((await request(built.app).delete(`/api/v1/admin/messages/${scheduled.body.message.id}`).auth(admin, { type: 'bearer' })).status).toBe(409);
+
+    const later = await send('2026-11-25T08:00:00Z', 'Cancelled reminder');
+    expect((await request(built.app).delete(`/api/v1/admin/messages/${later.body.message.id}`).auth(admin, { type: 'bearer' })).status).toBe(204);
+    clock = new Date('2026-11-26T00:00:00Z');
+    expect((await inbox()).messages.map((message: { title: string }) => message.title)).toEqual(['Audit week']);
+    expect(built.store.auditLog.filter(entry => entry.action === 'ADMIN_MESSAGE_CANCELLED')).toHaveLength(1);
+  });
+});

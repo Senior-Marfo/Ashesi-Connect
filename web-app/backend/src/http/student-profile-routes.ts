@@ -53,7 +53,7 @@ export function studentProfileRoutes(repositories: Repositories, now: () => Date
       res.status(404).json({ error: 'NOT_FOUND' });
       return;
     }
-    res.json({ messages: await repositories.messages.inbox(student.studentId, 50) });
+    res.json({ messages: await repositories.messages.inbox(student.studentId, 50, now()) });
   }));
 
   router.post('/:studentId/audit-export', requirePermission('student:read:any'), asyncHandler(async (req, res) => {

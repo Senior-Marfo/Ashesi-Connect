@@ -53,6 +53,15 @@ export function reportRoutes(repositories: Repositories, now: () => Date): Route
     return { filters: parsed.data, reports };
   };
 
+  /** Reach of every delivered message; scheduled ones are left out until they go out. Not narrowed by the filters. */
+  const messagingReach = async () => {
+    const at = now();
+    const delivered = (await repositories.messages.listSent(1000)).filter(message => message.sentAt <= at);
+    const recipients = delivered.reduce((sum, message) => sum + message.recipientCount, 0);
+    const read = delivered.reduce((sum, message) => sum + message.readCount, 0);
+    return { messages: delivered.length, recipients, read, readRate: recipients > 0 ? Math.round((1000 * read) / recipients) / 10 : null };
+  };
+
   const audit = (req: Request, metadata: Record<string, string | number>) => repositories.auditLog.append({
     action: 'ADMIN_REPORTS_VIEWED', actorId: req.auth?.sub, actorRole: req.auth?.role, metadata, requestId: req.requestId, ip: req.ip, at: new Date()
   });
@@ -62,7 +71,7 @@ export function reportRoutes(repositories: Repositories, now: () => Date): Route
     if (!result) return;
     await audit(req, { ...result.filters });
     res.setHeader('cache-control', 'no-store');
-    res.json({ generatedAt: now().toISOString(), filters: result.filters, ...result.reports });
+    res.json({ generatedAt: now().toISOString(), filters: result.filters, ...result.reports, messaging: await messagingReach() });
   }));
 
   router.get('/:section.csv', requirePermission('report:read'), asyncHandler(async (req, res) => {

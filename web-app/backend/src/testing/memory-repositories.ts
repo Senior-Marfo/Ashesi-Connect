@@ -103,22 +103,29 @@ export function createMemoryRepositories(): { repositories: Repositories; store:
         for (const studentId of recipientIds) store.receipts.push({ messageId: record.id, studentId, deliveredAt: message.sentAt });
         return structuredClone(record);
       },
-      async inbox(studentId, limit) {
-        return store.receipts.filter(receipt => receipt.studentId === studentId)
+      async inbox(studentId, limit, now) {
+        return store.receipts.filter(receipt => receipt.studentId === studentId && receipt.deliveredAt <= now)
           .sort((a, b) => b.deliveredAt.getTime() - a.deliveredAt.getTime()).slice(0, limit)
           .flatMap(receipt => {
             const message = store.messages.find(candidate => candidate.id === receipt.messageId);
             return message ? [{ id: message.id, title: message.title, body: message.body, priority: message.priority, sentAt: message.sentAt, readAt: receipt.readAt }] : [];
           });
       },
-      unreadCount: async studentId => store.receipts.filter(receipt => receipt.studentId === studentId && !receipt.readAt).length,
-      async markRead(studentId, messageId) {
-        const pending = store.receipts.filter(receipt => receipt.studentId === studentId && !receipt.readAt && (!messageId || receipt.messageId === messageId));
+      unreadCount: async (studentId, now) => store.receipts.filter(receipt => receipt.studentId === studentId && !receipt.readAt && receipt.deliveredAt <= now).length,
+      async markRead(studentId, now, messageId) {
+        const pending = store.receipts.filter(receipt => receipt.studentId === studentId && !receipt.readAt && receipt.deliveredAt <= now && (!messageId || receipt.messageId === messageId));
         for (const receipt of pending) receipt.readAt = new Date();
         return pending.length;
       },
       listSent: async limit => [...store.messages].sort((a, b) => b.sentAt.getTime() - a.sentAt.getTime()).slice(0, limit)
-        .map(message => ({ ...structuredClone(message), readCount: store.receipts.filter(receipt => receipt.messageId === message.id && receipt.readAt).length }))
+        .map(message => ({ ...structuredClone(message), readCount: store.receipts.filter(receipt => receipt.messageId === message.id && receipt.readAt).length })),
+      async cancelScheduled(messageId, now) {
+        const message = store.messages.find(candidate => candidate.id === messageId);
+        if (!message || message.sentAt <= now) return false;
+        store.messages = store.messages.filter(candidate => candidate.id !== messageId);
+        store.receipts = store.receipts.filter(receipt => receipt.messageId !== messageId);
+        return true;
+      }
     },
     curricula: {
       async findReviewed(programme, track, yearGroup) {

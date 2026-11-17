@@ -8,6 +8,8 @@ import { standingLabels } from '../../../lib/labels';
 import { saveBlob } from '../../../lib/download';
 import { useRequireRole, useSession } from '../../../lib/session';
 
+/** The messaging API accepts at most this many named students. */
+const MAX_RECIPIENTS = 500;
 const PROGRAMMES = ['BA', 'ECON', 'LLB', 'MIS', 'CS', 'CE', 'EE', 'ME', 'MT', 'BE'];
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_GROUPS = Array.from({ length: 7 }, (_, index) => CURRENT_YEAR - 2 + index);
@@ -41,6 +43,7 @@ export default function RegisterPageView() {
   const [query, setQuery] = useState<RegisterQuery>({ sort: 'studentId', order: 'asc', page: 1 });
   const [load, setLoad] = useState<Load>({ status: 'loading' });
   const [exporting, setExporting] = useState(false);
+  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [exportError, setExportError] = useState(false);
 
   useEffect(() => {
@@ -75,7 +78,7 @@ export default function RegisterPageView() {
   return (
     <AppShell eyebrow="Registry workspace" title="Student register" nav={ADMIN_NAV}>
       <p className="caption">
-        Passed credits use the provisional D+ pass mark until the Registry confirms course thresholds. Standing is advisory. It is shown only where a curriculum applies: a Registry-reviewed one for real students, or the illustrative synthetic rules for synthetic records. Otherwise it reads “Not determined”.
+        Passed credits use each course’s pass mark: D+ unless one is set under Settings → Course pass marks. Standing is advisory. It is shown only where a curriculum applies: a Registry-reviewed one for real students, or the illustrative synthetic rules for synthetic records. Otherwise it reads “Not determined”.
       </p>
       <div className="filters" role="group" aria-label="Filters">
         <label className="field">Programme
@@ -107,6 +110,13 @@ export default function RegisterPageView() {
         </button>
       </div>
       {exportError && <Notice tone="error">The CSV could not be downloaded. Try again.</Notice>}
+      {selected.size > 0 && (
+        <div className="selection-bar no-print" role="region" aria-label="Selected students">
+          <span><strong>{selected.size}</strong> selected{selected.size > MAX_RECIPIENTS ? ` (messages go to at most ${MAX_RECIPIENTS} named students)` : ''}</span>
+          {selected.size <= MAX_RECIPIENTS && <Link className="button" href={`/admin/messages/?to=${[...selected].map(encodeURIComponent).join(',')}`}>Message selected</Link>}
+          <button type="button" className="link-button" onClick={() => setSelected(new Set())}>Clear selection</button>
+        </div>
+      )}
 
       {page && (
         <dl className="figures register-counts">
@@ -128,6 +138,15 @@ export default function RegisterPageView() {
               <caption className="visually-hidden">Student register, sortable by column</caption>
               <thead>
                 <tr>
+                  <th scope="col" className="select-cell">
+                    <input type="checkbox" aria-label="Select every student on this page"
+                      checked={page.rows.every(row => selected.has(row.studentId))}
+                      onChange={event => setSelected(current => {
+                        const next = new Set(current);
+                        for (const row of page.rows) if (event.target.checked) next.add(row.studentId); else next.delete(row.studentId);
+                        return next;
+                      })} />
+                  </th>
                   {COLUMNS.map(column => (
                     <th key={column.key} scope="col" className={column.numeric ? 'num' : undefined}
                       aria-sort={query.sort === column.key ? (query.order === 'asc' ? 'ascending' : 'descending') : undefined}>
@@ -141,7 +160,15 @@ export default function RegisterPageView() {
               </thead>
               <tbody>
                 {page.rows.map(row => (
-                  <tr key={row.studentId}>
+                  <tr key={row.studentId} data-selected={selected.has(row.studentId) || undefined}>
+                    <td className="select-cell">
+                      <input type="checkbox" aria-label={`Select ${row.studentId}`} checked={selected.has(row.studentId)}
+                        onChange={() => setSelected(current => {
+                          const next = new Set(current);
+                          if (next.has(row.studentId)) next.delete(row.studentId); else next.add(row.studentId);
+                          return next;
+                        })} />
+                    </td>
                     <th scope="row"><Link className="mono" href={`/admin/?student=${encodeURIComponent(row.studentId)}`}>{row.studentId}</Link></th>
                     <td>{row.fullName}{row.synthetic && <span className="tag">Synthetic</span>}</td>
                     <td>{row.programme}</td>

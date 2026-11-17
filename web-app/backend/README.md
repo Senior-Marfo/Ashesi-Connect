@@ -55,6 +55,7 @@ npm test               # unit and HTTP tests; no database needed
 | POST | `/api/v1/admin/records/students` | `records:edit`; creates a student and a locked account |
 | PATCH | `/api/v1/admin/records/students/:studentId` | `records:edit`; name, programme, year group, track |
 | PUT/DELETE | `/api/v1/admin/records/students/:studentId/courses/:courseCode` | `records:edit`; body `{ attempts: [...] }`, oldest first; synthetic records refused (`409`) |
+| DELETE | `/api/v1/admin/messages/:messageId` | `message:send`; cancels a scheduled message before delivery (`409` otherwise) |
 | GET | `/api/v1/admin/settings/pass-marks` | `settings:manage`; per-course pass marks (default D+) |
 | PUT/DELETE | `/api/v1/admin/settings/pass-marks/:courseCode` | `settings:manage`; body `{ minimumGrade: 'D+' \| 'C', note? }`, audit-logged |
 | GET | `/api/v1/admin/reports` | `report:read`; filters `programme`, `yearGroup` |

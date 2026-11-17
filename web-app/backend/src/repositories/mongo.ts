@@ -160,8 +160,8 @@ export function createMongoRepositories(): Repositories {
         }
         return { ...message, id: messageId, recipientCount: recipientIds.length };
       },
-      async inbox(studentId, limit) {
-        const receipts = await MessageReceipt.find({ studentId }).sort({ deliveredAt: -1 }).limit(limit).lean();
+      async inbox(studentId, limit, now) {
+        const receipts = await MessageReceipt.find({ studentId, deliveredAt: { $lte: now } }).sort({ deliveredAt: -1 }).limit(limit).lean();
         const messages = await Message.find({ _id: { $in: receipts.map(receipt => receipt.messageId).filter(isValidObjectId) } }).lean();
         const byId = new Map(messages.map(message => [String(message._id), message]));
         return receipts.flatMap(receipt => {
@@ -172,10 +172,17 @@ export function createMongoRepositories(): Repositories {
           }] : [];
         });
       },
-      unreadCount: studentId => MessageReceipt.countDocuments({ studentId, readAt: { $exists: false } }),
-      async markRead(studentId, messageId) {
-        const result = await MessageReceipt.updateMany({ studentId, readAt: { $exists: false }, ...(messageId ? { messageId } : {}) }, { $set: { readAt: new Date() } });
+      unreadCount: (studentId, now) => MessageReceipt.countDocuments({ studentId, deliveredAt: { $lte: now }, readAt: { $exists: false } }),
+      async markRead(studentId, now, messageId) {
+        const result = await MessageReceipt.updateMany({ studentId, deliveredAt: { $lte: now }, readAt: { $exists: false }, ...(messageId ? { messageId } : {}) }, { $set: { readAt: now } });
         return result.modifiedCount;
+      },
+      async cancelScheduled(messageId, now) {
+        if (!isValidObjectId(messageId)) return false;
+        const deleted = await Message.deleteOne({ _id: messageId, sentAt: { $gt: now } });
+        if (deleted.deletedCount !== 1) return false;
+        await MessageReceipt.deleteMany({ messageId });
+        return true;
       },
       async listSent(limit) {
         const messages = await Message.find({}).sort({ sentAt: -1 }).limit(limit).lean();

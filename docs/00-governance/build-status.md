@@ -17,6 +17,10 @@ This branch is under active development and MUST NOT be deployed as a university
 - US-02 to US-05 student screens: status card with standing and progress ring, requirement tree, remaining-work plan, and courses marked Passed / Below pass mark. They use a Registry-reviewed curriculum for real students and illustrative synthetic rules for synthetic students only.
 - Settings: adjustable standing thresholds used by every assessment, admin account creation with temporary passwords, and an audit-log viewer.
 - Manual records: admins add a single student (with a locked account, as with imports), edit their details, and add, correct or remove course records with their full attempt history. Synthetic records are read-only. Every change is audit-logged with before and after values.
+- Scheduled messages: admins pick a delivery time up to 180 days ahead and can cancel before it. Recipients are fixed when the message is created, and inboxes show it only once delivered.
+- Register bulk selection: select students across pages and filters, then message them.
+- Reports: credits still to complete and projected graduation for current year groups, plus messaging reach (delivered, deliveries, read rate).
+- Student profile page with programme, year group, track and expected graduation, linking to password change (admins reach it from Settings).
 - Course pass marks: admins set D+ or C per course, citing a source. Every audit, the register, reports and course summaries use them, and changes are audit-logged. No course is set to C until the Registry confirms one.
 - Record imports: CSV import of students and course records with a row-level preview, all-or-nothing apply, batch history and exact undo. New student accounts stay locked until an admin issues a temporary password.
 - US-11 and US-12 messaging: admins compose messages (with templates) for all students, a programme, a year group, a standing or specific IDs, with a live recipient count, audit logging and read receipts. Students have an inbox with an unread badge and mark-as-read.

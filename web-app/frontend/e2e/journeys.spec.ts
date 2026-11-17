@@ -308,3 +308,55 @@ test('admin adds a student by hand, corrects their details and records a course 
   await page.getByRole('button', { name: 'Edit record' }).click();
   await expect(page.getByText(/Synthetic records are managed by the seeding workflow/)).toBeVisible();
 });
+
+test('admin selects students in the register, schedules a message to them, then cancels it', async ({ page }) => {
+  await signIn(page, 'STF-1001');
+  await page.getByRole('link', { name: 'Register' }).click();
+  await page.getByLabel('Programme').selectOption('BA');
+  await expect(page.getByText(/· 7 students/)).toBeVisible();
+  await page.getByLabel('Select every student on this page').check();
+  const bar = page.getByRole('region', { name: 'Selected students' });
+  await expect(bar).toContainText('7 selected');
+  await page.getByLabel('Select 20280002').uncheck();
+  await expect(bar).toContainText('6 selected');
+  await bar.getByRole('link', { name: 'Message selected' }).click();
+
+  await expect(page).toHaveURL(/\/admin\/messages\/\?to=/);
+  await expect(page.getByLabel('Send to')).toHaveValue('STUDENTS');
+  await expect(page.getByText('6 recipients')).toBeVisible();
+  const title = `Scheduled check ${Date.now()}`;
+  await page.getByLabel('Title', { exact: true }).fill(title);
+  await page.getByLabel('Message', { exact: true }).fill('Your audit review is next week.');
+  await page.getByLabel('Send later').check();
+  const tomorrow = new Date(Date.now() + 86_400_000);
+  await page.getByLabel('Delivery time').fill(new Date(tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60_000).toISOString().slice(0, 16));
+  page.once('dialog', dialog => void dialog.accept());
+  await page.getByRole('button', { name: 'Schedule message' }).click();
+  await expect(page.getByText(/Scheduled for .* to 6 students\./)).toBeVisible();
+
+  const item = page.locator('.sent-list > li', { hasText: title });
+  await expect(item).toContainText('Scheduled for');
+  page.once('dialog', dialog => void dialog.accept());
+  await item.getByRole('button', { name: 'Cancel scheduled message' }).click();
+  await expect(page.getByText(`Cancelled “${title}”.`)).toBeVisible();
+  await expect(page.locator('.sent-list > li', { hasText: title })).toHaveCount(0);
+});
+
+test('reports show the outlook for current year groups and messaging reach', async ({ page }) => {
+  await signIn(page, 'STF-1001');
+  await page.getByRole('link', { name: 'Reports' }).click();
+  const outlook = page.getByRole('region', { name: 'Outlook for current year groups' });
+  await expect(outlook.getByRole('img', { name: 'Students by credits still to complete' })).toBeVisible();
+  await expect(outlook.getByRole('columnheader', { name: 'Likely later' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Messaging reach' })).toContainText('Messages delivered');
+});
+
+test('a student reads their profile and reaches the password change', async ({ page }) => {
+  await signIn(page, '20280001');
+  await page.getByRole('link', { name: 'Profile' }).click();
+  await expect(page.getByRole('heading', { name: 'Profile and security' })).toBeVisible();
+  await expect(page.locator('.facts')).toContainText('20280001');
+  await expect(page.locator('.facts')).toContainText('Standard');
+  await page.getByRole('link', { name: 'Change password' }).click();
+  await expect(page.getByRole('heading', { name: 'Change password' })).toBeVisible();
+});

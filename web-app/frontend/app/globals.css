@@ -73,6 +73,7 @@ body { margin: 0; background: var(--surface); color: var(--ink); font: 16px/1.5 
 .input:focus { border-color: var(--maroon); outline: none; box-shadow: 0 0 0 3px var(--maroon-tint); }
 
 .button { font: 600 15px var(--font-ui); min-height: 48px; padding: 0 var(--space-5); border-radius: var(--radius); border: 1px solid var(--maroon); background: var(--maroon); color: #fff; cursor: pointer; transition: background 120ms ease; }
+a.button { display: inline-flex; align-items: center; text-decoration: none; }
 .button:hover { background: var(--maroon-strong); }
 .button:disabled { opacity: 0.6; cursor: progress; }
 .button.ghost { background: transparent; color: var(--ink); border-color: var(--line); min-height: 40px; padding: 0 var(--space-4); }
@@ -290,6 +291,22 @@ body { margin: 0; background: var(--surface); color: var(--ink); font: 16px/1.5 
 .report-table .meter-list { margin: 0; min-width: 160px; }
 .report-kpis { margin-top: var(--space-5); }
 .field.inline { grid-auto-flow: column; align-items: center; gap: var(--space-2); }
+
+/* Register selection */
+.select-cell { width: 40px; }
+.select-cell input { width: 18px; height: 18px; accent-color: var(--maroon); }
+.register tr[data-selected] { background: var(--maroon-tint); }
+.selection-bar { display: flex; gap: var(--space-4); align-items: center; flex-wrap: wrap; margin: var(--space-4) 0; padding: var(--space-3) var(--space-4); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); position: sticky; top: var(--space-2); z-index: 2; }
+.selection-bar .button { min-height: 40px; }
+
+/* Scheduled messages */
+.schedule { display: grid; gap: var(--space-3); }
+.check { display: flex; gap: var(--space-2); align-items: center; font-size: 14px; font-weight: 600; }
+.check input { width: 18px; height: 18px; accent-color: var(--maroon); }
+
+/* Report outlook */
+.outlook { display: grid; gap: var(--space-6); }
+@media (min-width: 960px) { .outlook { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
 
 /* Manual record editing */
 .record-editor { display: grid; gap: var(--space-6); margin: 0 0 var(--space-6); padding: var(--space-5); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }

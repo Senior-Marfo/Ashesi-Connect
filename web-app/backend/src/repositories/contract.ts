@@ -116,23 +116,43 @@ export function repositoryContract(name: string, harness: ContractHarness) {
       const second = await messages.send({ title: 'Retake', body: 'Register for MATH 141.', priority: 'HIGH', audience: { kind: 'STUDENTS', studentIds: ['20280001'] }, senderId: 'admin', sentAt: new Date('2026-11-02T00:00:00Z') }, ['20280001']);
       expect(first.recipientCount).toBe(2);
 
-      const inbox = await messages.inbox('20280001', 10);
+      const NOW = new Date('2026-11-17T00:00:00Z');
+      const inbox = await messages.inbox('20280001', 10, NOW);
       expect(inbox.map(item => item.title)).toEqual(['Retake', 'Audit review']);
       expect(inbox[0]).toMatchObject({ id: second.id, priority: 'HIGH' });
       expect(inbox[0].readAt).toBeUndefined();
-      expect(await messages.unreadCount('20280001')).toBe(2);
+      expect(await messages.unreadCount('20280001', NOW)).toBe(2);
 
-      expect(await messages.markRead('20280001', second.id)).toBe(1);
-      expect(await messages.markRead('20280001', second.id)).toBe(0);
-      expect(await messages.unreadCount('20280001')).toBe(1);
-      expect(await messages.markRead('20280001')).toBe(1);
-      expect(await messages.unreadCount('20280001')).toBe(0);
-      expect(await messages.unreadCount('20280002')).toBe(1);
-      expect(await messages.inbox('nobody', 10)).toEqual([]);
+      expect(await messages.markRead('20280001', NOW, second.id)).toBe(1);
+      expect(await messages.markRead('20280001', NOW, second.id)).toBe(0);
+      expect(await messages.unreadCount('20280001', NOW)).toBe(1);
+      expect(await messages.markRead('20280001', NOW)).toBe(1);
+      expect(await messages.unreadCount('20280001', NOW)).toBe(0);
+      expect(await messages.unreadCount('20280002', NOW)).toBe(1);
+      expect(await messages.inbox('nobody', 10, NOW)).toEqual([]);
 
       const sent = await messages.listSent(10);
       expect(sent.map(message => [message.title, message.recipientCount, message.readCount])).toEqual([['Retake', 1, 1], ['Audit review', 2, 1]]);
       expect(sent[1].audience).toEqual({ kind: 'ALL_STUDENTS' });
+    });
+
+    it('holds scheduled messages back until their time and lets them be cancelled before then', async () => {
+      const { messages } = harness.repositories();
+      const before = new Date('2026-11-17T00:00:00Z');
+      const after = new Date('2026-11-20T00:00:00Z');
+      const scheduled = await messages.send({ title: 'Later', body: 'Reminder.', priority: 'NORMAL', audience: { kind: 'ALL_STUDENTS' }, senderId: 'admin', sentAt: new Date('2026-11-18T08:00:00Z') }, ['20280001']);
+      expect(await messages.inbox('20280001', 10, before)).toEqual([]);
+      expect(await messages.unreadCount('20280001', before)).toBe(0);
+      expect(await messages.markRead('20280001', before)).toBe(0);
+      expect((await messages.inbox('20280001', 10, after)).map(item => item.title)).toEqual(['Later']);
+      expect(await messages.unreadCount('20280001', after)).toBe(1);
+
+      expect(await messages.cancelScheduled(scheduled.id, after)).toBe(false);
+      expect(await messages.cancelScheduled(scheduled.id, before)).toBe(true);
+      expect(await messages.cancelScheduled(scheduled.id, before)).toBe(false);
+      expect(await messages.inbox('20280001', 10, after)).toEqual([]);
+      expect(await messages.listSent(10)).toEqual([]);
+      expect(await messages.cancelScheduled('not-an-id', before)).toBe(false);
     });
 
     it('writes, replaces and removes students, courses and accounts', async () => {

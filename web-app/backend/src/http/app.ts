@@ -75,7 +75,7 @@ export function createApp({ config, repositories, isHealthy, now = () => new Dat
   const protectedRoutes = [authenticate(config.accessTokenSecret), requirePasswordChanged()];
   app.use('/api/v1/auth', authRoutes(config, auth));
   app.use('/api/v1/students', ...protectedRoutes, studentRoutes(repositories, now), curriculumStudentRouter);
-  app.use('/api/v1/students/me/messages', ...protectedRoutes, studentMessageRoutes(repositories));
+  app.use('/api/v1/students/me/messages', ...protectedRoutes, studentMessageRoutes(repositories, now));
   app.use('/api/v1/admin/messages', ...protectedRoutes, adminMessageRoutes(repositories, now));
   app.use('/api/v1/admin/reports', ...protectedRoutes, reportRoutes(repositories, now));
   app.use('/api/v1/admin/imports', ...protectedRoutes, importRoutes(config, repositories, now));

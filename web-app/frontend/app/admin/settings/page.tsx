@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useEffect, useState, type FormEvent } from 'react';
 import { ADMIN_NAV, AppShell, FullPageLoading, Notice, SkeletonRows } from '../../../components/app-shell';
 import { PassMarks } from '../../../components/pass-marks';
@@ -155,6 +156,9 @@ export default function SettingsPage() {
         <section aria-labelledby="admins-heading">
           <h2 id="admins-heading" className="section-title">Administrators</h2>
           <Admins />
+          <h3 className="subhead">Your account</h3>
+          <p className="caption">Changing your password signs you out on every other device.</p>
+          <Link className="button ghost" href="/change-password/">Change your password</Link>
         </section>
       </div>
       <section aria-labelledby="pass-marks-heading" className="report-section">

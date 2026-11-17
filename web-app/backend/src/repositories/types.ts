@@ -67,7 +67,8 @@ export type AuditAction =
   | 'ADMIN_STUDENT_CREATED'
   | 'ADMIN_STUDENT_UPDATED'
   | 'ADMIN_COURSE_RECORD_UPDATED'
-  | 'ADMIN_COURSE_RECORD_REMOVED';
+  | 'ADMIN_COURSE_RECORD_REMOVED'
+  | 'ADMIN_MESSAGE_CANCELLED';
 
 export interface AuditEntry {
   action: AuditAction;
@@ -163,6 +164,7 @@ export interface MessageRecord {
   priority: MessagePriority;
   audience: MessageAudience;
   senderId: string;
+  /** When it reaches inboxes; a future time means the message is scheduled. */
   sentAt: Date;
   recipientCount: number;
 }
@@ -177,13 +179,17 @@ export interface InboxItem {
 }
 
 export interface MessageRepository {
-  /** Stores the message and one receipt per recipient (delivery to the in-app inbox). */
+  /** Stores the message and one receipt per recipient, delivered to the in-app inbox at `sentAt`. */
   send(message: Omit<MessageRecord, 'id' | 'recipientCount'>, recipientIds: string[]): Promise<MessageRecord>;
-  inbox(studentId: string, limit: number): Promise<InboxItem[]>;
-  unreadCount(studentId: string): Promise<number>;
-  /** Marks one message, or every message when no ID is given, as read; returns how many changed. */
-  markRead(studentId: string, messageId?: string): Promise<number>;
+  /** Messages delivered by `now`, newest first; scheduled ones stay hidden until then. */
+  inbox(studentId: string, limit: number, now: Date): Promise<InboxItem[]>;
+  unreadCount(studentId: string, now: Date): Promise<number>;
+  /** Marks one delivered message, or every delivered message when no ID is given, as read; returns how many changed. */
+  markRead(studentId: string, now: Date, messageId?: string): Promise<number>;
+  /** Newest send time first, scheduled messages included. */
   listSent(limit: number): Promise<Array<MessageRecord & { readCount: number }>>;
+  /** Deletes a message and its receipts if it has not been delivered by `now`; resolves whether it did. */
+  cancelScheduled(messageId: string, now: Date): Promise<boolean>;
 }
 
 export type ImportKind = 'STUDENTS' | 'COURSES';

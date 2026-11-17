@@ -53,8 +53,27 @@ export interface CourseOutcome {
   grades: Record<Grade, number>;
 }
 
+/** Bands of credits still outstanding after courses in progress, for students still studying. */
+export const CREDIT_BANDS = ['0', '0.5–4', '4.5–8', '8.5–16', 'Over 16'] as const;
+export type CreditBand = (typeof CREDIT_BANDS)[number];
+
+/** Where each assessed, current year group is heading, judged by advisory standing. */
+export interface GraduationProjection {
+  yearGroup: number;
+  /** The year group's planned graduation term. */
+  term: string;
+  /** Green: on track for the planned term. */
+  onPlan: number;
+  /** Yellow: can still finish on time but needs attention. */
+  atRisk: number;
+  /** Red: not enough terms left at the maximum load, so likely to finish later. */
+  likelyLater: number;
+}
+
 export interface Reports {
   totals: { students: number; assessed: number; graduatedCohorts: number[] };
+  creditsRemaining: Record<CreditBand, number>;
+  projections: GraduationProjection[];
   standings: StandingCounts;
   cohortOutcomes: CohortOutcome[];
   cohortProgress: CohortProgress[];
@@ -81,6 +100,13 @@ function nonCompletionReasons(student: ReportStudent): Set<NonCompletionReason> 
   }
   if (student.assessment.audit?.remainingRequirements.some(item => item.reason === 'FAILED' && item.category === 'Capstone')) reasons.add('CAPSTONE_OUTSTANDING');
   return reasons;
+}
+
+function creditBand(credits: number): CreditBand {
+  if (credits <= 0) return '0';
+  if (credits <= 4) return '0.5–4';
+  if (credits <= 8) return '4.5–8';
+  return credits <= 16 ? '8.5–16' : 'Over 16';
 }
 
 function groupBy<K>(students: ReportStudent[], key: (student: ReportStudent) => K): Map<K, ReportStudent[]> {
@@ -160,8 +186,21 @@ export function buildReports(students: ReportStudent[], marks: PassMarks): Repor
     };
   });
 
+  const current = students.filter(student => !student.graduated && student.assessment.standing);
+  const creditsRemaining = Object.fromEntries(CREDIT_BANDS.map(band => [band, 0])) as Record<CreditBand, number>;
+  for (const student of current) creditsRemaining[creditBand(student.assessment.standing!.creditsOutstanding)] += 1;
+  const projections = [...groupBy(current, student => student.assessment.student.yearGroup)].sort(([a], [b]) => a - b).map(([yearGroup, group]) => ({
+    yearGroup,
+    term: group[0].assessment.expectedGraduation,
+    onPlan: group.filter(student => standingOf(student) === 'GREEN').length,
+    atRisk: group.filter(student => standingOf(student) === 'YELLOW').length,
+    likelyLater: group.filter(student => standingOf(student) === 'RED').length
+  }));
+
   return {
     totals: { students: students.length, assessed: students.filter(isAssessed).length, graduatedCohorts: cohortOutcomes.map(cohort => cohort.yearGroup) },
+    creditsRemaining,
+    projections,
     standings,
     cohortOutcomes,
     cohortProgress,

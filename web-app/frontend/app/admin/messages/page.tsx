@@ -12,6 +12,10 @@ const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_GROUPS = Array.from({ length: 6 }, (_, index) => CURRENT_YEAR - 1 + index);
 type AudienceKind = MessageAudience['kind'];
 
+const formatWhen = (iso: string) => new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+/** A local date-time in the format datetime-local inputs use. */
+const localInputValue = (date: Date) => new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+
 function describeAudience(audience: MessageAudience): string {
   switch (audience.kind) {
     case 'ALL_STUDENTS': return 'All students';
@@ -41,6 +45,19 @@ export default function MessagesPage() {
   const [preview, setPreview] = useState<{ recipientCount: number; unknownIds: string[] } | null>(null);
   const [status, setStatus] = useState<{ tone: 'info' | 'error'; text: string } | null>(null);
   const [sending, setSending] = useState(false);
+  const [later, setLater] = useState(false);
+  const [sendAt, setSendAt] = useState('');
+
+  // The register links here with ?to=<id>,<id> after selecting students.
+  useEffect(() => {
+    const to = new URLSearchParams(window.location.search).get('to');
+    if (!to) return;
+    const selected = to.split(',').filter(id => /^[\w-]{1,64}$/.test(id));
+    if (selected.length) {
+      setKind('STUDENTS');
+      setIds(selected.join(', '));
+    }
+  }, []);
 
   const studentIds = ids.split(/[\s,;]+/).map(id => id.trim()).filter(Boolean);
   const audience: MessageAudience =
@@ -75,21 +92,39 @@ export default function MessagesPage() {
     setPriority(template.priority);
   }
 
+  async function cancel(message: SentMessage) {
+    if (!window.confirm(`Cancel “${message.title}”? It will not be delivered.`)) return;
+    try {
+      await api.cancelMessage(message.id);
+      setStatus({ tone: 'info', text: `Cancelled “${message.title}”.` });
+    } catch (cause) {
+      setStatus({ tone: 'error', text: cause instanceof ApiError && cause.code === 'NOT_CANCELLABLE' ? cause.message : 'The message could not be cancelled.' });
+    }
+    setSentVersion(current => current + 1);
+  }
+
   async function send(event: FormEvent) {
     event.preventDefault();
     if (!preview || preview.recipientCount === 0) return;
-    if (!window.confirm(`Send “${title.trim()}” to ${preview.recipientCount} student${preview.recipientCount === 1 ? '' : 's'}?`)) return;
+    const scheduledFor = later && sendAt ? new Date(sendAt) : undefined;
+    const recipients = `${preview.recipientCount} student${preview.recipientCount === 1 ? '' : 's'}`;
+    if (!window.confirm(scheduledFor ? `Schedule “${title.trim()}” for ${formatWhen(scheduledFor.toISOString())} to ${recipients}?` : `Send “${title.trim()}” to ${recipients}?`)) return;
     setSending(true);
     setStatus(null);
     try {
-      const result = await api.sendMessage({ title, body, priority, audience });
-      setStatus({ tone: 'info', text: `Sent to ${result.message.recipientCount} student${result.message.recipientCount === 1 ? '' : 's'}.${result.unknownIds.length ? ` Unknown IDs skipped: ${result.unknownIds.join(', ')}.` : ''}` });
+      const result = await api.sendMessage({ title, body, priority, audience, ...(scheduledFor ? { sendAt: scheduledFor.toISOString() } : {}) });
+      const count = `${result.message.recipientCount} student${result.message.recipientCount === 1 ? '' : 's'}`;
+      setStatus({ tone: 'info', text: `${scheduledFor ? `Scheduled for ${formatWhen(result.message.sentAt)} to` : 'Sent to'} ${count}.${result.unknownIds.length ? ` Unknown IDs skipped: ${result.unknownIds.join(', ')}.` : ''}` });
       setTitle('');
       setBody('');
       setPriority('NORMAL');
+      setLater(false);
+      setSendAt('');
       setSentVersion(current => current + 1);
     } catch (cause) {
-      setStatus({ tone: 'error', text: cause instanceof ApiError && cause.code === 'NO_RECIPIENTS' ? 'Nobody matches this audience.' : 'The message could not be sent. Check the fields and try again.' });
+      setStatus({ tone: 'error', text: cause instanceof ApiError && cause.code === 'NO_RECIPIENTS' ? 'Nobody matches this audience.'
+        : cause instanceof ApiError && cause.code === 'INVALID_SCHEDULE' ? cause.message
+        : 'The message could not be sent. Check the fields and try again.' });
     } finally {
       setSending(false);
     }
@@ -154,9 +189,18 @@ export default function MessagesPage() {
             {preview === null ? 'Choose who to send to.' : `${preview.recipientCount} recipient${preview.recipientCount === 1 ? '' : 's'}`}
             {preview && preview.unknownIds.length > 0 && <span className="muted"> · not found: {preview.unknownIds.join(', ')}</span>}
           </p>
+          <div className="schedule">
+            <label className="check"><input type="checkbox" checked={later} onChange={event => setLater(event.target.checked)} /> Send later</label>
+            {later && (
+              <label className="field">Delivery time
+                <input className="input" type="datetime-local" required value={sendAt} min={localInputValue(new Date(Date.now() + 2 * 60_000))} onChange={event => setSendAt(event.target.value)} />
+                <small>Recipients are chosen now; the message reaches their inbox at this time. You can cancel it until then.</small>
+              </label>
+            )}
+          </div>
           {status && <Notice tone={status.tone}>{status.text}</Notice>}
-          <button className="button" type="submit" disabled={sending || !preview || preview.recipientCount === 0 || !title.trim() || !body.trim()}>
-            {sending ? 'Sending…' : 'Send message'}
+          <button className="button" type="submit" disabled={sending || !preview || preview.recipientCount === 0 || !title.trim() || !body.trim() || (later && !sendAt)}>
+            {sending ? 'Sending…' : later ? 'Schedule message' : 'Send message'}
           </button>
         </form>
 
@@ -173,8 +217,10 @@ export default function MessagesPage() {
                     <strong>{message.title}</strong>
                     {message.priority === 'HIGH' && <span className="tag high">High priority</span>}
                   </div>
-                  <p className="muted">{describeAudience(message.audience)} · {new Date(message.sentAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</p>
-                  <MeterList label={`Read receipts for ${message.title}`} rows={[{ key: 'read', label: '', value: message.readCount, max: message.recipientCount, display: `${message.readCount} of ${message.recipientCount} read` }]} />
+                  <p className="muted">{describeAudience(message.audience)} · {message.scheduled ? <strong>Scheduled for {formatWhen(message.sentAt)}</strong> : formatWhen(message.sentAt)}</p>
+                  {message.scheduled
+                    ? <button type="button" className="link-button" onClick={() => void cancel(message)}>Cancel scheduled message</button>
+                    : <MeterList label={`Read receipts for ${message.title}`} rows={[{ key: 'read', label: '', value: message.readCount, max: message.recipientCount, display: `${message.readCount} of ${message.recipientCount} read` }]} />}
                 </li>
               ))}
             </ul>

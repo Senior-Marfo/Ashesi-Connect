@@ -106,9 +106,9 @@ export type MessageAudience =
   | { kind: 'STANDING'; standing: StandingLevel }
   | { kind: 'STUDENTS'; studentIds: string[] };
 export interface InboxItem { id: string; title: string; body: string; priority: MessagePriority; sentAt: string; readAt?: string }
-export interface SentMessage { id: string; title: string; body: string; priority: MessagePriority; audience: MessageAudience; sentAt: string; recipientCount: number; readCount: number }
+export interface SentMessage { id: string; title: string; body: string; priority: MessagePriority; audience: MessageAudience; sentAt: string; recipientCount: number; readCount: number; scheduled?: boolean }
 export interface MessageTemplate { id: string; title: string; body: string; priority: MessagePriority }
-export interface NewMessage { title: string; body: string; priority: MessagePriority; audience: MessageAudience }
+export interface NewMessage { title: string; body: string; priority: MessagePriority; audience: MessageAudience; sendAt?: string }
 
 export type ImportKind = 'STUDENTS' | 'COURSES';
 export interface ImportPreview { kind: ImportKind; rows: number; created: number; updated: number; errorCount: number; errors: Array<{ row: number; column?: string; message: string }> }
@@ -131,6 +131,9 @@ export interface ReportFilters { programme?: string; yearGroup?: number }
 export interface Reports {
   generatedAt: string;
   totals: { students: number; assessed: number; graduatedCohorts: number[] };
+  creditsRemaining: Record<string, number>;
+  projections: Array<{ yearGroup: number; term: string; onPlan: number; atRisk: number; likelyLater: number }>;
+  messaging: { messages: number; recipients: number; read: number; readRate: number | null };
   standings: StandingCounts;
   cohortOutcomes: Array<{ yearGroup: number; students: number; assessed: number; requirementsMet: number; completionRate: number | null; reasons: Record<NonCompletionReason, number> }>;
   cohortProgress: Array<{ yearGroup: number; students: number; assessed: number; averagePercentComplete: number | null; standings: StandingCounts }>;
@@ -271,6 +274,7 @@ export function createApiClient(baseUrl: string, fetchImpl: Fetch = (input, init
     messageTemplates: () => authorised<{ templates: MessageTemplate[] }>('/api/v1/admin/messages/templates'),
     previewAudience: (audience: MessageAudience) => authorised<{ recipientCount: number; unknownIds: string[] }>('/api/v1/admin/messages/preview', { method: 'POST', body: JSON.stringify({ audience }) }),
     sendMessage: (message: NewMessage) => authorised<{ message: SentMessage; unknownIds: string[] }>('/api/v1/admin/messages', { method: 'POST', body: JSON.stringify(message) }),
+    cancelMessage: (messageId: string) => authorised<void>(`/api/v1/admin/messages/${encodeURIComponent(messageId)}`, { method: 'DELETE' }),
     sentMessages: () => authorised<{ messages: SentMessage[] }>('/api/v1/admin/messages'),
     importHistory: () => authorised<{ batches: ImportBatch[] }>('/api/v1/admin/imports'),
     previewImport: (upload: ImportUpload) => authorised<ImportPreview>('/api/v1/admin/imports/preview', { method: 'POST', body: JSON.stringify(upload) }),

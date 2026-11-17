@@ -67,6 +67,11 @@ describe('reports', () => {
     expect(strict.programmes[0].averagePassedCredits).toBe(1);
   });
 
+  it('bands outstanding credits and projects graduation for year groups still studying', () => {
+    expect(reports.creditsRemaining).toEqual({ '0': 2, '0.5–4': 0, '4.5–8': 0, '8.5–16': 0, 'Over 16': 0 });
+    expect(reports.projections).toEqual([{ yearGroup: 2028, term: '2028 Spring', onPlan: 1, atRisk: 0, likelyLater: 1 }]);
+  });
+
   it('handles an empty selection', () => {
     expect(buildReports([], new Map())).toMatchObject({ totals: { students: 0, assessed: 0, graduatedCohorts: [] }, cohortOutcomes: [], programmes: [], courses: [] });
   });

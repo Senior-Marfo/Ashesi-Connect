@@ -100,6 +100,35 @@ function ReportBody({ reports, exportCsv }: { reports: Reports; exportCsv: (sect
         </section>
       )}
 
+      {reports.projections.length > 0 && (
+        <section className="report-section" aria-labelledby="outlook">
+          <SectionHead id="outlook" title="Outlook for current year groups" />
+          <p className="caption">Credits still to complete after courses in progress, and where each year group is heading against its planned graduation term, judged by advisory standing.</p>
+          <div className="outlook">
+            <div>
+              <h3 className="subhead">Credits still to complete</h3>
+              <ColumnChart label="Students by credits still to complete" data={Object.entries(reports.creditsRemaining).map(([key, value]) => ({ key, value }))} />
+            </div>
+            <div>
+              <h3 className="subhead">Projected graduation</h3>
+              <table className="courses report-table">
+                <thead><tr><th scope="col">Planned term</th><th scope="col" className="num">On plan</th><th scope="col" className="num">At risk</th><th scope="col" className="num">Likely later</th></tr></thead>
+                <tbody>
+                  {reports.projections.map(projection => (
+                    <tr key={projection.yearGroup}>
+                      <th scope="row">{projection.term}</th>
+                      <td className="num">{projection.onPlan}</td>
+                      <td className="num">{projection.atRisk}</td>
+                      <td className="num">{projection.likelyLater}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="report-section" aria-labelledby="programmes">
         <SectionHead id="programmes" title="Programme comparison" onExport={() => exportCsv('programmes')} />
         <div className="table-wrap">
@@ -123,7 +152,7 @@ function ReportBody({ reports, exportCsv }: { reports: Reports; exportCsv: (sect
 
       <section className="report-section" aria-labelledby="courses">
         <SectionHead id="courses" title="Courses" onExport={() => exportCsv('courses')} />
-        <p className="caption">Pass rates use the provisional D+ pass mark. Courses with fewer than {MIN_COURSE_STUDENTS} students are left out of the rankings.</p>
+        <p className="caption">Pass rates use each course’s pass mark (D+ unless set under Settings). Courses with fewer than {MIN_COURSE_STUDENTS} students are left out of the rankings.</p>
         <div className="report-columns">
           <div>
             <h3 className="subhead">Lowest first-attempt pass rate</h3>
@@ -150,6 +179,15 @@ function ReportBody({ reports, exportCsv }: { reports: Reports; exportCsv: (sect
             <ColumnChart label={`Grades in ${selectedCourse.courseCode}`} data={GRADE_SCALE.map(grade => ({ key: grade, value: selectedCourse.grades[grade] }))} />
           </div>
         )}
+      </section>
+      <section className="report-section" aria-labelledby="reach">
+        <SectionHead id="reach" title="Messaging reach" />
+        <p className="caption">Every message delivered so far, whatever the filters above. Scheduled messages count once they go out.</p>
+        <dl className="figures">
+          <div><dt>Messages delivered</dt><dd>{reports.messaging.messages}</dd></div>
+          <div><dt>Deliveries</dt><dd>{reports.messaging.recipients}</dd></div>
+          <div><dt>Read</dt><dd>{reports.messaging.readRate === null ? '—' : `${reports.messaging.readRate}%`}</dd></div>
+        </dl>
       </section>
     </>
   );
