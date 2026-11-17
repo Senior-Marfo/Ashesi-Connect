@@ -247,3 +247,26 @@ test('admin adjusts thresholds, creates an administrator and reviews the audit l
   await page.getByRole('button', { name: 'Save thresholds' }).click();
   await expect(page.getByText('Saved.')).toBeVisible();
 });
+
+test('admin sets a C pass mark, the student sees it on their requirements, then the admin removes it', async ({ browser }) => {
+  const admin = await (await browser.newContext()).newPage();
+  await signIn(admin, 'STF-1001');
+  await admin.getByRole('link', { name: 'Settings' }).click();
+  const section = admin.getByRole('region', { name: 'Course pass marks' });
+  await section.getByLabel('Course code').fill('math 141');
+  admin.once('dialog', dialog => void dialog.accept());
+  await section.getByRole('button', { name: 'Save pass mark' }).click();
+  await expect(section.getByText('MATH 141 now passes at C or above.')).toBeVisible();
+  await expect(section.getByRole('row', { name: /MATH 141/ })).toContainText('STF-1001');
+
+  const student = await (await browser.newContext()).newPage();
+  await signIn(student, '20280001');
+  await student.getByRole('link', { name: 'Requirements' }).click();
+  await expect(student.locator('.tree-items li', { hasText: 'MATH 141' })).toContainText('Pass mark C');
+
+  admin.once('dialog', dialog => void dialog.accept());
+  await section.getByRole('button', { name: 'Remove the pass mark for MATH 141' }).click();
+  await expect(section.getByText('MATH 141 passes at the default D+ again.')).toBeVisible();
+  await student.reload();
+  await expect(student.locator('.tree-items li', { hasText: 'MATH 141' })).toContainText('Pass mark D+');
+});

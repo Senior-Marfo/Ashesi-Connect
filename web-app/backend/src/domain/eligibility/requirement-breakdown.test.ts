@@ -19,7 +19,8 @@ const transcript: TranscriptEntry[] = [
   { courseCode: 'CS 400', grade: 'D+', attempt: 1, credits: 1 },
   { courseCode: 'CS 212', status: 'IN_PROGRESS', attempt: 1, credits: 1 },
   { courseCode: 'MATH 141', status: 'INCOMPLETE', attempt: 1, credits: 1 },
-  { courseCode: 'CS 351', grade: 'D', attempt: 1, credits: 1 }
+  { courseCode: 'CS 351', grade: 'D+', attempt: 1, credits: 1 },
+  { courseCode: 'CS 352', grade: 'D', attempt: 1, credits: 1 }
 ];
 
 describe('requirement breakdown', () => {
@@ -41,7 +42,14 @@ describe('requirement breakdown', () => {
   it('totals credits per group and lists untaken elective options', () => {
     expect(groups[0]).toMatchObject({ creditsRequired: 2, creditsCompleted: 1, creditsInProgress: 0 });
     expect(groups[2]).toMatchObject({ creditsRequired: 2, creditsCompleted: 0, creditsInProgress: 1 });
-    expect(groups[3]).toMatchObject({ creditsRequired: 2, creditsCompleted: 1, options: ['CS 352', 'CS 361'] });
-    expect(item('CS 351')).toMatchObject({ state: 'COMPLETED', minimumGrade: 'D' });
+    expect(groups[3]).toMatchObject({ creditsRequired: 2, creditsCompleted: 1, options: ['CS 361'] });
+    expect(item('CS 351')).toMatchObject({ state: 'COMPLETED', minimumGrade: 'D+' });
+    expect(item('CS 352')).toMatchObject({ state: 'FAILED', grade: 'D', minimumGrade: 'D+' });
+  });
+
+  it('applies a per-course pass mark inside an elective pool', () => {
+    const strict = requirementBreakdown(transcript, { ...rules, electivePools: [{ ...rules.electivePools[0], courseMinimums: { 'CS 351': 'C' } }] });
+    const strictItem = strict.flatMap(group => group.items).find(entry => entry.code === 'CS 351');
+    expect(strictItem).toMatchObject({ state: 'FAILED', minimumGrade: 'C' });
   });
 });

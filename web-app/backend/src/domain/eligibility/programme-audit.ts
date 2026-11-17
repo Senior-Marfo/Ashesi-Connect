@@ -5,7 +5,14 @@ export type TranscriptEntry = {
   attempt: number; credits: number; africanStudies?: boolean;
 };
 export type CourseRule = { courseCode: string; credits: number; minimumGrade: Grade; category: string };
-export type ElectiveRule = { category: string; creditsRequired: number; courseCodes: string[]; africanStudiesMinimum?: number; minimumGrade?: Grade };
+export type ElectiveRule = {
+  category: string; creditsRequired: number; courseCodes: string[]; africanStudiesMinimum?: number; minimumGrade?: Grade;
+  /** Pass marks for individual courses in the pool, overriding `minimumGrade`. */
+  courseMinimums?: Partial<Record<string, Grade>>;
+};
+/** Pass mark for an elective when neither the course nor its pool sets one (assumptions log: provisional D+). */
+export const ELECTIVE_DEFAULT_MINIMUM: Grade = 'D+';
+export const electiveMinimum = (pool: ElectiveRule, courseCode: string): Grade => pool.courseMinimums?.[courseCode] ?? pool.minimumGrade ?? ELECTIVE_DEFAULT_MINIMUM;
 export type ProgrammeRules = {
   programme: string; track: string; requiredCourses: CourseRule[];
   electivePools: ElectiveRule[]; totalCredits: number;
@@ -48,7 +55,7 @@ export function evaluateProgramme(transcript: TranscriptEntry[], rules: Programm
  }
  for (const pool of rules.electivePools) {
   if (!Number.isFinite(pool.creditsRequired) || pool.creditsRequired < 0 || (pool.minimumGrade !== undefined && !gradeRank.includes(pool.minimumGrade))) throw Error('Invalid elective requirement');
-  const eligible = transcript.filter(e => pool.courseCodes.includes(e.courseCode) && passes(e.grade, pool.minimumGrade ?? 'D'));
+  const eligible = transcript.filter(e => pool.courseCodes.includes(e.courseCode) && passes(e.grade, electiveMinimum(pool, e.courseCode)));
   const distinct = new Map<string, TranscriptEntry>();
   for (const e of eligible) if (!distinct.has(e.courseCode) || distinct.get(e.courseCode)!.attempt < e.attempt) distinct.set(e.courseCode,e);
   let credits = 0;

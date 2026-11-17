@@ -1,18 +1,18 @@
 import type { StandingLevel } from '../domain/eligibility/standing.js';
 import type { CourseRecord, Repositories, StudentSummary } from '../repositories/types.js';
 import { assessEligibility, type AppliedCurriculum, type EligibilityView } from './assess.js';
-import { curriculumFor } from './curriculum.js';
+import { curriculumFor, loadPassMarks } from './curriculum.js';
 
 export interface AssessedStudent { assessment: EligibilityView; courses: CourseRecord[] }
 
 /** Assesses many students at once, loading each distinct curriculum only once. */
 export async function assessAll(students: StudentSummary[], repositories: Repositories, today: Date): Promise<Map<string, AssessedStudent>> {
-  const [courses, settings] = await Promise.all([repositories.students.coursesFor(students.map(student => student.studentId)), repositories.settings.get()]);
+  const [courses, settings, passMarks] = await Promise.all([repositories.students.coursesFor(students.map(student => student.studentId)), repositories.settings.get(), loadPassMarks(repositories)]);
   const curricula = new Map<string, Promise<AppliedCurriculum | undefined>>();
   const assessed = new Map<string, AssessedStudent>();
   for (const student of students) {
     const key = `${student.synthetic ? 'synthetic' : 'reviewed'}|${student.programme}|${student.track}|${student.yearGroup}`;
-    if (!curricula.has(key)) curricula.set(key, curriculumFor(student, repositories));
+    if (!curricula.has(key)) curricula.set(key, curriculumFor(student, repositories, passMarks));
     const records = courses.get(student.studentId) ?? [];
     assessed.set(student.studentId, { assessment: assessEligibility(student, records, await curricula.get(key), today, settings.standing), courses: records });
   }

@@ -115,6 +115,8 @@ export interface ImportUpload { kind: ImportKind; filename: string; content: str
 
 export interface StandingThresholds { normalLoad: number; maxLoad: number; criticalFailedCourses: number }
 export interface AppSettings { standing: StandingThresholds; updatedAt?: string; updatedBy?: string }
+export type PassMarkGrade = 'D+' | 'C';
+export interface PassMark { courseCode: string; minimumGrade: PassMarkGrade; note?: string; updatedBy: string; updatedAt: string }
 export interface AdminAccount { id: string; identifier: string; forcePasswordChange: boolean; lockedUntil?: string }
 export interface AuditEntry { action: string; actorId?: string; actorIdentifier?: string; actorRole?: string; subject?: string; metadata?: Record<string, string | number | boolean>; at: string; ip?: string }
 
@@ -275,6 +277,9 @@ export function createApiClient(baseUrl: string, fetchImpl: Fetch = (input, init
     issueTemporaryPassword: (identifier: string) => authorised<{ temporaryPassword: string }>('/api/v1/admin/users/reset-password', { method: 'POST', body: JSON.stringify({ identifier }) }),
     settings: () => authorised<AppSettings>('/api/v1/admin/settings'),
     saveThresholds: (standing: StandingThresholds) => authorised<AppSettings>('/api/v1/admin/settings/standing', { method: 'PUT', body: JSON.stringify(standing) }),
+    passMarks: () => authorised<{ defaultMinimumGrade: string; passMarks: PassMark[] }>('/api/v1/admin/settings/pass-marks'),
+    setPassMark: (courseCode: string, minimumGrade: PassMarkGrade, note?: string) => authorised<{ courseCode: string; minimumGrade: PassMarkGrade }>(`/api/v1/admin/settings/pass-marks/${encodeURIComponent(courseCode)}`, { method: 'PUT', body: JSON.stringify({ minimumGrade, note }) }),
+    removePassMark: (courseCode: string) => authorised<void>(`/api/v1/admin/settings/pass-marks/${encodeURIComponent(courseCode)}`, { method: 'DELETE' }),
     admins: () => authorised<{ admins: AdminAccount[] }>('/api/v1/admin/settings/admins'),
     createAdmin: (identifier: string) => authorised<{ identifier: string; temporaryPassword: string }>('/api/v1/admin/settings/admins', { method: 'POST', body: JSON.stringify({ identifier }) }),
     auditLog: (query: { limit: number; action?: string }) => authorised<{ entries: AuditEntry[] }>(`/api/v1/admin/audit-log?${queryString(query)}`),

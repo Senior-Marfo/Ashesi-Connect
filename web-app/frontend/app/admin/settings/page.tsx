@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, type FormEvent } from 'react';
 import { ADMIN_NAV, AppShell, FullPageLoading, Notice, SkeletonRows } from '../../../components/app-shell';
+import { PassMarks } from '../../../components/pass-marks';
 import { ApiError, type StandingThresholds } from '../../../lib/api';
 import { useRequireRole, useSession } from '../../../lib/session';
 import { useLoad } from '../../../lib/use-load';
@@ -8,7 +9,8 @@ import { useLoad } from '../../../lib/use-load';
 const ACTIONS = [
   'AUTH_LOGIN_SUCCEEDED', 'AUTH_LOGIN_FAILED', 'AUTH_ACCOUNT_LOCKED', 'AUTH_PASSWORD_CHANGED', 'AUTH_REFRESH_REUSE_DETECTED',
   'ADMIN_PASSWORD_RESET', 'ADMIN_STUDENT_VIEWED', 'ADMIN_ELIGIBILITY_VIEWED', 'ADMIN_REGISTER_EXPORTED', 'ADMIN_REPORTS_VIEWED',
-  'ADMIN_MESSAGE_SENT', 'ADMIN_IMPORT_APPLIED', 'ADMIN_IMPORT_ROLLED_BACK', 'ADMIN_SETTINGS_UPDATED', 'ADMIN_USER_CREATED'
+  'ADMIN_MESSAGE_SENT', 'ADMIN_IMPORT_APPLIED', 'ADMIN_IMPORT_ROLLED_BACK', 'ADMIN_SETTINGS_UPDATED', 'ADMIN_PASS_MARK_UPDATED',
+  'ADMIN_USER_CREATED', 'ADMIN_STUDENT_NOTE_ADDED', 'ADMIN_AUDIT_EXPORTED'
 ];
 const label = (action: string) => action.toLowerCase().replaceAll('_', ' ').replace(/^\w/, char => char.toUpperCase());
 const formatDate = (iso: string) => new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
@@ -134,6 +136,11 @@ function AuditLog() {
   );
 }
 
+function PassMarksSection() {
+  const { api } = useSession();
+  return <PassMarks api={api} />;
+}
+
 export default function SettingsPage() {
   const session = useRequireRole('ADMIN');
   if (!session) return <FullPageLoading />;
@@ -150,6 +157,11 @@ export default function SettingsPage() {
           <Admins />
         </section>
       </div>
+      <section aria-labelledby="pass-marks-heading" className="report-section">
+        <h2 id="pass-marks-heading" className="section-title">Course pass marks</h2>
+        <p className="caption">The minimum grade that passes each course. Set C only where the Registry has confirmed it. Changes apply at once to every audit, the register and reports, and are recorded in the audit log.</p>
+        <PassMarksSection />
+      </section>
       <section aria-labelledby="audit-heading" className="report-section">
         <h2 id="audit-heading" className="section-title">Audit log</h2>
         <AuditLog />

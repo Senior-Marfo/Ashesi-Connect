@@ -291,6 +291,17 @@ body { margin: 0; background: var(--surface); color: var(--ink); font: 16px/1.5 
 .report-kpis { margin-top: var(--space-5); }
 .field.inline { grid-auto-flow: column; align-items: center; gap: var(--space-2); }
 
+/* Course pass marks */
+.pass-mark-form { display: grid; gap: var(--space-4); margin-bottom: var(--space-5); align-items: start; }
+@media (min-width: 960px) {
+  .pass-mark-form { grid-template-columns: 180px auto minmax(0, 1fr) auto; }
+  /* Line the radios and button up with the inputs, below the field labels. */
+  .pass-mark-form > .radios { display: grid; grid-template-columns: auto auto; column-gap: var(--space-4); }
+  .pass-mark-form > .radios legend { float: none; grid-column: 1 / -1; margin: 0 0 var(--space-1); }
+  .pass-mark-form > .radios label { min-height: 48px; }
+  .pass-mark-form > .button { margin-top: 26px; }
+}
+
 /* US-06 student lookup */
 .recent { margin-top: var(--space-5); }
 .recent-head { display: flex; justify-content: space-between; align-items: baseline; }

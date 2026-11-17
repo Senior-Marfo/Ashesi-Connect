@@ -1,4 +1,5 @@
 import type { Role } from '../auth/permissions.js';
+import type { PassMarkGrade, PassMarks } from '../domain/eligibility/pass-marks.js';
 
 export interface UserRecord {
   id: string;
@@ -61,7 +62,8 @@ export type AuditAction =
   | 'ADMIN_USER_CREATED'
   | 'ADMIN_REGISTER_EXPORTED'
   | 'ADMIN_STUDENT_NOTE_ADDED'
-  | 'ADMIN_AUDIT_EXPORTED';
+  | 'ADMIN_AUDIT_EXPORTED'
+  | 'ADMIN_PASS_MARK_UPDATED';
 
 export interface AuditEntry {
   action: AuditAction;
@@ -106,7 +108,7 @@ export interface StudentFilter {
   yearGroup?: number;
 }
 
-/** Facts derived from a student's latest attempt at each course, using the provisional pass mark. */
+/** Facts derived from a student's latest attempt at each course, using the catalogue pass marks. */
 export interface CourseSummary {
   studentId: string;
   coursesOnRecord: number;
@@ -122,7 +124,7 @@ export interface StudentRepository {
   listCourses(studentId: string): Promise<CourseRecord[]>;
   list(filter: StudentFilter): Promise<StudentSummary[]>;
   /** Summaries for students that have course records; students without any are omitted. */
-  courseSummaries(studentIds: string[]): Promise<CourseSummary[]>;
+  courseSummaries(studentIds: string[], passMarks: PassMarks): Promise<CourseSummary[]>;
   /** Course records for many students at once; students without records are omitted. */
   coursesFor(studentIds: string[]): Promise<Map<string, CourseRecord[]>>;
   /** Creates or replaces a student's details. */
@@ -236,6 +238,24 @@ export interface StudentNoteRepository {
   listFor(studentId: string, limit: number): Promise<StudentNote[]>;
 }
 
+export interface PassMarkRecord {
+  courseCode: string;
+  minimumGrade: PassMarkGrade;
+  /** Where the decision comes from, e.g. a Registry memo. */
+  note?: string;
+  updatedBy: string;
+  updatedAt: Date;
+}
+
+/** Per-course minimum passing grades; courses not listed use the provisional D+. */
+export interface PassMarkRepository {
+  /** Sorted by course code. */
+  list(): Promise<PassMarkRecord[]>;
+  find(courseCode: string): Promise<PassMarkRecord | undefined>;
+  set(record: PassMarkRecord): Promise<void>;
+  remove(courseCode: string): Promise<void>;
+}
+
 export interface Repositories {
   users: UserRepository;
   refreshTokens: RefreshTokenRepository;
@@ -246,4 +266,5 @@ export interface Repositories {
   imports: ImportRepository;
   settings: SettingsRepository;
   notes: StudentNoteRepository;
+  passMarks: PassMarkRepository;
 }

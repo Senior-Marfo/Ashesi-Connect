@@ -1,5 +1,5 @@
 import type { EligibilityView } from '../eligibility/assess.js';
-import { PROVISIONAL_PASSING_GRADES } from '../register/provisional-pass.js';
+import { passesCourse, type PassMarks } from '../domain/eligibility/pass-marks.js';
 import type { CourseRecord } from '../repositories/types.js';
 
 const GRADES = ['A+', 'A', 'B+', 'B', 'C+', 'C', 'D+', 'D', 'E'] as const;
@@ -89,12 +89,12 @@ function groupBy<K>(students: ReportStudent[], key: (student: ReportStudent) => 
   return groups;
 }
 
-const passedCredits = (courses: CourseRecord[]) => courses.reduce((sum, course) => {
+const passedCredits = (courses: CourseRecord[], marks: PassMarks) => courses.reduce((sum, course) => {
   const latest = course.attempts.at(-1);
-  return sum + (latest?.status === 'COMPLETED' && latest.grade && PROVISIONAL_PASSING_GRADES.includes(latest.grade) ? latest.credits : 0);
+  return sum + (latest?.status === 'COMPLETED' && passesCourse(course.courseCode, latest.grade, marks) ? latest.credits : 0);
 }, 0);
 
-function courseOutcomes(students: ReportStudent[]): CourseOutcome[] {
+function courseOutcomes(students: ReportStudent[], marks: PassMarks): CourseOutcome[] {
   const byCourse = new Map<string, CourseRecord['attempts'][]>();
   for (const student of students) for (const course of student.courses) byCourse.set(course.courseCode, [...(byCourse.get(course.courseCode) ?? []), course.attempts]);
   return [...byCourse].map(([courseCode, records]) => {
@@ -106,7 +106,7 @@ function courseOutcomes(students: ReportStudent[]): CourseOutcome[] {
       const first = attempts[0];
       if (first?.status === 'COMPLETED' && first.grade) {
         firstGraded += 1;
-        if (PROVISIONAL_PASSING_GRADES.includes(first.grade)) firstPassed += 1;
+        if (passesCourse(courseCode, first.grade, marks)) firstPassed += 1;
       }
     }
     return {
@@ -116,7 +116,7 @@ function courseOutcomes(students: ReportStudent[]): CourseOutcome[] {
       firstAttemptPassRate: rate(firstPassed, firstGraded),
       unresolvedFailures: records.filter(attempts => {
         const latest = attempts.at(-1);
-        return latest?.status === 'COMPLETED' && latest.grade !== undefined && !PROVISIONAL_PASSING_GRADES.includes(latest.grade);
+        return latest?.status === 'COMPLETED' && latest.grade !== undefined && !passesCourse(courseCode, latest.grade, marks);
       }).length,
       retakes: records.filter(attempts => attempts.length > 1).length,
       grades
@@ -126,9 +126,9 @@ function courseOutcomes(students: ReportStudent[]): CourseOutcome[] {
 
 /**
  * Aggregate reports for the Registry. Outcomes come from the same advisory assessment
- * as the student screens; course statistics use the provisional D+ pass mark.
+ * as the student screens; course statistics use the pass-mark catalogue (D+ where unset).
  */
-export function buildReports(students: ReportStudent[]): Reports {
+export function buildReports(students: ReportStudent[], marks: PassMarks): Reports {
   const standings = emptyStandings();
   for (const student of students) standings[standingOf(student)] += 1;
 
@@ -154,7 +154,7 @@ export function buildReports(students: ReportStudent[]): Reports {
     return {
       programme,
       students: group.length,
-      averagePassedCredits: round(group.reduce((sum, student) => sum + passedCredits(student.courses), 0) / group.length),
+      averagePassedCredits: round(group.reduce((sum, student) => sum + passedCredits(student.courses, marks), 0) / group.length),
       completionRate: rate(graduatedAssessed.filter(isMet).length, graduatedAssessed.length),
       standings: counts
     };
@@ -166,6 +166,6 @@ export function buildReports(students: ReportStudent[]): Reports {
     cohortOutcomes,
     cohortProgress,
     programmes,
-    courses: courseOutcomes(students)
+    courses: courseOutcomes(students, marks)
   };
 }

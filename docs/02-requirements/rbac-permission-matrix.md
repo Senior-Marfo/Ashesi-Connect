@@ -11,7 +11,7 @@ Permissions are granted per role in `web-app/backend/src/auth/permissions.ts` an
 | `audit-log:read` | | ✓ | `GET /api/v1/admin/audit-log` |
 | `message:send` | | ✓ | `/api/v1/admin/messages` (compose, preview, templates, sent list with read receipts) |
 | `message:read:own` | ✓ | | `/api/v1/students/me/messages` (inbox, unread count, mark read) |
-| `settings:manage` | | ✓ | `GET /api/v1/admin/settings`, `PUT /api/v1/admin/settings/standing` |
+| `settings:manage` | | ✓ | `GET /api/v1/admin/settings`, `PUT /api/v1/admin/settings/standing`, `GET /api/v1/admin/settings/pass-marks`, `PUT`/`DELETE /api/v1/admin/settings/pass-marks/:courseCode` |
 | `user:manage` | | ✓ | `GET`/`POST /api/v1/admin/settings/admins` |
 | `records:import` | | ✓ | `/api/v1/admin/imports` (history, preview, apply, undo) |
 | `report:read` | | ✓ | `GET /api/v1/admin/reports`, `GET /api/v1/admin/reports/{cohorts,programmes,courses}.csv` |

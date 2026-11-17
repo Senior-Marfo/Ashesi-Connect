@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { graduationTermEnded } from '../domain/eligibility/terms.js';
+import { loadPassMarks } from '../eligibility/curriculum.js';
 import { assessAll } from '../eligibility/standings.js';
 import { toCsv } from '../reports/csv.js';
 import { NON_COMPLETION_REASONS, buildReports, type Reports } from '../reports/reports.js';
@@ -44,11 +45,11 @@ export function reportRoutes(repositories: Repositories, now: () => Date): Route
     }
     const today = now();
     const students = await repositories.students.list(parsed.data);
-    const assessed = await assessAll(students, repositories, today);
+    const [assessed, passMarks] = await Promise.all([assessAll(students, repositories, today), loadPassMarks(repositories)]);
     const reports = buildReports(students.map(student => ({
       ...assessed.get(student.studentId)!,
       graduated: graduationTermEnded(student.yearGroup, today)
-    })));
+    })), passMarks);
     return { filters: parsed.data, reports };
   };
 

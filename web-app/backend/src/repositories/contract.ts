@@ -92,10 +92,14 @@ export function repositoryContract(name: string, harness: ContractHarness) {
         { courseCode: 'CS 415', attempts: [{ credits: 1, status: 'ENROLLED' }] },
         { courseCode: 'ECON 101', attempts: [{ credits: 1, status: 'INCOMPLETE' }] }
       ]);
-      expect(await students.courseSummaries(['20280001', 'nobody'])).toEqual([{
+      expect(await students.courseSummaries(['20280001', 'nobody'], new Map())).toEqual([{
         studentId: '20280001', coursesOnRecord: 6, passedCredits: 2.5, inProgressCredits: 1, unresolvedFailures: 1, incompletes: 1
       }]);
-      expect(await students.courseSummaries([])).toEqual([]);
+      expect(await students.courseSummaries([], new Map())).toEqual([]);
+      // A C pass mark turns LEAD 111 (D+) into a failure; MATH 141 (C) still passes.
+      expect(await students.courseSummaries(['20280001'], new Map([['LEAD 111', 'C'], ['MATH 141', 'C']]))).toEqual([{
+        studentId: '20280001', coursesOnRecord: 6, passedCredits: 2, inProgressCredits: 1, unresolvedFailures: 2, incompletes: 1
+      }]);
     });
 
     it('loads course records for several students at once', async () => {
@@ -171,6 +175,22 @@ export function repositoryContract(name: string, harness: ContractHarness) {
       await users.createIfAbsent({ identifier: 'STF-3003', passwordHash: 'h', role: 'ADMIN', forcePasswordChange: true, failedLogins: 0 });
       expect((await users.listByRole('ADMIN')).map(user => [user.identifier, user.forcePasswordChange])).toEqual([['STF-3003', true]]);
       expect((await users.listByRole('STUDENT')).map(user => user.identifier)).toEqual(['20280001']);
+    });
+
+    it('stores one pass mark per course, sorted, with an optional note', async () => {
+      const { passMarks } = harness.repositories();
+      const at = new Date('2026-11-17T00:00:00Z');
+      await passMarks.set({ courseCode: 'MATH 141', minimumGrade: 'C', note: 'Registry memo 12', updatedBy: 'admin', updatedAt: at });
+      await passMarks.set({ courseCode: 'CS 400', minimumGrade: 'C', updatedBy: 'admin', updatedAt: at });
+      await passMarks.set({ courseCode: 'MATH 141', minimumGrade: 'D+', updatedBy: 'admin2', updatedAt: at });
+      expect(await passMarks.list()).toEqual([
+        { courseCode: 'CS 400', minimumGrade: 'C', updatedBy: 'admin', updatedAt: at },
+        { courseCode: 'MATH 141', minimumGrade: 'D+', updatedBy: 'admin2', updatedAt: at }
+      ]);
+      expect((await passMarks.find('CS 400'))?.minimumGrade).toBe('C');
+      await passMarks.remove('CS 400');
+      expect(await passMarks.find('CS 400')).toBeUndefined();
+      expect((await passMarks.list()).map(mark => mark.courseCode)).toEqual(['MATH 141']);
     });
 
     it('keeps staff notes per student, newest first', async () => {

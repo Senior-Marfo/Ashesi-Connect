@@ -34,7 +34,7 @@ describe('reports', () => {
     student('d', 2025, 'BA', 'none', true),
     student('e', 2028, 'CS', 'met', false, [course('CS 111', 'A+')]),
     student('f', 2028, 'BA', 'short', false)
-  ]);
+  ], new Map());
 
   it('reports completion for graduated cohorts only, among assessed students, with reasons', () => {
     expect(reports.totals).toEqual({ students: 6, assessed: 5, graduatedCohorts: [2025] });
@@ -61,7 +61,13 @@ describe('reports', () => {
     expect(reports.courses.find(c => c.courseCode === 'CS 111')).toMatchObject({ students: 4, firstAttemptPassRate: 100 });
   });
 
+  it('applies course pass marks to pass rates and failures', () => {
+    const strict = buildReports([student('c', 2025, 'BA', 'met', true, [course('CS 111', 'C'), course('ECON 101', 'D+')])], new Map([['CS 111', 'C'], ['ECON 101', 'C']]));
+    expect(strict.courses.map(c => [c.courseCode, c.firstAttemptPassRate, c.unresolvedFailures])).toEqual([['CS 111', 100, 0], ['ECON 101', 0, 1]]);
+    expect(strict.programmes[0].averagePassedCredits).toBe(1);
+  });
+
   it('handles an empty selection', () => {
-    expect(buildReports([])).toMatchObject({ totals: { students: 0, assessed: 0, graduatedCohorts: [] }, cohortOutcomes: [], programmes: [], courses: [] });
+    expect(buildReports([], new Map())).toMatchObject({ totals: { students: 0, assessed: 0, graduatedCohorts: [] }, cohortOutcomes: [], programmes: [], courses: [] });
   });
 });

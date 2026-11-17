@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { assessEligibility } from '../eligibility/assess.js';
-import { curriculumFor } from '../eligibility/curriculum.js';
+import { curriculumFor, loadPassMarks } from '../eligibility/curriculum.js';
 import type { Repositories } from '../repositories/types.js';
 import { asyncHandler, requirePermission } from './middleware.js';
 
@@ -25,7 +25,7 @@ export function studentRoutes(repositories: Repositories, now: () => Date): Rout
       res.status(404).json({ error: 'NOT_FOUND' });
       return;
     }
-    const [courses, curriculum, settings] = await Promise.all([repositories.students.listCourses(studentId), curriculumFor(student, repositories), repositories.settings.get()]);
+    const [courses, curriculum, settings] = await Promise.all([repositories.students.listCourses(studentId), loadPassMarks(repositories).then(marks => curriculumFor(student, repositories, marks)), repositories.settings.get()]);
     res.json(assessEligibility(student, courses, curriculum, now(), settings.standing));
   }));
 

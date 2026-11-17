@@ -125,3 +125,12 @@ const studentNoteSchema = new Schema({
 });
 studentNoteSchema.index({ studentId: 1, createdAt: -1 });
 export const StudentNoteModel = model('StudentNote', studentNoteSchema);
+
+const passMarkSchema = new Schema({
+  courseCode: { type: String, required: true, unique: true },
+  minimumGrade: { type: String, enum: ['D+', 'C'], required: true },
+  note: { type: String, maxlength: 500 },
+  updatedBy: { type: String, required: true },
+  updatedAt: { type: Date, required: true }
+});
+export const PassMarkModel = model('PassMark', passMarkSchema);

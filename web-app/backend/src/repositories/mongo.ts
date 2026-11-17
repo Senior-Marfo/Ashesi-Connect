@@ -1,12 +1,12 @@
 import { isValidObjectId } from 'mongoose';
 import { isRole } from '../auth/permissions.js';
 import { DEFAULT_STANDING_CONFIG } from '../domain/eligibility/standing.js';
-import { AuditLog, Enrollment, ImportBatchModel, SettingsModel, Message, MessageReceipt, RefreshToken, Student, StudentNoteModel, User } from '../models.js';
+import { AuditLog, Enrollment, ImportBatchModel, SettingsModel, Message, MessageReceipt, PassMarkModel, RefreshToken, Student, StudentNoteModel, User } from '../models.js';
 import { CurriculumRecord } from '../models/curriculum.js';
 import { selectCohortCurriculum } from '../domain/eligibility/cohort-selection.js';
 import type { ProgrammeRules } from '../domain/eligibility/programme-audit.js';
-import { PROVISIONAL_PASSING_GRADES } from '../register/provisional-pass.js';
-import type { AuditEntry, CourseRecord, CourseSummary, ImportBatch, MessageAudience, MessagePriority, MessageRecord, Repositories, StudentSummary, UserRecord } from './types.js';
+import { passingGradesByCourse } from '../domain/eligibility/pass-marks.js';
+import type { AuditEntry, CourseRecord, CourseSummary, ImportBatch, MessageAudience, MessagePriority, MessageRecord, PassMarkRecord, Repositories, StudentSummary, UserRecord } from './types.js';
 
 function toUser(doc: { _id: unknown; identifier: string; passwordHash: string; role: string; studentId?: string | null; forcePasswordChange?: boolean | null; failedLogins?: number | null; lockedUntil?: Date | null; passwordChangedAt?: Date | null }): UserRecord {
   if (!isRole(doc.role)) throw new Error(`Unknown role on user ${String(doc._id)}`);
@@ -96,6 +96,23 @@ export function createMongoRepositories(): Repositories {
       },
       async update(settings) {
         await SettingsModel.updateOne({ _id: 'app' }, { $set: settings }, { upsert: true });
+      }
+    },
+    passMarks: {
+      async list() {
+        const docs = await PassMarkModel.find({}, { _id: 0, __v: 0 }).sort({ courseCode: 1 }).lean();
+        return docs.map(doc => ({ ...doc, note: doc.note ?? undefined }) as PassMarkRecord);
+      },
+      async find(courseCode) {
+        const doc = await PassMarkModel.findOne({ courseCode }, { _id: 0, __v: 0 }).lean();
+        return doc ? ({ ...doc, note: doc.note ?? undefined } as PassMarkRecord) : undefined;
+      },
+      async set(record) {
+        const { note, ...fields } = record;
+        await PassMarkModel.updateOne({ courseCode: record.courseCode }, { $set: { ...fields, ...(note ? { note } : {}) }, ...(note ? {} : { $unset: { note: 1 } }) }, { upsert: true });
+      },
+      async remove(courseCode) {
+        await PassMarkModel.deleteOne({ courseCode });
       }
     },
     notes: {
@@ -205,17 +222,22 @@ export function createMongoRepositories(): Repositories {
         const docs = await Student.find(query, studentProjection).sort({ studentId: 1 }).lean();
         return docs as StudentSummary[];
       },
-      async courseSummaries(studentIds) {
+      async courseSummaries(studentIds, passMarks) {
         if (studentIds.length === 0) return [];
         const latest = { $arrayElemAt: ['$attempts', -1] };
         const credits = (condition: object) => ({ $sum: { $cond: [condition, '$latest.credits', 0] } });
         const count = (condition: object) => ({ $sum: { $cond: [condition, 1, 0] } });
         const graded = { $and: [{ $eq: ['$latest.status', 'COMPLETED'] }, { $ne: [{ $ifNull: ['$latest.grade', null] }, null] }] };
-        const passed = { $and: [graded, { $in: ['$latest.grade', PROVISIONAL_PASSING_GRADES] }] };
-        const failed = { $and: [graded, { $not: [{ $in: ['$latest.grade', PROVISIONAL_PASSING_GRADES] }] }] };
+        const { overrides, fallback } = passingGradesByCourse(passMarks);
+        const passingGrades = overrides.length
+          ? { $switch: { branches: overrides.map(group => ({ case: { $in: ['$courseCode', group.courseCodes] }, then: group.grades })), default: fallback } }
+          : fallback;
+        const passes = { $in: ['$latest.grade', passingGrades] };
+        const passed = { $and: [graded, passes] };
+        const failed = { $and: [graded, { $not: [passes] }] };
         const docs = await Enrollment.aggregate<CourseSummary>([
           { $match: { studentId: { $in: studentIds }, 'attempts.0': { $exists: true } } },
-          { $project: { studentId: 1, latest } },
+          { $project: { studentId: 1, courseCode: 1, latest } },
           { $group: {
             _id: '$studentId',
             coursesOnRecord: { $sum: 1 },

@@ -2,7 +2,10 @@
 
 - The source Degree_Audit_2028.xlsx workbook is unavailable in the attached project sources; graduation requirements cannot be verified yet.
 - Minimum per-course passing grade D+ is a provisional default. The official catalogue must confirm any C thresholds, including programme-specific major courses.
+- **No course is set to C.** The build prompt asks for a seed file of C courses (`catalogue-pass-thresholds.json`). It is deliberately not provided: no Registry source names those courses, and guessing would mark real students as failing. Admins enter confirmed C pass marks under **Settings → Course pass marks**, citing the source.
+- A catalogue pass mark overrides the pass mark in any curriculum, raising or lowering it, because it is the Registry's latest decision on that course.
+- Until 2026-11-17, elective pools with no pass mark of their own passed a D in the audit, while the register and reports treated D as a fail. Electives now use the same D+ default as every other course.
 - Demo courses and records are illustrative only and are not verified institution data.
 - The eligibility TypeScript starter covers only required courses, grades and retakes; remaining categories, electives, capstones, IAP and track calculations are not yet complete.
-- No real authentication, private student data, hosted API, MongoDB, SMS/SMTP, Render or Firebase credentials have been configured.
+- The web app is deployed on Render with MongoDB Atlas (https://ashesi-graduation-tracker.onrender.com). SMTP and Firebase credentials are not configured.
 - Ashesi Graduation Tracker is an independent prototype, not an official Ashesi University service.
