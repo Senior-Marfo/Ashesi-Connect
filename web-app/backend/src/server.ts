@@ -31,6 +31,10 @@ async function start(): Promise<void> {
 }
 
 start().catch(error => {
-  console.error(error);
+  const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  const hint = error instanceof Error && error.name === 'MongooseServerSelectionError'
+    ? 'MongoDB is unreachable. On Atlas, allow this host under Network Access (0.0.0.0/0 for Render free instances) and check the cluster is not paused.'
+    : undefined;
+  console.error(JSON.stringify({ level: 'fatal', message: 'Startup failed', error: message, hint }));
   process.exit(1);
 });

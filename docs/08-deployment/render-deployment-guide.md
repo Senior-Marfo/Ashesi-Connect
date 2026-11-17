@@ -6,7 +6,7 @@ The whole application (API and web client) deploys as **one Render web service**
 
 1. Create a free **M0** cluster at https://cloud.mongodb.com. Pick a European region, close to Render's Frankfurt region.
 2. **Database Access:** add a database user with a long random password and the *Read and write to any database* role.
-3. **Network Access:** add `0.0.0.0/0`. Render's free plan has no fixed outbound IP addresses. With a paid Render plan, list Render's outbound IPs instead.
+3. **Network Access:** add `0.0.0.0/0` (required: without it the deploy fails with `MongooseServerSelectionError` / `ReplicaSetNoPrimary`). Render's free plan has no fixed outbound IP addresses. With a paid Render plan, list Render's outbound IPs instead.
 4. **Connect → Drivers:** copy the `mongodb+srv://` string. Put the password in it and add a database name before the `?`, for example:
    `mongodb+srv://USER:PASSWORD@cluster0.xxxxx.mongodb.net/ashesi_graduation?retryWrites=true&w=majority`
 
