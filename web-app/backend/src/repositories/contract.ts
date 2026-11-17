@@ -173,6 +173,19 @@ export function repositoryContract(name: string, harness: ContractHarness) {
       expect((await users.listByRole('STUDENT')).map(user => user.identifier)).toEqual(['20280001']);
     });
 
+    it('keeps staff notes per student, newest first', async () => {
+      const { notes } = harness.repositories();
+      const first = await notes.add({ studentId: '20280001', body: 'Discussed MATH 141 retake.', authorId: 'admin', createdAt: new Date('2026-11-01T00:00:00Z') });
+      await notes.add({ studentId: '20280001', body: 'Capstone supervisor confirmed.', authorId: 'admin', createdAt: new Date('2026-11-02T00:00:00Z') });
+      await notes.add({ studentId: '20280002', body: 'Other student.', authorId: 'admin', createdAt: new Date('2026-11-03T00:00:00Z') });
+      expect(first.id).toBeTruthy();
+      const listed = await notes.listFor('20280001', 10);
+      expect(listed.map(note => note.body)).toEqual(['Capstone supervisor confirmed.', 'Discussed MATH 141 retake.']);
+      expect(listed[1]).toEqual(first);
+      expect(await notes.listFor('20280001', 1)).toHaveLength(1);
+      expect(await notes.listFor('nobody', 10)).toEqual([]);
+    });
+
     it('reads students and courses, treating search input literally', async () => {
       const { students } = harness.repositories();
       expect(await students.findById('20280001')).toEqual({ studentId: '20280001', fullName: 'Synthetic Student', programme: 'CS', yearGroup: 2028, track: 'standard' });

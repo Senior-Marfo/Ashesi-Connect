@@ -59,7 +59,9 @@ export type AuditAction =
   | 'ADMIN_IMPORT_ROLLED_BACK'
   | 'ADMIN_SETTINGS_UPDATED'
   | 'ADMIN_USER_CREATED'
-  | 'ADMIN_REGISTER_EXPORTED';
+  | 'ADMIN_REGISTER_EXPORTED'
+  | 'ADMIN_STUDENT_NOTE_ADDED'
+  | 'ADMIN_AUDIT_EXPORTED';
 
 export interface AuditEntry {
   action: AuditAction;
@@ -219,6 +221,21 @@ export interface SettingsRepository {
   update(settings: AppSettings): Promise<void>;
 }
 
+export interface StudentNote {
+  id: string;
+  studentId: string;
+  body: string;
+  authorId: string;
+  createdAt: Date;
+}
+
+/** Staff-only notes on a student; students never read them. */
+export interface StudentNoteRepository {
+  add(note: Omit<StudentNote, 'id'>): Promise<StudentNote>;
+  /** Newest first. */
+  listFor(studentId: string, limit: number): Promise<StudentNote[]>;
+}
+
 export interface Repositories {
   users: UserRepository;
   refreshTokens: RefreshTokenRepository;
@@ -228,4 +245,5 @@ export interface Repositories {
   messages: MessageRepository;
   imports: ImportRepository;
   settings: SettingsRepository;
+  notes: StudentNoteRepository;
 }

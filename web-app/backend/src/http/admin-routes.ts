@@ -4,11 +4,13 @@ import type { AuthService } from '../auth/service.js';
 import { assessEligibility } from '../eligibility/assess.js';
 import { curriculumFor } from '../eligibility/curriculum.js';
 import { standingsFor } from '../eligibility/standings.js';
+import { searchStudents } from '../search/student-search.js';
 import { REGISTER_FLAGS, REGISTER_SORTS, REGISTER_STANDINGS, buildRegister, filterAndSort, registerCsv, registerRows } from '../register/register.js';
 import type { AuditAction, AuditEntry, Repositories } from '../repositories/types.js';
 import { asyncHandler, contextOf, requirePermission } from './middleware.js';
 
-const searchSchema = z.object({ q: z.string().trim().max(64).regex(/^[\w-]*$/).default('') });
+const searchSchema = z.object({ q: z.string().trim().max(64).regex(/^[\p{L}\p{N}\s'.-]*$/u).default('') });
+const SEARCH_LIMIT = 50;
 const studentIdSchema = z.string().regex(/^[\w-]{1,64}$/);
 const auditQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(50),
@@ -41,8 +43,13 @@ export function adminRoutes(repositories: Repositories, auth: AuthService, now: 
       res.status(400).json({ error: 'INVALID_INPUT' });
       return;
     }
-    const students = await repositories.students.searchByIdPrefix(parsed.data.q, 50);
-    await audit(req, 'ADMIN_STUDENT_SEARCHED', undefined, { query: parsed.data.q, results: students.length });
+    const { q } = parsed.data;
+    const idPrefix = /^[\w-]*$/.test(q) ? await repositories.students.searchByIdPrefix(q, SEARCH_LIMIT) : [];
+    // Exact ID prefixes are answered by the index; names and typos need the ranked scan.
+    const students = idPrefix.length > 0
+      ? idPrefix.map(student => ({ ...student, match: 'ID' as const }))
+      : searchStudents(await repositories.students.list({}), q, SEARCH_LIMIT);
+    await audit(req, 'ADMIN_STUDENT_SEARCHED', undefined, { query: q, results: students.length });
     res.json({ students });
   }));
 

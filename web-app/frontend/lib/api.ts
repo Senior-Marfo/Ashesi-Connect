@@ -14,6 +14,13 @@ export interface StudentSummary {
   synthetic?: boolean;
 }
 
+export type SearchMatch = 'ID' | 'NAME' | 'CLOSE_ID' | 'CLOSE_NAME';
+export interface StudentSearchResult extends StudentSummary {
+  match: SearchMatch;
+}
+
+export interface StudentNote { id: string; studentId: string; body: string; author: string; createdAt: string }
+
 export interface CourseAttempt {
   credits: number;
   grade?: string;
@@ -282,7 +289,11 @@ export function createApiClient(baseUrl: string, fetchImpl: Fetch = (input, init
       if (!response.ok) await parse(response);
       return response.blob();
     },
-    searchStudents: (query: string) => authorised<{ students: StudentSummary[] }>(`/api/v1/admin/students?q=${encodeURIComponent(query)}`),
+    searchStudents: (query: string) => authorised<{ students: StudentSearchResult[] }>(`/api/v1/admin/students?q=${encodeURIComponent(query)}`),
+    studentNotes: (studentId: string) => authorised<{ notes: StudentNote[] }>(`/api/v1/admin/students/${encodeURIComponent(studentId)}/notes`),
+    addStudentNote: (studentId: string, body: string) => authorised<{ note: StudentNote }>(`/api/v1/admin/students/${encodeURIComponent(studentId)}/notes`, { method: 'POST', body: JSON.stringify({ body }) }),
+    studentMessages: (studentId: string) => authorised<{ messages: InboxItem[] }>(`/api/v1/admin/students/${encodeURIComponent(studentId)}/messages`),
+    recordAuditExport: (studentId: string) => authorised<void>(`/api/v1/admin/students/${encodeURIComponent(studentId)}/audit-export`, { method: 'POST' }),
     studentRecord: (studentId: string) => authorised<StudentRecord>(`/api/v1/admin/students/${encodeURIComponent(studentId)}`)
   };
 }

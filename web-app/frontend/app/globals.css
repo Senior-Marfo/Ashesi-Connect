@@ -291,8 +291,32 @@ body { margin: 0; background: var(--surface); color: var(--ink); font: 16px/1.5 
 .report-kpis { margin-top: var(--space-5); }
 .field.inline { grid-auto-flow: column; align-items: center; gap: var(--space-2); }
 
+/* US-06 student lookup */
+.recent { margin-top: var(--space-5); }
+.recent-head { display: flex; justify-content: space-between; align-items: baseline; }
+.recent-head h3 { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); }
+.link-button { all: unset; cursor: pointer; color: var(--maroon); font-size: 14px; font-weight: 600; }
+.link-button:hover { text-decoration: underline; }
+.link-button:focus-visible { outline: 2px solid var(--maroon); outline-offset: 2px; }
+.match-kind { font-style: italic; }
+.report-head .actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.print-only { display: none; }
+.staff-panel { display: grid; gap: var(--space-6); margin-top: var(--space-7); padding-top: var(--space-6); border-top: 1px solid var(--line); }
+@media (min-width: 1200px) { .staff-panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
+.staff-panel h3 { font: 400 22px/1.2 var(--font-display); margin: 0 0 var(--space-2); }
+.staff-panel form { display: grid; gap: var(--space-3); justify-items: start; margin: var(--space-4) 0 var(--space-5); }
+.staff-panel .field { width: 100%; }
+.timeline { list-style: none; margin: 0; padding: 0 0 0 var(--space-4); border-left: 2px solid var(--line); display: grid; gap: var(--space-4); }
+.timeline li { position: relative; }
+.timeline li::before { content: ''; position: absolute; left: calc(-1 * var(--space-4) - 5px); top: 0.55em; width: 8px; height: 8px; border-radius: 50%; background: var(--maroon); }
+.timeline p { margin: 0; }
+.timeline-body { white-space: pre-wrap; max-width: 70ch; }
+.timeline-title { font-weight: 600; }
+
 @media print {
   .topbar, .no-print, .filters, .skip { display: none !important; }
+  .print-only { display: block; }
+  .workspace { display: block; }
   body { background: #fff; color: #000; }
   .page { padding: 0; max-width: none; }
   .report-section, .status-card, tr { break-inside: avoid; }

@@ -35,8 +35,11 @@ npm test               # unit and HTTP tests; no database needed
 | GET | `/api/v1/students/me` | `student:read:own` |
 | GET | `/api/v1/students/me/eligibility` | `student:read:own`; status, standing, requirements, next steps |
 | GET | `/api/v1/admin/students/:studentId/eligibility` | `student:read:any`; same assessment, audit-logged |
-| GET | `/api/v1/admin/students?q=` | `student:read:any` |
+| GET | `/api/v1/admin/students?q=` | `student:read:any`; ID prefix, name or close match (US-06) |
 | GET | `/api/v1/admin/students/:studentId` | `student:read:any` |
+| GET/POST | `/api/v1/admin/students/:studentId/notes` | read `student:read:any`; add `student:note:write`, audit-logged |
+| GET | `/api/v1/admin/students/:studentId/messages` | `student:read:any`; messages received, with read time |
+| POST | `/api/v1/admin/students/:studentId/audit-export` | `student:read:any`; records a printed or PDF audit |
 | GET | `/api/v1/admin/register` | `student:read:any`; filters `programme`, `yearGroup`, `flag`, `standing`; `sort`, `order`, `page`, `pageSize` |
 | GET | `/api/v1/admin/register.csv` | `student:read:any`; same filters, all matching rows |
 | POST | `/api/v1/admin/users/reset-password` | `user:reset-password` |

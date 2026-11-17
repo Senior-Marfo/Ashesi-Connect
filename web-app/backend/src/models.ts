@@ -116,3 +116,12 @@ const settingsSchema = new Schema({
   updatedBy: String
 });
 export const SettingsModel = model('Settings', settingsSchema);
+
+const studentNoteSchema = new Schema({
+  studentId: { type: String, required: true },
+  body: { type: String, required: true, maxlength: 2000 },
+  authorId: { type: String, required: true },
+  createdAt: { type: Date, required: true }
+});
+studentNoteSchema.index({ studentId: 1, createdAt: -1 });
+export const StudentNoteModel = model('StudentNote', studentNoteSchema);

@@ -1,6 +1,6 @@
 import { PROVISIONAL_PASSING_GRADES } from '../register/provisional-pass.js';
 import { DEFAULT_STANDING_CONFIG } from '../domain/eligibility/standing.js';
-import type { AppSettings, AuditEntry, CourseRecord, CourseSummary, ImportBatch, MessageRecord, ReviewedCurriculum, RefreshTokenRecord, Repositories, StudentSummary, UserRecord } from '../repositories/types.js';
+import type { AppSettings, AuditEntry, CourseRecord, CourseSummary, ImportBatch, MessageRecord, ReviewedCurriculum, RefreshTokenRecord, Repositories, StudentNote, StudentSummary, UserRecord } from '../repositories/types.js';
 
 export interface MemoryStore {
   users: UserRecord[];
@@ -13,10 +13,11 @@ export interface MemoryStore {
   receipts: Array<{ messageId: string; studentId: string; deliveredAt: Date; readAt?: Date }>;
   imports: ImportBatch[];
   settings: AppSettings;
+  notes: StudentNote[];
 }
 
 export function createMemoryRepositories(): { repositories: Repositories; store: MemoryStore } {
-  const store: MemoryStore = { users: [], refreshTokens: [], auditLog: [], students: [], courses: new Map(), curricula: [], messages: [], receipts: [], imports: [], settings: { standing: { ...DEFAULT_STANDING_CONFIG } } };
+  const store: MemoryStore = { users: [], refreshTokens: [], auditLog: [], students: [], courses: new Map(), curricula: [], messages: [], receipts: [], imports: [], settings: { standing: { ...DEFAULT_STANDING_CONFIG } }, notes: [] };
   const revokeWhere = (predicate: (record: RefreshTokenRecord) => boolean) => {
     for (const record of store.refreshTokens) if (!record.revokedAt && predicate(record)) record.revokedAt = new Date();
   };
@@ -61,6 +62,14 @@ export function createMemoryRepositories(): { repositories: Repositories; store:
     settings: {
       get: async () => structuredClone(store.settings),
       async update(settings) { store.settings = structuredClone(settings); }
+    },
+    notes: {
+      async add(note) {
+        const record = { ...structuredClone(note), id: `note-${store.notes.length + 1}` };
+        store.notes.push(record);
+        return structuredClone(record);
+      },
+      listFor: async (studentId, limit) => store.notes.filter(note => note.studentId === studentId).reverse().slice(0, limit).map(note => structuredClone(note))
     },
     imports: {
       async create(batch) {

@@ -62,6 +62,31 @@ test('admin finds a student by ID prefix and opens their record', async ({ page 
   await expect(page.getByRole('heading', { name: 'Curriculum catalogue' })).toBeVisible();
 });
 
+test('admin finds a student by a misspelt name, keeps a note, sees messages and prints the audit', async ({ page }, testInfo) => {
+  await signIn(page, 'STF-1001');
+  await page.evaluate(() => { window.print = () => { document.body.dataset.printed = 'yes'; }; });
+  await page.getByLabel('Student ID or name').fill('mensha');
+  await expect(page.getByText('Nothing matches exactly. Did you mean one of these?')).toBeVisible();
+  await page.getByRole('button', { name: /20280001.*Close name match/ }).click();
+  await expect(page.getByRole('heading', { name: 'Ama Synthetic Mensah' })).toBeVisible();
+
+  const note = `Advised on MATH 141 retake (${testInfo.project.name}).`;
+  await page.getByLabel('New note').fill(note);
+  await page.getByRole('button', { name: 'Add note' }).click();
+  await expect(page.getByRole('region', { name: 'Staff notes' }).getByRole('listitem').first()).toContainText(note);
+  await expect(page.getByRole('region', { name: 'Messages received' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Print or save audit PDF' }).click();
+  await expect(page.locator('body')).toHaveAttribute('data-printed', 'yes');
+  await expect(page.locator('details.admin-requirements')).toHaveAttribute('open', '');
+
+  await page.getByLabel('Student ID or name').fill('');
+  await expect(page.getByRole('heading', { name: 'Recently opened' })).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: /20280001.*Ama Synthetic Mensah/ }).click();
+  await expect(page.getByRole('region', { name: 'Staff notes' })).toContainText(note);
+});
+
 test('wrong password shows a generic error', async ({ page }) => {
   await signIn(page, '20280001', 'not-the-password');
   await expect(page.locator('.notice.error')).toContainText('do not match an active account');

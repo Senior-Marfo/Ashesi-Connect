@@ -1,7 +1,7 @@
 import { isValidObjectId } from 'mongoose';
 import { isRole } from '../auth/permissions.js';
 import { DEFAULT_STANDING_CONFIG } from '../domain/eligibility/standing.js';
-import { AuditLog, Enrollment, ImportBatchModel, SettingsModel, Message, MessageReceipt, RefreshToken, Student, User } from '../models.js';
+import { AuditLog, Enrollment, ImportBatchModel, SettingsModel, Message, MessageReceipt, RefreshToken, Student, StudentNoteModel, User } from '../models.js';
 import { CurriculumRecord } from '../models/curriculum.js';
 import { selectCohortCurriculum } from '../domain/eligibility/cohort-selection.js';
 import type { ProgrammeRules } from '../domain/eligibility/programme-audit.js';
@@ -96,6 +96,16 @@ export function createMongoRepositories(): Repositories {
       },
       async update(settings) {
         await SettingsModel.updateOne({ _id: 'app' }, { $set: settings }, { upsert: true });
+      }
+    },
+    notes: {
+      async add(note) {
+        const doc = await StudentNoteModel.create(note);
+        return { ...note, id: String(doc._id) };
+      },
+      async listFor(studentId, limit) {
+        const docs = await StudentNoteModel.find({ studentId }).sort({ createdAt: -1, _id: -1 }).limit(limit).lean();
+        return docs.map(doc => ({ id: String(doc._id), studentId: doc.studentId, body: doc.body, authorId: doc.authorId, createdAt: doc.createdAt }));
       }
     },
     imports: {
