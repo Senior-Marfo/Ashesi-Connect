@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:ashesi_graduation_tracker/core/api/api_client.dart';
 import 'package:ashesi_graduation_tracker/core/api/api_error.dart';
 import 'package:ashesi_graduation_tracker/core/providers.dart';
+import 'package:ashesi_graduation_tracker/features/auth/app_lock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// The signed-in account, or null when signed out.
@@ -61,6 +62,8 @@ class SessionController extends AsyncNotifier<Session?> {
   Future<void> signOut() async {
     await _api.logout();
     await ref.read(cacheProvider).clear();
+    // The unlock setting lives in the cache, so the next person on this phone starts without it.
+    ref.invalidate(appLockProvider);
     state = const AsyncData(null);
   }
 

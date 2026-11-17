@@ -44,18 +44,19 @@ class ProfileScreen extends ConsumerWidget {
             Text('SECURITY', style: context.text.labelSmall),
             const SizedBox(height: Space.s3),
             if (offline) ...[
-              const Notice('You are offline. Reconnect to change your password.'),
+              const Notice('You are offline. Some settings need a connection.'),
               const SizedBox(height: Space.s3),
               OutlinedButton(
                 onPressed: () => ref.read(sessionProvider.notifier).reconnect(),
                 child: const Text('Try to reconnect'),
               ),
-            ] else
-              OutlinedButton.icon(
-                onPressed: () => context.push('/change-password'),
-                icon: const Icon(Icons.lock_outline),
-                label: const Text('Change password'),
-              ),
+              const SizedBox(height: Space.s3),
+            ],
+            OutlinedButton.icon(
+              onPressed: () => context.push('/security'),
+              icon: const Icon(Icons.shield_outlined),
+              label: const Text('Unlock and password'),
+            ),
             const SizedBox(height: Space.s3),
             OutlinedButton.icon(
               onPressed: () => ref.read(sessionProvider.notifier).signOut(),

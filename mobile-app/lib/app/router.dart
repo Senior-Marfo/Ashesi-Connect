@@ -4,6 +4,7 @@ import 'package:ashesi_graduation_tracker/core/api/api_client.dart';
 import 'package:ashesi_graduation_tracker/features/admin/search_screen.dart';
 import 'package:ashesi_graduation_tracker/features/admin/student_screen.dart';
 import 'package:ashesi_graduation_tracker/features/auth/change_password_screen.dart';
+import 'package:ashesi_graduation_tracker/features/auth/security_screen.dart';
 import 'package:ashesi_graduation_tracker/features/auth/session.dart';
 import 'package:ashesi_graduation_tracker/features/auth/sign_in_screen.dart';
 import 'package:ashesi_graduation_tracker/features/student/courses_screen.dart';
@@ -26,6 +27,7 @@ String? redirectFor(AsyncValue<Session?> session, String location) {
   }
   final home = current.role == Role.admin ? '/admin' : '/student';
   if (location == '/' || location == '/sign-in') return home;
+  if (location == '/security') return null;
   if (location == '/change-password' && !current.offline) return null;
   // The role comes from the server; the app only shows that role's screens.
   return location.startsWith(home) ? null : home;
@@ -46,6 +48,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/', builder: (_, _) => const SplashScreen()),
       GoRoute(path: '/sign-in', builder: (_, _) => const SignInScreen()),
       GoRoute(path: '/change-password', builder: (_, _) => const ChangePasswordScreen()),
+      GoRoute(path: '/security', builder: (_, _) => const SecurityScreen()),
       GoRoute(
         path: '/student/remaining',
         parentNavigatorKey: root,

@@ -29,7 +29,7 @@ class AppColors extends ThemeExtension<AppColors> {
     raised: Color(0xFFFFFFFF),
     error: Color(0xFFB3261E),
     errorBg: Color(0xFFFBECEB),
-    progress: Color(0xFF9A6A00),
+    progress: Color(0xFF8A5D00),
     progressBg: Color(0xFFFBF1DA),
     ok: Color(0xFF17784A),
     okBg: Color(0xFFE4F4EB),

@@ -133,7 +133,7 @@ export default function RegisterPageView() {
       {page && page.total === 0 && <p className="empty">No students match these filters.</p>}
       {page && page.total > 0 && (
         <>
-          <div className="table-wrap">
+          <div className="table-wrap" tabIndex={0} role="region" aria-label="Student register">
             <table className="courses register">
               <caption className="visually-hidden">Student register, sortable by column</caption>
               <thead>

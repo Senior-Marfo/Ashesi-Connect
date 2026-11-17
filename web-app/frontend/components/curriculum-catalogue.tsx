@@ -17,7 +17,7 @@ export function CurriculumCatalogue({ load }: { load: CatalogueLoad }) {
       {load.status === 'error' && <Notice tone="error">The curriculum catalogue could not be loaded.</Notice>}
       {load.status === 'ready' && load.curricula.length === 0 && <p className="empty">No curricula have been imported yet.</p>}
       {load.status === 'ready' && load.curricula.length > 0 && (
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0} role="region" aria-label="Curriculum catalogue">
           <table className="courses">
             <thead>
               <tr><th scope="col">Programme</th><th scope="col">Track</th><th scope="col">Version</th><th scope="col">Status</th><th scope="col">Validation</th></tr>

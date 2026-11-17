@@ -114,7 +114,7 @@ function AuditLog() {
       {load.status === 'error' && <Notice tone="error">The audit log could not be loaded.</Notice>}
       {load.status === 'ready' && load.data.entries.length === 0 && <p className="empty">No matching activity.</p>}
       {load.status === 'ready' && load.data.entries.length > 0 && (
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0} role="region" aria-label="Audit log entries">
           <table className="courses">
             <caption className="visually-hidden">Latest 100 audit log entries</caption>
             <thead><tr><th scope="col">When</th><th scope="col">Activity</th><th scope="col">By</th><th scope="col">Subject</th><th scope="col">Details</th></tr></thead>
