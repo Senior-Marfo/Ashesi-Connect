@@ -25,11 +25,12 @@ const csvCell = (value: string | number) => {
   return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 };
 
-const MAPPING_COLUMNS = ['programme', 'section', 'category', 'kind', 'workbook_name', 'credits', 'track', 'source_row', 'course_code', 'minimum_grade', 'notes'];
+export const MAPPING_COLUMNS = ['programme', 'section', 'category', 'kind', 'workbook_name', 'credits', 'track', 'source_row', 'course_code', 'minimum_grade', 'notes'];
 
-function mappingRows(programme: string, alternateTrack: string | null, line: RequirementLine): string[][] {
+function mappingRows(programme: string, alternateTrack: string | null, line: RequirementLine, creditsPrinted: boolean): string[][] {
+  const uncredited = creditsPrinted ? '' : ' No credits are printed for this category: enter 0 if it carries none (the course is then listed but not counted).';
   const row = (name: string, track: string, notes: string) =>
-    [programme, line.section, line.category, line.kind, name, String(line.credits), track, String(line.sourceRow), '', '', notes];
+    [programme, line.section, line.category, line.kind, name, String(line.credits), track, String(line.sourceRow), '', '', (notes + uncredited).trim()];
   switch (line.kind) {
     case 'ALTERNATIVE': {
       const options = line.name.split(' / ').map(option => option.trim());
@@ -42,8 +43,8 @@ function mappingRows(programme: string, alternateTrack: string | null, line: Req
       return [row(line.name, `alternate (${alternateTrack ?? 'confirm'})`, 'Counts only on the alternate track.')];
     case 'ELECTIVE_SLOTS':
       return [row(line.name, 'both', [
-        `${line.credits} elective slot(s). List every allowed course code in course_code, separated by spaces.`,
-        line.africanStudiesMinimum ? `At least ${line.africanStudiesMinimum} must be African Studies; mark those codes with a trailing * (e.g. AS 101*).` : '',
+        `${line.credits} elective slot(s). List every allowed course code in course_code, separated by semicolons (CS 351; CS 352).`,
+        line.africanStudiesMinimum ? `At least ${line.africanStudiesMinimum} must be African Studies: mark those codes with a trailing * (AS 101*).` : '',
         line.freeElectiveSlots ? `Includes ${line.freeElectiveSlots} free elective (major or non-major).` : ''
       ].filter(Boolean).join(' '))];
     case 'CONDITIONAL_CAPSTONE':
@@ -59,7 +60,8 @@ function mappingRows(programme: string, alternateTrack: string | null, line: Req
  */
 export function mappingTemplateCsv(programmes: ReconciledProgramme[]): string {
   const rows = programmes.flatMap(({ programme, reconciliation }) =>
-    reconciliation.lines.flatMap(line => mappingRows(programme, reconciliation.alternateTrack, line)));
+    reconciliation.lines.flatMap(line => mappingRows(programme, reconciliation.alternateTrack, line,
+      reconciliation.totals.some(total => total.scope === 'CATEGORY' && total.label === line.category))));
   return [MAPPING_COLUMNS, ...rows].map(row => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
 }
 

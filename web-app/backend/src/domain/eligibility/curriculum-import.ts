@@ -14,6 +14,7 @@ const pool = z.object({
  creditsRequired: z.number().finite().nonnegative().max(100),
  courseCodes: z.array(z.string().trim().min(1).max(32)).max(500),
  africanStudiesMinimum: z.number().finite().nonnegative().optional(),
+ africanStudiesCodes: z.array(z.string().trim().min(1).max(32)).max(500).optional(),
  minimumGrade: grade.optional()
 }).strict();
 const source = z.object({

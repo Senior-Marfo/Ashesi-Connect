@@ -44,6 +44,11 @@ export function validateCurriculum(input: CurriculumVersion): CurriculumValidati
     if (new Set(pool.courseCodes.map(code => code.trim())).size !== pool.courseCodes.length) issues.push('DUPLICATE_ELECTIVE_COURSE');
     if (pool.africanStudiesMinimum !== undefined && (!Number.isInteger(pool.africanStudiesMinimum) || pool.africanStudiesMinimum < 0 || pool.africanStudiesMinimum > pool.courseCodes.length)) issues.push('INVALID_AFRICAN_STUDIES_MINIMUM');
   }
+  for (const pool of rules.electivePools) {
+    const codes = new Set(pool.courseCodes.map(code => code.trim()));
+    if (pool.africanStudiesCodes?.some(code => !codes.has(code.trim()))) issues.push('AFRICAN_STUDIES_COURSE_NOT_IN_POOL');
+    if (pool.africanStudiesCodes && (pool.africanStudiesMinimum ?? 0) > pool.africanStudiesCodes.length) issues.push('NOT_ENOUGH_AFRICAN_STUDIES_OPTIONS');
+  }
   const electiveOwners = new Map<string, number>();
   rules.electivePools.forEach((pool, index) => {
     for (const code of pool.courseCodes) {

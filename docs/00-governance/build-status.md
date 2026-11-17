@@ -36,7 +36,7 @@ This branch is under active development and MUST NOT be deployed as a university
 - Confirm the first green run of the CI `backend-mongodb` job; it has not run in the development container, which cannot download MongoDB.
 - Emailing reset notices and message copies (needs SMTP).
 - Verified workbook ingestion, curriculum versioning, elective and track rules, and all eligibility cases.
-- Loading the official 2028 curriculum so real students get a standing. The workbook was received and reconciled on 2026-11-17 (`02-requirements/degree-audit-2028/`). Still needed: the Registry's course codes in the mapping template, answers to the verified discrepancies, then draft import and review.
+- Loading the official 2028 curriculum so real students get a standing. The workbook was received and reconciled on 2026-11-17 (`02-requirements/degree-audit-2028/`). The converter from the completed mapping to curriculum drafts is ready (`02-requirements/degree-audit-2028/README.md`). Still needed: the Registry's course codes in the mapping template and answers to the verified discrepancies; then build the drafts, import them to staging and review them.
 - Registry confirmation of which courses need a C. Once confirmed, enter them under **Settings → Course pass marks**. Workbook discrepancies are still open.
 
 ## Release policy

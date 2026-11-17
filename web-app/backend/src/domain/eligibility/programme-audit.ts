@@ -9,6 +9,8 @@ export type ElectiveRule = {
   category: string; creditsRequired: number; courseCodes: string[]; africanStudiesMinimum?: number; minimumGrade?: Grade;
   /** Pass marks for individual courses in the pool, overriding `minimumGrade`. */
   courseMinimums?: Partial<Record<string, Grade>>;
+  /** Courses in this pool that count towards `africanStudiesMinimum`. */
+  africanStudiesCodes?: string[];
 };
 /** Pass mark for an elective when neither the course nor its pool sets one (unchanged engine behaviour; see requirements-discrepancies.md). */
 export const ELECTIVE_DEFAULT_MINIMUM: Grade = 'D';
@@ -61,7 +63,8 @@ export function evaluateProgramme(transcript: TranscriptEntry[], rules: Programm
   let credits = 0;
   for (const e of distinct.values()) { if (!earned.has(e.courseCode)) { addPassing(e); credits += e.credits; } }
   if (credits < pool.creditsRequired) remainingRequirements.push({ code: pool.category, category: pool.category, credits: round(pool.creditsRequired - credits), reason: 'ELECTIVE_SLOT_OPEN' });
-  if (pool.africanStudiesMinimum && [...distinct.values()].filter(e => e.africanStudies).length < pool.africanStudiesMinimum) remainingRequirements.push({ code: 'AFRICAN_STUDIES', category: pool.category, credits: 0, reason: 'AFRICAN_STUDIES_MISSING' });
+  const isAfricanStudies = (e: TranscriptEntry) => e.africanStudies === true || (pool.africanStudiesCodes?.includes(e.courseCode) ?? false);
+  if (pool.africanStudiesMinimum && [...distinct.values()].filter(isAfricanStudies).length < pool.africanStudiesMinimum) remainingRequirements.push({ code: 'AFRICAN_STUDIES', category: pool.category, credits: 0, reason: 'AFRICAN_STUDIES_MISSING' });
  }
  const creditsEarned = round([...earned.values()].reduce((sum,e) => sum + e.credits,0));
  if (creditsEarned < rules.totalCredits) remainingRequirements.push({ code: 'TOTAL_CREDITS', category: 'Overall', credits: round(rules.totalCredits - creditsEarned), reason: 'CREDIT_SHORTFALL' });
