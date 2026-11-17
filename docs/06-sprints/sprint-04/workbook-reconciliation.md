@@ -24,11 +24,20 @@ Master build prompt §3.3: parse the workbook, recompute each category and overa
 - `docs/02-requirements/degree-audit-2028/curriculum-course-mapping.csv` (384 rows)
 - The workbook itself is not committed. Its SHA-256 is recorded in both outputs.
 
+## Converter (done)
+
+- **`scripts/build-curriculum-drafts.ts` and `domain/eligibility/curriculum-mapping.ts`:** turn the completed mapping into one draft per programme and track, in the format `import-curriculum-draft.ts` accepts.
+  - Every row is checked: code format, pass mark D+ or C, confirmed track, elective lists.
+  - Each draft is run through the existing draft validator.
+  - A programme with any problem gets no draft. On the unfilled template the converter builds nothing and lists all 386 missing items.
+- **African Studies:** the audit engine's "at least one African Studies elective" rule relied on a transcript flag that nothing ever set, so it would have failed every real student. Elective pools can now list their African Studies courses (`africanStudiesCodes`), and validation checks the list belongs to the pool. Pools without a list behave as before.
+- **Zero-credit requirements** (LLB's IAP) can be entered with 0 credits; they are listed in the summary but not counted.
+- Instructions for the Registry are in `docs/02-requirements/degree-audit-2028/README.md`.
+
 ## Next
 
-1. The Registry completes the mapping (codes, elective lists, any C pass marks) and answers the discrepancy questions.
-2. A converter turns the completed mapping into curriculum drafts (`curriculum-import.ts` format), one per programme and track.
-3. Drafts are imported to staging, validated and reviewed in-app (`docs/controlled-curriculum-staging-runbook.md`).
+1. The Registry completes the mapping and answers the discrepancy questions.
+2. Run the converter, import the drafts to staging and review them in the app.
 
 ## Evidence
 

@@ -18,7 +18,7 @@ BA,LIBERAL ARTS & SCIENCES CORE,Mathematics & Quantitative,COURSE,Statistics,1,b
 BA,LIBERAL ARTS & SCIENCES CORE,Mathematics & Quantitative,COURSE,Quantitative Methods,1,both,24,,,
 BA,LIBERAL ARTS & SCIENCES CORE,Computing,COURSE,Intro to Computing & IS,1,both,27,,,
 BA,LIBERAL ARTS & SCIENCES CORE,Research / Project Prep.,COURSE,Research Methods,1,both,29,,,
-BA,LIBERAL ARTS & SCIENCES CORE,Non-Major Electives,ELECTIVE_SLOTS,3 Non-Major Electives including at least 1 African studies,3,both,31,,,"3 elective slot(s). List every allowed course code in course_code, separated by spaces. At least 1 must be African Studies; mark those codes with a trailing * (e.g. AS 101*)."
+BA,LIBERAL ARTS & SCIENCES CORE,Non-Major Electives,ELECTIVE_SLOTS,3 Non-Major Electives including at least 1 African studies,3,both,31,,,"3 elective slot(s). List every allowed course code in course_code, separated by semicolons (CS 351; CS 352). At least 1 must be African Studies: mark those codes with a trailing * (AS 101*)."
 BA,MAJOR,Required Major Classes,COURSE,Introduction to Finance,1,both,37,,,
 BA,MAJOR,Required Major Classes,COURSE,Financial Accounting,1,both,38,,,
 BA,MAJOR,Required Major Classes,COURSE,Marketing,1,both,39,,,
@@ -31,7 +31,7 @@ BA,MAJOR,Required Major Classes,COURSE,Business Law,1,both,45,,,
 BA,MAJOR,Required Major Classes,COURSE,Competitive Strategy,1,both,46,,,
 BA,MAJOR,Required Major Classes,COURSE,Investments,1,both,47,,,
 BA,MAJOR,Required Major Classes,COURSE,Business Communication and Negotiations,1,both,48,,,
-BA,MAJOR,Major Electives,ELECTIVE_SLOTS,3 BA Electives,3,both,52,,,"3 elective slot(s). List every allowed course code in course_code, separated by spaces."
+BA,MAJOR,Major Electives,ELECTIVE_SLOTS,3 BA Electives,3,both,52,,,"3 elective slot(s). List every allowed course code in course_code, separated by semicolons (CS 351; CS 352)."
 BA,MAJOR,Capstone,CONDITIONAL_CAPSTONE,Capstone 1 (could be BA elective),1,both,55,,,May also count as a major elective; confirm the rule.
 BA,MAJOR,Capstone,COURSE,Capstone 2,1,both,56,,,
 ECON,LIBERAL ARTS & SCIENCES CORE,Humanities & Social Sciences,COURSE,Written and Oral Comm.,1,both,7,,,
@@ -53,7 +53,7 @@ ECON,LIBERAL ARTS & SCIENCES CORE,Mathematics & Quantitative,COURSE,Statistics,1
 ECON,LIBERAL ARTS & SCIENCES CORE,Mathematics & Quantitative,COURSE,Mathematics for Economists,1,both,24,,,
 ECON,LIBERAL ARTS & SCIENCES CORE,Computing,COURSE,Intro to Computing & IS,1,both,27,,,
 ECON,LIBERAL ARTS & SCIENCES CORE,Research / Project Prep.,COURSE,Research Methods,1,both,29,,,
-ECON,LIBERAL ARTS & SCIENCES CORE,Non-Major Electives,ELECTIVE_SLOTS,3 Non-Major Electives including at least 1 African studies,3,both,31,,,"3 elective slot(s). List every allowed course code in course_code, separated by spaces. At least 1 must be African Studies; mark those codes with a trailing * (e.g. AS 101*)."
+ECON,LIBERAL ARTS & SCIENCES CORE,Non-Major Electives,ELECTIVE_SLOTS,3 Non-Major Electives including at least 1 African studies,3,both,31,,,"3 elective slot(s). List every allowed course code in course_code, separated by semicolons (CS 351; CS 352). At least 1 must be African Studies: mark those codes with a trailing * (AS 101*)."
 ECON,MAJOR,Required Major Classes,COURSE,Introduction to Environmental Economics,1,both,37,,,
 ECON,MAJOR,Required Major Classes,COURSE,The Economy of Ghana,1,both,38,,,
 ECON,MAJOR,Required Major Classes,COURSE,Intermediate Microeconomic Theory I,1,both,39,,,
@@ -67,7 +67,7 @@ ECON,MAJOR,Required Major Classes,COURSE,Econometrics II,1,both,46,,,
 ECON,MAJOR,Required Major Classes,COURSE,Advanced Microeconomic Theory,1,both,47,,,
 ECON,MAJOR,Required Major Classes,COURSE,Advanced Macroeconomic Theory,1,both,48,,,
 ECON,MAJOR,Required Major Classes,COURSE,Organisational Behaviour,1,both,49,,,
-ECON,MAJOR,Major Electives,ELECTIVE_SLOTS,3 Electives,3,both,52,,,"3 elective slot(s). List every allowed course code in course_code, separated by spaces."
+ECON,MAJOR,Major Electives,ELECTIVE_SLOTS,3 Electives,3,both,52,,,"3 elective slot(s). List every allowed course code in course_code, separated by semicolons (CS 351; CS 352)."
 ECON,MAJOR,Capstone,COURSE,Capstone 1,1,both,55,,,
 ECON,MAJOR,Capstone,COURSE,Capstone 2,1,both,56,,,
 LLB,LIBERAL ARTS & SCIENCES CORE,Humanities & Social Sciences,COURSE,Written and Oral Comm.,1,both,7,,,
@@ -82,7 +82,7 @@ LLB,LIBERAL ARTS & SCIENCES CORE,Mathematics & Quantitative,ALTERNATIVE,Pre-Calc
 LLB,LIBERAL ARTS & SCIENCES CORE,Mathematics & Quantitative,ALTERNATIVE,Calculus 1,1,confirm,20,,,One of: Pre-Calculus 1 / Calculus 1. Track suggested from the printed track name; confirm.
 LLB,LIBERAL ARTS & SCIENCES CORE,Mathematics & Quantitative,COURSE,Statistics for Social Sciences,1,both,21,,,
 LLB,LIBERAL ARTS & SCIENCES CORE,Computing,COURSE,Intro to Computing & IS,1,both,27,,,
-LLB,LIBERAL ARTS & SCIENCES CORE,Non-Major Electives,ELECTIVE_SLOTS,2 Non-Major Electives including at least 1 African studies,2,both,31,,,"2 elective slot(s). List every allowed course code in course_code, separated by spaces. At least 1 must be African Studies; mark those codes with a trailing * (e.g. AS 101*)."
+LLB,LIBERAL ARTS & SCIENCES CORE,Non-Major Electives,ELECTIVE_SLOTS,2 Non-Major Electives including at least 1 African studies,2,both,31,,,"2 elective slot(s). List every allowed course code in course_code, separated by semicolons (CS 351; CS 352). At least 1 must be African Studies: mark those codes with a trailing * (AS 101*)."
 LLB,MAJOR,Required Major Classes,COURSE,Introduction to Public Policy,1,both,37,,,
 LLB,MAJOR,Required Major Classes,COURSE,Ghana Legal System & Methods,1,both,38,,,
 LLB,MAJOR,Required Major Classes,COURSE,Legal Writing,1,both,39,,,
@@ -108,13 +108,13 @@ LLB,MAJOR,Required Major Classes,COURSE,Succession,1,both,58,,,
 LLB,MAJOR,Required Major Classes,COURSE,Jurisprudence,1,both,59,,,
 LLB,MAJOR,Required Major Classes,COURSE,Company Law,1,both,60,,,
 LLB,MAJOR,Required Major Classes,COURSE,Evaluating Public Policy,1,both,61,,,
-LLB,MAJOR,Major Electives,ELECTIVE_SLOTS,2 Law Electives,2,both,66,,,"2 elective slot(s). List every allowed course code in course_code, separated by spaces."
+LLB,MAJOR,Major Electives,ELECTIVE_SLOTS,2 Law Electives,2,both,66,,,"2 elective slot(s). List every allowed course code in course_code, separated by semicolons (CS 351; CS 352)."
 LLB,MAJOR,Capstone,COURSE,Capstone 1,1,both,69,,,
 LLB,MAJOR,Capstone,COURSE,Capstone 2,1,both,70,,,
-LLB,IAP,IAP,COURSE,Legal Reasoning,1,both,74,,,
-LLB,IAP,IAP,COURSE,Language for Law,1,both,75,,,
-LLB,IAP,IAP,COURSE,Advanced Language for Law,1,both,76,,,
-LLB,IAP,IAP,COURSE,Advanced Legal Writing,1,both,77,,,
+LLB,IAP,IAP,COURSE,Legal Reasoning,1,both,74,,,No credits are printed for this category: enter 0 if it carries none (the course is then listed but not counted).
+LLB,IAP,IAP,COURSE,Language for Law,1,both,75,,,No credits are printed for this category: enter 0 if it carries none (the course is then listed but not counted).
+LLB,IAP,IAP,COURSE,Advanced Language for Law,1,both,76,,,No credits are printed for this category: enter 0 if it carries none (the course is then listed but not counted).
+LLB,IAP,IAP,COURSE,Advanced Legal Writing,1,both,77,,,No credits are printed for this category: enter 0 if it carries none (the course is then listed but not counted).
 MIS,LIBERAL ARTS & SCIENCES CORE,Humanities & Social Sciences,COURSE,Written and Oral Comm.,1,both,7,,,
 MIS,LIBERAL ARTS & SCIENCES CORE,Humanities & Social Sciences,COURSE,Text and Meaning,1,both,8,,,
 MIS,LIBERAL ARTS & SCIENCES CORE,Humanities & Social Sciences,COURSE,Ashesi Seminar & Leadership 1*,0.5,both,9,,,Half-credit course (* in the workbook).
@@ -133,7 +133,7 @@ MIS,LIBERAL ARTS & SCIENCES CORE,Mathematics & Quantitative,COURSE,Statistics,1,
 MIS,LIBERAL ARTS & SCIENCES CORE,Mathematics & Quantitative,COURSE,Quantitative Methods or Linear Algebra,1,both,24,,,
 MIS,LIBERAL ARTS & SCIENCES CORE,Computing,COURSE,Intro to Computing & IS,1,both,27,,,
 MIS,LIBERAL ARTS & SCIENCES CORE,Research / Project Prep.,COURSE,Research Methods,1,both,33,,,
-MIS,LIBERAL ARTS & SCIENCES CORE,Non-Major Electives,ELECTIVE_SLOTS,2 Non-Major Electives (at least 1 African studies) and 1 Free Elective (major or non-major),3,both,35,,,"3 elective slot(s). List every allowed course code in course_code, separated by spaces. At least 1 must be African Studies; mark those codes with a trailing * (e.g. AS 101*). Includes 1 free elective (major or non-major)."
+MIS,LIBERAL ARTS & SCIENCES CORE,Non-Major Electives,ELECTIVE_SLOTS,2 Non-Major Electives (at least 1 African studies) and 1 Free Elective (major or non-major),3,both,35,,,"3 elective slot(s). List every allowed course code in course_code, separated by semicolons (CS 351; CS 352). At least 1 must be African Studies: mark those codes with a trailing * (AS 101*). Includes 1 free elective (major or non-major)."
 MIS,MAJOR,Required Major Classes,COURSE,Finance for Non-Finance Mgrs,1,both,41,,,
 MIS,MAJOR,Required Major Classes,COURSE,Competitive Strategy,1,both,42,,,
 MIS,MAJOR,Required Major Classes,COURSE,Computer Programming for CS,1,both,43,,,
@@ -147,7 +147,7 @@ MIS,MAJOR,Required Major Classes,COURSE,IT Infrastructure and Systems Admin,1,bo
 MIS,MAJOR,Required Major Classes,COURSE,IS Project Management,1,both,51,,,
 MIS,MAJOR,Required Major Classes,COURSE,Object Oriented Programming,1,both,52,,,
 MIS,MAJOR,Required Major Classes,COURSE,Introduction to AI,1,both,53,,,
-MIS,MAJOR,Major Electives,ELECTIVE_SLOTS,2 MIS Electives,2,both,55,,,"2 elective slot(s). List every allowed course code in course_code, separated by spaces."
+MIS,MAJOR,Major Electives,ELECTIVE_SLOTS,2 MIS Electives,2,both,55,,,"2 elective slot(s). List every allowed course code in course_code, separated by semicolons (CS 351; CS 352)."
 MIS,MAJOR,Capstone,CONDITIONAL_CAPSTONE,Capstone 1 (could be MIS elective),1,both,58,,,May also count as a major elective; confirm the rule.
 MIS,MAJOR,Capstone,COURSE,Capstone 2,1,both,59,,,
 CS,LIBERAL ARTS & SCIENCES CORE,Humanities & Social Sciences,COURSE,Written and Oral Comm.,1,both,7,,,
@@ -169,7 +169,7 @@ CS,LIBERAL ARTS & SCIENCES CORE,Mathematics & Quantitative,COURSE,Statistics,1,b
 CS,LIBERAL ARTS & SCIENCES CORE,Mathematics & Quantitative,COURSE,Linear Algebra,1,both,24,,,
 CS,LIBERAL ARTS & SCIENCES CORE,Computing,COURSE,Intro to Computing & IS,1,both,27,,,
 CS,LIBERAL ARTS & SCIENCES CORE,Research / Project Prep.,COURSE,Research Methods,1,both,33,,,
-CS,LIBERAL ARTS & SCIENCES CORE,Non-Major Electives,ELECTIVE_SLOTS,2 Non-Major Electives (at least 1 African studies),2,both,35,,,"2 elective slot(s). List every allowed course code in course_code, separated by spaces. At least 1 must be African Studies; mark those codes with a trailing * (e.g. AS 101*)."
+CS,LIBERAL ARTS & SCIENCES CORE,Non-Major Electives,ELECTIVE_SLOTS,2 Non-Major Electives (at least 1 African studies),2,both,35,,,"2 elective slot(s). List every allowed course code in course_code, separated by semicolons (CS 351; CS 352). At least 1 must be African Studies: mark those codes with a trailing * (AS 101*)."
 CS,MAJOR,Required Major Classes,COURSE,Computer Programming for CS,1,both,41,,,
 CS,MAJOR,Required Major Classes,COURSE,Object Oriented Programming,1,both,42,,,
 CS,MAJOR,Required Major Classes,COURSE,Discrete Structures and Theory,1,both,43,,,
@@ -185,7 +185,7 @@ CS,MAJOR,Required Major Classes,COURSE,Operating Systems,1,both,52,,,
 CS,MAJOR,Required Major Classes,COURSE,Algorithm Design & Analysis,1,both,53,,,
 CS,MAJOR,Required Major Classes,COURSE,Intro to Modelling & Simulation *,0.5,both,54,,,Half-credit course (* in the workbook).
 CS,MAJOR,Required Major Classes,COURSE,System Fundametals,1,both,55,,,
-CS,MAJOR,Major Electives,ELECTIVE_SLOTS,2 CS Electives,2,both,57,,,"2 elective slot(s). List every allowed course code in course_code, separated by spaces."
+CS,MAJOR,Major Electives,ELECTIVE_SLOTS,2 CS Electives,2,both,57,,,"2 elective slot(s). List every allowed course code in course_code, separated by semicolons (CS 351; CS 352)."
 CS,MAJOR,Capstone,CONDITIONAL_CAPSTONE,Capstone 1 (could be CS elective),1,both,60,,,May also count as a major elective; confirm the rule.
 CS,MAJOR,Capstone,COURSE,Capstone 2,1,both,61,,,
 CE,LIBERAL ARTS & SCIENCES CORE,Humanities & Social Sciences,COURSE,Written and Oral Comm.,1,both,7,,,
@@ -208,7 +208,7 @@ CE,LIBERAL ARTS & SCIENCES CORE,Science,COURSE,Engineering Mechanics,1,both,29,,
 CE,LIBERAL ARTS & SCIENCES CORE,Science,COURSE,Physics II: Electromagnetism,1,both,30,,,
 CE,LIBERAL ARTS & SCIENCES CORE,Science,COURSE,Material Science & Chemistry,1,both,31,,,
 CE,LIBERAL ARTS & SCIENCES CORE,Research / Project Prep.,COURSE,3rd Yr. Grp. Project & Seminar*,0.5,both,33,,,Half-credit course (* in the workbook).
-CE,LIBERAL ARTS & SCIENCES CORE,Non-Major Electives,ELECTIVE_SLOTS,2 Non-Major Electives including at least 1 African studies,2,both,35,,,"2 elective slot(s). List every allowed course code in course_code, separated by spaces. At least 1 must be African Studies; mark those codes with a trailing * (e.g. AS 101*)."
+CE,LIBERAL ARTS & SCIENCES CORE,Non-Major Electives,ELECTIVE_SLOTS,2 Non-Major Electives including at least 1 African studies,2,both,35,,,"2 elective slot(s). List every allowed course code in course_code, separated by semicolons (CS 351; CS 352). At least 1 must be African Studies: mark those codes with a trailing * (AS 101*)."
 CE,MAJOR,Required Major Classes,COURSE,Introduction to Engineering,1,both,41,,,
 CE,MAJOR,Required Major Classes,COURSE,Instrumentation for Engineering*,0.5,both,42,,,Half-credit course (* in the workbook).
 CE,MAJOR,Required Major Classes,COURSE,Applied Programming for Eng.*,0.5,both,43,,,Half-credit course (* in the workbook).
@@ -226,7 +226,7 @@ CE,MAJOR,Required Major Classes,COURSE,Discrete Maths,1,both,54,,,
 CE,MAJOR,Required Major Classes,COURSE,Signals & Systems,1,both,55,,,
 CE,MAJOR,Required Major Classes,COURSE,Object Oriented Programming,1,both,56,,,
 CE,MAJOR,Required Major Classes,COURSE,Computer Org. & Arch.,1,both,57,,,
-CE,MAJOR,Major Electives,ELECTIVE_SLOTS,3 CE Electives,3,both,59,,,"3 elective slot(s). List every allowed course code in course_code, separated by spaces."
+CE,MAJOR,Major Electives,ELECTIVE_SLOTS,3 CE Electives,3,both,59,,,"3 elective slot(s). List every allowed course code in course_code, separated by semicolons (CS 351; CS 352)."
 CE,MAJOR,Capstone,COURSE,Capstone,1,both,62,,,
 EE,LIBERAL ARTS & SCIENCES CORE,Humanities & Social Sciences,COURSE,Written and Oral Comm.,1,both,7,,,
 EE,LIBERAL ARTS & SCIENCES CORE,Humanities & Social Sciences,COURSE,Text & Meaning,1,both,8,,,
@@ -248,7 +248,7 @@ EE,LIBERAL ARTS & SCIENCES CORE,Science,COURSE,Engineering Mechanics,1,both,29,,
 EE,LIBERAL ARTS & SCIENCES CORE,Science,COURSE,Physics II: Electromagnetism,1,both,30,,,
 EE,LIBERAL ARTS & SCIENCES CORE,Science,COURSE,Material Science & Chemistry,1,both,31,,,
 EE,LIBERAL ARTS & SCIENCES CORE,Research / Project Prep.,COURSE,3rd Yr. Grp. Project & Seminar*,0.5,both,33,,,Half-credit course (* in the workbook).
-EE,LIBERAL ARTS & SCIENCES CORE,Non-Major Electives,ELECTIVE_SLOTS,2 Non-Major Electives including at least 1 African studies,2,both,35,,,"2 elective slot(s). List every allowed course code in course_code, separated by spaces. At least 1 must be African Studies; mark those codes with a trailing * (e.g. AS 101*)."
+EE,LIBERAL ARTS & SCIENCES CORE,Non-Major Electives,ELECTIVE_SLOTS,2 Non-Major Electives including at least 1 African studies,2,both,35,,,"2 elective slot(s). List every allowed course code in course_code, separated by semicolons (CS 351; CS 352). At least 1 must be African Studies: mark those codes with a trailing * (AS 101*)."
 EE,MAJOR,Required Major Classes,COURSE,Introduction to Engineering,1,both,41,,,
 EE,MAJOR,Required Major Classes,COURSE,Instrumentation for Engineering*,0.5,both,42,,,Half-credit course (* in the workbook).
 EE,MAJOR,Required Major Classes,COURSE,Applied Programming for Eng.*,0.5,both,43,,,Half-credit course (* in the workbook).
@@ -265,7 +265,7 @@ EE,MAJOR,Required Major Classes,COURSE,CAD/CAM,1,both,53,,,
 EE,MAJOR,Required Major Classes,COURSE,Signals &Systems,1,both,54,,,
 EE,MAJOR,Required Major Classes,COURSE,Communications Systems,1,both,55,,,
 EE,MAJOR,Required Major Classes,COURSE,Power Engineering,1,both,56,,,
-EE,MAJOR,Major Electives,ELECTIVE_SLOTS,3 EE Electives,3,both,58,,,"3 elective slot(s). List every allowed course code in course_code, separated by spaces."
+EE,MAJOR,Major Electives,ELECTIVE_SLOTS,3 EE Electives,3,both,58,,,"3 elective slot(s). List every allowed course code in course_code, separated by semicolons (CS 351; CS 352)."
 EE,MAJOR,Capstone,COURSE,Capstone,1,both,61,,,
 ME,LIBERAL ARTS & SCIENCES CORE,Humanities & Social Sciences,COURSE,Written and Oral Comm.,1,both,7,,,
 ME,LIBERAL ARTS & SCIENCES CORE,Humanities & Social Sciences,COURSE,Text & Meaning,1,both,8,,,
@@ -287,7 +287,7 @@ ME,LIBERAL ARTS & SCIENCES CORE,Science,COURSE,Engineering Mechanics,1,both,29,,
 ME,LIBERAL ARTS & SCIENCES CORE,Science,COURSE,Physics II: Electromagnetism,1,both,30,,,
 ME,LIBERAL ARTS & SCIENCES CORE,Science,COURSE,Material Science & Chemistry,1,both,31,,,
 ME,LIBERAL ARTS & SCIENCES CORE,Research / Project Prep.,COURSE,3rd Yr. Grp. Project & Seminar*,0.5,both,33,,,Half-credit course (* in the workbook).
-ME,LIBERAL ARTS & SCIENCES CORE,Non-Major Electives,ELECTIVE_SLOTS,2 Non-Major Electives including at least 1 African studies,2,both,35,,,"2 elective slot(s). List every allowed course code in course_code, separated by spaces. At least 1 must be African Studies; mark those codes with a trailing * (e.g. AS 101*)."
+ME,LIBERAL ARTS & SCIENCES CORE,Non-Major Electives,ELECTIVE_SLOTS,2 Non-Major Electives including at least 1 African studies,2,both,35,,,"2 elective slot(s). List every allowed course code in course_code, separated by semicolons (CS 351; CS 352). At least 1 must be African Studies: mark those codes with a trailing * (AS 101*)."
 ME,MAJOR,Required Major Classes,COURSE,Introduction to Engineering,1,both,41,,,
 ME,MAJOR,Required Major Classes,COURSE,Instrumentation for Engineering*,0.5,both,42,,,Half-credit course (* in the workbook).
 ME,MAJOR,Required Major Classes,COURSE,Applied Programming for Eng.*,0.5,both,43,,,Half-credit course (* in the workbook).
@@ -304,7 +304,7 @@ ME,MAJOR,Required Major Classes,COURSE,Thermodynamics,1,both,53,,,
 ME,MAJOR,Required Major Classes,COURSE,Mechanics of Materials,1,both,54,,,
 ME,MAJOR,Required Major Classes,COURSE,Heat Transfer,1,both,55,,,
 ME,MAJOR,Required Major Classes,COURSE,Mechanics of Machines,1,both,56,,,
-ME,MAJOR,Major Electives,ELECTIVE_SLOTS,3 ME Electives,3,both,58,,,"3 elective slot(s). List every allowed course code in course_code, separated by spaces."
+ME,MAJOR,Major Electives,ELECTIVE_SLOTS,3 ME Electives,3,both,58,,,"3 elective slot(s). List every allowed course code in course_code, separated by semicolons (CS 351; CS 352)."
 ME,MAJOR,Capstone,COURSE,Capstone,1,both,61,,,
 MT,LIBERAL ARTS & SCIENCES CORE,Humanities & Social Sciences,COURSE,Written and Oral Comm.,1,both,7,,,
 MT,LIBERAL ARTS & SCIENCES CORE,Humanities & Social Sciences,COURSE,Text & Meaning,1,both,8,,,
@@ -326,7 +326,7 @@ MT,LIBERAL ARTS & SCIENCES CORE,Science,COURSE,Engineering Mechanics,1,both,29,,
 MT,LIBERAL ARTS & SCIENCES CORE,Science,COURSE,Physics II: Electromagnetism,1,both,30,,,
 MT,LIBERAL ARTS & SCIENCES CORE,Science,COURSE,Machine Learning,1,both,31,,,
 MT,LIBERAL ARTS & SCIENCES CORE,Research / Project Prep.,COURSE,3rd Yr. Grp. Project & Seminar*,0.5,both,33,,,Half-credit course (* in the workbook).
-MT,LIBERAL ARTS & SCIENCES CORE,Non-Major Electives,ELECTIVE_SLOTS,2 Non-Major Electives including at least 1 African studies,2,both,35,,,"2 elective slot(s). List every allowed course code in course_code, separated by spaces. At least 1 must be African Studies; mark those codes with a trailing * (e.g. AS 101*)."
+MT,LIBERAL ARTS & SCIENCES CORE,Non-Major Electives,ELECTIVE_SLOTS,2 Non-Major Electives including at least 1 African studies,2,both,35,,,"2 elective slot(s). List every allowed course code in course_code, separated by semicolons (CS 351; CS 352). At least 1 must be African Studies: mark those codes with a trailing * (AS 101*)."
 MT,MAJOR,Required Major Classes,COURSE,Introduction to Engineering,1,both,41,,,
 MT,MAJOR,Required Major Classes,COURSE,Instrumentation for Engineering*,0.5,both,42,,,Half-credit course (* in the workbook).
 MT,MAJOR,Required Major Classes,COURSE,Applied Programming for Eng.*,0.5,both,43,,,Half-credit course (* in the workbook).
@@ -343,7 +343,7 @@ MT,MAJOR,Required Major Classes,COURSE,Embedded Systems,1,both,53,,,
 MT,MAJOR,Required Major Classes,COURSE,Mechanics of Materials,1,both,54,,,
 MT,MAJOR,Required Major Classes,COURSE,Digital Systems Design,1,both,55,,,
 MT,MAJOR,Required Major Classes,COURSE,Mechatronics,1,both,56,,,
-MT,MAJOR,Major Electives,ELECTIVE_SLOTS,3 MT Electives,3,both,58,,,"3 elective slot(s). List every allowed course code in course_code, separated by spaces."
+MT,MAJOR,Major Electives,ELECTIVE_SLOTS,3 MT Electives,3,both,58,,,"3 elective slot(s). List every allowed course code in course_code, separated by semicolons (CS 351; CS 352)."
 MT,MAJOR,Capstone,COURSE,Capstone,1,both,61,,,
 BE,LIBERAL ARTS & SCIENCES CORE,Humanities & Social Sciences,COURSE,Written and Oral Comm.,1,both,7,,,
 BE,LIBERAL ARTS & SCIENCES CORE,Humanities & Social Sciences,COURSE,Text & Meaning,1,both,8,,,
@@ -365,7 +365,7 @@ BE,LIBERAL ARTS & SCIENCES CORE,Science,COURSE,Engineering Mechanics,1,both,29,,
 BE,LIBERAL ARTS & SCIENCES CORE,Science,COURSE,Physics II: Electromagnetism,1,both,30,,,
 BE,LIBERAL ARTS & SCIENCES CORE,Science,COURSE,General Chemistry,1,both,31,,,
 BE,LIBERAL ARTS & SCIENCES CORE,Research / Project Prep.,COURSE,3rd Yr. Grp. Project & Seminar*,0.5,both,33,,,Half-credit course (* in the workbook).
-BE,LIBERAL ARTS & SCIENCES CORE,Non-Major Electives,ELECTIVE_SLOTS,2 Non-Major Electives including at least 1 African studies,2,both,35,,,"2 elective slot(s). List every allowed course code in course_code, separated by spaces. At least 1 must be African Studies; mark those codes with a trailing * (e.g. AS 101*)."
+BE,LIBERAL ARTS & SCIENCES CORE,Non-Major Electives,ELECTIVE_SLOTS,2 Non-Major Electives including at least 1 African studies,2,both,35,,,"2 elective slot(s). List every allowed course code in course_code, separated by semicolons (CS 351; CS 352). At least 1 must be African Studies: mark those codes with a trailing * (AS 101*)."
 BE,MAJOR,Required Major Classes,COURSE,Introduction to Engineering,1,both,41,,,
 BE,MAJOR,Required Major Classes,COURSE,Instrumentation for Engineering*,0.5,both,42,,,Half-credit course (* in the workbook).
 BE,MAJOR,Required Major Classes,COURSE,Applied Programming for Eng.*,0.5,both,43,,,Half-credit course (* in the workbook).
@@ -381,5 +381,5 @@ BE,MAJOR,Required Major Classes,COURSE,Cellular and Tissue Biomechanics,1,both,5
 BE,MAJOR,Required Major Classes,COURSE,Biomaterials,1,both,53,,,
 BE,MAJOR,Required Major Classes,COURSE,Systems Biology,1,both,54,,,
 BE,MAJOR,Required Major Classes,COURSE,Science communication and Public Engagement,1,both,55,,,
-BE,MAJOR,Major Electives,ELECTIVE_SLOTS,3 BE Electives,3,both,58,,,"3 elective slot(s). List every allowed course code in course_code, separated by spaces."
+BE,MAJOR,Major Electives,ELECTIVE_SLOTS,3 BE Electives,3,both,58,,,"3 elective slot(s). List every allowed course code in course_code, separated by semicolons (CS 351; CS 352)."
 BE,MAJOR,Capstone,COURSE,Capstone,1,both,61,,,
