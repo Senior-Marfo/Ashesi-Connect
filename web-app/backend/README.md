@@ -37,7 +37,7 @@ npm test               # unit and HTTP tests; no database needed
 | GET | `/api/v1/admin/students/:studentId/eligibility` | `student:read:any`; same assessment, audit-logged |
 | GET | `/api/v1/admin/students?q=` | `student:read:any` |
 | GET | `/api/v1/admin/students/:studentId` | `student:read:any` |
-| GET | `/api/v1/admin/register` | `student:read:any`; filters `programme`, `yearGroup`, `flag`; `sort`, `order`, `page`, `pageSize` |
+| GET | `/api/v1/admin/register` | `student:read:any`; filters `programme`, `yearGroup`, `flag`, `standing`; `sort`, `order`, `page`, `pageSize` |
 | GET | `/api/v1/admin/register.csv` | `student:read:any`; same filters, all matching rows |
 | POST | `/api/v1/admin/users/reset-password` | `user:reset-password` |
 | GET | `/api/v1/admin/audit-log` | `audit-log:read` |

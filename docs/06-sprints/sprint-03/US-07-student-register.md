@@ -9,9 +9,12 @@
 - **Audit log.** Every register view (`ADMIN_REGISTER_VIEWED`) and export (`ADMIN_REGISTER_EXPORTED`) is recorded with the filters used.
 - Synthetic records are tagged in the table and the CSV.
 
-## Deliberately not implemented
+## Standing (added with US-02 to US-05)
 
-- **Severity (red, amber, green).** It depends on programme requirements, which need the Registry-reviewed curriculum. Every row returns `severity: "UNDETERMINED"`. The register says so on screen and doesn't estimate a standing from credits alone.
+- Each row carries the advisory `standing` from the same assessment the student screens use. Students without an applicable curriculum show `UNDETERMINED` ("Not determined").
+- The register can be filtered by standing, sorted with the most serious first, and counts students at each level. Standing is included in the CSV.
+
+## Deliberately not implemented
 - **Per-course pass marks.** The register uses the provisional D+ pass mark from the assumptions log, and the column heading and CSV header say so.
 
 ## Design

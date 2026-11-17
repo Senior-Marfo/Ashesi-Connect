@@ -98,6 +98,14 @@ export function repositoryContract(name: string, harness: ContractHarness) {
       expect(await students.courseSummaries([])).toEqual([]);
     });
 
+    it('loads course records for several students at once', async () => {
+      const { students } = harness.repositories();
+      const courses = await students.coursesFor(['20280001', 'nobody']);
+      expect([...courses.keys()]).toEqual(['20280001']);
+      expect(courses.get('20280001')).toEqual([{ courseCode: 'CS 111', attempts: [{ credits: 1, grade: 'B', status: 'COMPLETED', semester: '2024 Fall' }] }]);
+      expect((await students.coursesFor([])).size).toBe(0);
+    });
+
     it('reads students and courses, treating search input literally', async () => {
       const { students } = harness.repositories();
       expect(await students.findById('20280001')).toEqual({ studentId: '20280001', fullName: 'Synthetic Student', programme: 'CS', yearGroup: 2028, track: 'standard' });

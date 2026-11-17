@@ -2,7 +2,9 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ADMIN_NAV, AppShell, FullPageLoading, Notice, SkeletonRows } from '../../../components/app-shell';
-import type { RegisterFlag, RegisterPage, RegisterQuery, RegisterSort } from '../../../lib/api';
+import { StandingBadge } from '../../../components/standing';
+import type { RegisterFlag, RegisterPage, RegisterQuery, RegisterSort, RegisterStanding } from '../../../lib/api';
+import { standingLabels } from '../../../lib/labels';
 import { useRequireRole, useSession } from '../../../lib/session';
 
 const PROGRAMMES = ['BA', 'ECON', 'LLB', 'MIS', 'CS', 'CE', 'EE', 'ME', 'MT', 'BE'];
@@ -22,7 +24,12 @@ const COLUMNS: Array<{ key: RegisterSort; label: string; numeric?: boolean }> = 
   { key: 'yearGroup', label: 'Year group', numeric: true },
   { key: 'passedCredits', label: 'Passed credits', numeric: true },
   { key: 'inProgressCredits', label: 'In progress', numeric: true },
-  { key: 'unresolvedFailures', label: 'Not retaken', numeric: true }
+  { key: 'unresolvedFailures', label: 'Not retaken', numeric: true },
+  { key: 'standing', label: 'Standing' }
+];
+
+const STANDING_OPTIONS: Array<[RegisterStanding, string]> = [
+  ['RED', `${standingLabels.RED} (red)`], ['YELLOW', `${standingLabels.YELLOW} (amber)`], ['GREEN', `${standingLabels.GREEN} (green)`], ['UNDETERMINED', 'Not determined']
 ];
 
 type Load = { status: 'loading' | 'error' } | { status: 'ready'; page: RegisterPage };
@@ -49,7 +56,7 @@ export default function RegisterPageView() {
 
   const update = (changes: Partial<RegisterQuery>) => setQuery(current => ({ ...current, page: 1, ...changes }));
   const sortBy = (key: RegisterSort) =>
-    update({ sort: key, order: query.sort === key && query.order === 'asc' ? 'desc' : key === 'studentId' || key === 'fullName' || key === 'programme' ? 'asc' : 'desc' });
+    update({ sort: key, order: query.sort === key && query.order === 'asc' ? 'desc' : ['studentId', 'fullName', 'programme', 'standing'].includes(key) ? 'asc' : 'desc' });
 
   async function exportCsv() {
     setExporting(true);
@@ -71,7 +78,7 @@ export default function RegisterPageView() {
   return (
     <AppShell eyebrow="Registry workspace" title="Student register" nav={ADMIN_NAV}>
       <p className="caption">
-        Built from course records only. Passed credits use the provisional D+ pass mark until the Registry confirms course thresholds. Graduation standing (red, amber, green) needs a reviewed curriculum and is not shown yet.
+        Passed credits use the provisional D+ pass mark until the Registry confirms course thresholds. Standing is advisory. It is shown only where a curriculum applies: a Registry-reviewed one for real students, or the illustrative synthetic rules for synthetic records. Otherwise it reads “Not determined”.
       </p>
       <div className="filters" role="group" aria-label="Filters">
         <label className="field">Programme
@@ -84,6 +91,12 @@ export default function RegisterPageView() {
           <select className="input" value={query.yearGroup ?? ''} onChange={event => update({ yearGroup: event.target.value ? Number(event.target.value) : undefined })}>
             <option value="">All year groups</option>
             {YEAR_GROUPS.map(year => <option key={year} value={year}>{year}</option>)}
+          </select>
+        </label>
+        <label className="field">Standing
+          <select className="input" value={query.standing ?? ''} onChange={event => update({ standing: (event.target.value || undefined) as RegisterStanding | undefined })}>
+            <option value="">Any standing</option>
+            {STANDING_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
         </label>
         <label className="field">Needs attention
@@ -101,8 +114,10 @@ export default function RegisterPageView() {
       {page && (
         <dl className="figures register-counts">
           <div><dt>Students</dt><dd>{page.counts.students}</dd></div>
+          <div><dt>Critical</dt><dd className="count-red">{page.counts.RED}</dd></div>
+          <div><dt>At risk</dt><dd className="count-yellow">{page.counts.YELLOW}</dd></div>
+          <div><dt>On track</dt><dd className="count-green">{page.counts.GREEN}</dd></div>
           <div><dt>Failed, not retaken</dt><dd>{page.counts.UNRESOLVED_FAILURE}</dd></div>
-          <div><dt>Incomplete course</dt><dd>{page.counts.INCOMPLETE}</dd></div>
         </dl>
       )}
 
@@ -137,6 +152,7 @@ export default function RegisterPageView() {
                     <td className="num">{row.passedCredits}</td>
                     <td className="num">{row.inProgressCredits}</td>
                     <td className="num">{row.unresolvedFailures}</td>
+                    <td>{row.standing === 'UNDETERMINED' ? <span className="muted">Not determined</span> : <StandingBadge level={row.standing} />}</td>
                     <td>{row.flags.length ? row.flags.map(flag => <span key={flag} className={`chip ${flag === 'UNRESOLVED_FAILURE' ? 'incomplete' : 'enrolled'}`}>{FLAG_LABELS[flag]}</span>) : <span className="muted">—</span>}</td>
                   </tr>
                 ))}

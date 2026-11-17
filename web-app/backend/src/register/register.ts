@@ -1,20 +1,24 @@
+import type { StandingLevel } from '../domain/eligibility/standing.js';
 import type { CourseSummary, StudentSummary } from '../repositories/types.js';
 
 /** Factual flags from course records alone; none of them is a graduation decision. */
 export const REGISTER_FLAGS = ['UNRESOLVED_FAILURE', 'INCOMPLETE', 'NO_RECORDS'] as const;
 export type RegisterFlag = (typeof REGISTER_FLAGS)[number];
 
-export const REGISTER_SORTS = ['studentId', 'fullName', 'programme', 'yearGroup', 'passedCredits', 'inProgressCredits', 'unresolvedFailures'] as const;
+export const REGISTER_SORTS = ['studentId', 'fullName', 'programme', 'yearGroup', 'passedCredits', 'inProgressCredits', 'unresolvedFailures', 'standing'] as const;
+export const REGISTER_STANDINGS = ['RED', 'YELLOW', 'GREEN', 'UNDETERMINED'] as const;
+export type RegisterStanding = (typeof REGISTER_STANDINGS)[number];
 export type RegisterSort = (typeof REGISTER_SORTS)[number];
 
 export interface RegisterRow extends StudentSummary, Omit<CourseSummary, 'studentId'> {
   flags: RegisterFlag[];
-  /** Severity needs a Registry-reviewed curriculum, so it stays undetermined until one is loaded. */
-  severity: 'UNDETERMINED';
+  /** Advisory standing; UNDETERMINED when no applicable curriculum exists for the student. */
+  standing: RegisterStanding;
 }
 
 export interface RegisterQuery {
   flag?: RegisterFlag;
+  standing?: RegisterStanding;
   sort: RegisterSort;
   order: 'asc' | 'desc';
   page: number;
@@ -27,12 +31,12 @@ export interface RegisterPage {
   page: number;
   pageSize: number;
   pageCount: number;
-  counts: { students: number } & Record<RegisterFlag, number>;
+  counts: { students: number } & Record<RegisterFlag, number> & Record<RegisterStanding, number>;
 }
 
 const EMPTY: Omit<CourseSummary, 'studentId'> = { coursesOnRecord: 0, passedCredits: 0, inProgressCredits: 0, unresolvedFailures: 0, incompletes: 0 };
 
-export function registerRows(students: StudentSummary[], summaries: CourseSummary[]): RegisterRow[] {
+export function registerRows(students: StudentSummary[], summaries: CourseSummary[], standings: ReadonlyMap<string, StandingLevel> = new Map()): RegisterRow[] {
   const byStudent = new Map(summaries.map(summary => [summary.studentId, summary]));
   return students.map(student => {
     const { studentId: _ignored, ...facts } = byStudent.get(student.studentId) ?? { studentId: student.studentId, ...EMPTY };
@@ -40,29 +44,36 @@ export function registerRows(students: StudentSummary[], summaries: CourseSummar
     if (facts.unresolvedFailures > 0) flags.push('UNRESOLVED_FAILURE');
     if (facts.incompletes > 0) flags.push('INCOMPLETE');
     if (facts.coursesOnRecord === 0) flags.push('NO_RECORDS');
-    return { ...student, ...facts, flags, severity: 'UNDETERMINED' };
+    return { ...student, ...facts, flags, standing: standings.get(student.studentId) ?? 'UNDETERMINED' };
   });
 }
 
-export function filterAndSort(rows: RegisterRow[], query: Pick<RegisterQuery, 'flag' | 'sort' | 'order'>): RegisterRow[] {
+// Ascending puts the most serious standing first.
+const STANDING_RANK: Record<RegisterStanding, number> = { RED: 0, YELLOW: 1, GREEN: 2, UNDETERMINED: 3 };
+
+export function filterAndSort(rows: RegisterRow[], query: Pick<RegisterQuery, 'flag' | 'standing' | 'sort' | 'order'>): RegisterRow[] {
   const direction = query.order === 'asc' ? 1 : -1;
+  const value = (row: RegisterRow) => (query.sort === 'standing' ? STANDING_RANK[row.standing] : row[query.sort]);
   return rows
-    .filter(row => !query.flag || row.flags.includes(query.flag))
+    .filter(row => (!query.flag || row.flags.includes(query.flag)) && (!query.standing || row.standing === query.standing))
     .sort((a, b) => {
-      const left = a[query.sort];
-      const right = b[query.sort];
+      const left = value(a);
+      const right = value(b);
       const primary = typeof left === 'number' && typeof right === 'number' ? left - right : String(left).localeCompare(String(right));
       return primary * direction || a.studentId.localeCompare(b.studentId);
     });
 }
 
-export function buildRegister(students: StudentSummary[], summaries: CourseSummary[], query: RegisterQuery): RegisterPage {
-  const rows = registerRows(students, summaries);
+export function buildRegister(students: StudentSummary[], summaries: CourseSummary[], query: RegisterQuery, standings?: ReadonlyMap<string, StandingLevel>): RegisterPage {
+  const rows = registerRows(students, summaries, standings);
   const matching = filterAndSort(rows, query);
   const pageCount = Math.max(1, Math.ceil(matching.length / query.pageSize));
   const page = Math.min(query.page, pageCount);
-  const counts = { students: rows.length, UNRESOLVED_FAILURE: 0, INCOMPLETE: 0, NO_RECORDS: 0 };
-  for (const row of rows) for (const flag of row.flags) counts[flag] += 1;
+  const counts = { students: rows.length, UNRESOLVED_FAILURE: 0, INCOMPLETE: 0, NO_RECORDS: 0, RED: 0, YELLOW: 0, GREEN: 0, UNDETERMINED: 0 };
+  for (const row of rows) {
+    for (const flag of row.flags) counts[flag] += 1;
+    counts[row.standing] += 1;
+  }
   return {
     rows: matching.slice((page - 1) * query.pageSize, page * query.pageSize),
     total: matching.length,
@@ -84,6 +95,7 @@ const CSV_COLUMNS: Array<[string, (row: RegisterRow) => string | number]> = [
   ['Failed courses not yet retaken', row => row.unresolvedFailures],
   ['Incomplete courses', row => row.incompletes],
   ['Courses on record', row => row.coursesOnRecord],
+  ['Standing (advisory)', row => row.standing],
   ['Flags', row => row.flags.join(' ')],
   ['Synthetic record', row => (row.synthetic ? 'yes' : 'no')]
 ];

@@ -90,12 +90,14 @@ export interface Eligibility {
 }
 
 export type RegisterFlag = 'UNRESOLVED_FAILURE' | 'INCOMPLETE' | 'NO_RECORDS';
-export type RegisterSort = 'studentId' | 'fullName' | 'programme' | 'yearGroup' | 'passedCredits' | 'inProgressCredits' | 'unresolvedFailures';
+export type RegisterSort = 'studentId' | 'fullName' | 'programme' | 'yearGroup' | 'passedCredits' | 'inProgressCredits' | 'unresolvedFailures' | 'standing';
+export type RegisterStanding = StandingLevel | 'UNDETERMINED';
 
 export interface RegisterQuery {
   programme?: string;
   yearGroup?: number;
   flag?: RegisterFlag;
+  standing?: RegisterStanding;
   sort: RegisterSort;
   order: 'asc' | 'desc';
   page: number;
@@ -109,7 +111,7 @@ export interface RegisterRow extends StudentSummary {
   unresolvedFailures: number;
   incompletes: number;
   flags: RegisterFlag[];
-  severity: 'UNDETERMINED';
+  standing: RegisterStanding;
 }
 
 export interface RegisterPage {
@@ -118,7 +120,7 @@ export interface RegisterPage {
   page: number;
   pageSize: number;
   pageCount: number;
-  counts: { students: number } & Record<RegisterFlag, number>;
+  counts: { students: number } & Record<RegisterFlag, number> & Record<RegisterStanding, number>;
 }
 
 function registerParams(query: RegisterQuery): string {

@@ -134,6 +134,20 @@ export function createMongoRepositories(): Repositories {
         ]);
         return docs;
       },
+      async coursesFor(studentIds) {
+        const byStudent = new Map<string, CourseRecord[]>();
+        if (studentIds.length === 0) return byStudent;
+        const docs = await Enrollment.find({ studentId: { $in: studentIds } }, { _id: 0, studentId: 1, courseCode: 1, attempts: 1 }).lean();
+        for (const doc of docs) {
+          const list = byStudent.get(doc.studentId) ?? [];
+          list.push({ courseCode: doc.courseCode, attempts: doc.attempts.map(attempt => ({
+            credits: attempt.credits, grade: attempt.grade ?? undefined, status: attempt.status as CourseRecord['attempts'][number]['status'],
+            semester: attempt.semester ?? undefined, attemptedAt: attempt.attemptedAt ?? undefined
+          })) });
+          byStudent.set(doc.studentId, list);
+        }
+        return byStudent;
+      },
       async listCourses(studentId) {
         const docs = await Enrollment.find({ studentId }, { _id: 0, courseCode: 1, attempts: 1 }).lean();
         return docs.map(doc => ({

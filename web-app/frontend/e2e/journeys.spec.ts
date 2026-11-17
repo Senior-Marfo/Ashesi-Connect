@@ -103,6 +103,12 @@ test('admin filters and sorts the register, then opens a student from it', async
   await page.getByRole('button', { name: 'Passed credits' }).click();
   await expect(page.getByRole('columnheader', { name: /Passed credits/ })).toHaveAttribute('aria-sort', 'descending');
 
+  await page.getByLabel('Programme').selectOption('');
+  await page.getByLabel('Standing').selectOption('RED');
+  await expect(page.locator('table.register tbody tr').first()).toContainText('Critical');
+  await page.getByLabel('Standing').selectOption('');
+  await page.getByLabel('Programme').selectOption('BA');
+
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download CSV' }).click();
   expect((await download).suggestedFilename()).toBe('student-register.csv');

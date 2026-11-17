@@ -16,16 +16,16 @@ const summaries = [
 const base = { sort: 'studentId' as const, order: 'asc' as const, page: 1, pageSize: 50 };
 
 describe('student register', () => {
-  it('derives factual flags and leaves severity undetermined', () => {
+  it('derives factual flags and leaves standing undetermined without a curriculum', () => {
     const rows = registerRows(students, summaries);
     expect(rows.map(row => row.flags)).toEqual([['UNRESOLVED_FAILURE'], ['INCOMPLETE'], ['UNRESOLVED_FAILURE', 'INCOMPLETE'], ['NO_RECORDS']]);
-    expect(rows.every(row => row.severity === 'UNDETERMINED')).toBe(true);
+    expect(rows.every(row => row.standing === 'UNDETERMINED')).toBe(true);
     expect(rows[3]).toMatchObject({ coursesOnRecord: 0, passedCredits: 0 });
   });
 
   it('counts every flag across all students, independent of the flag filter', () => {
     const page = buildRegister(students, summaries, { ...base, flag: 'INCOMPLETE' });
-    expect(page.counts).toEqual({ students: 4, UNRESOLVED_FAILURE: 2, INCOMPLETE: 2, NO_RECORDS: 1 });
+    expect(page.counts).toEqual({ students: 4, UNRESOLVED_FAILURE: 2, INCOMPLETE: 2, NO_RECORDS: 1, RED: 0, YELLOW: 0, GREEN: 0, UNDETERMINED: 4 });
     expect(page.rows.map(row => row.studentId)).toEqual(['2', '3']);
     expect(page.total).toBe(2);
   });
@@ -34,6 +34,14 @@ describe('student register', () => {
     expect(buildRegister(students, summaries, { ...base, sort: 'passedCredits', order: 'desc' }).rows.map(row => row.studentId)).toEqual(['2', '1', '3', '4']);
     expect(buildRegister(students, summaries, { ...base, sort: 'fullName' }).rows.map(row => row.fullName)).toEqual(['Ama', 'Esi', 'Kofi', 'Yaw']);
     expect(buildRegister(students, summaries, { ...base, sort: 'yearGroup' }).rows.map(row => row.studentId)).toEqual(['1', '2', '3', '4']);
+  });
+
+  it('filters by standing, sorts the most serious first and counts each level', () => {
+    const standings = new Map([['1', 'YELLOW' as const], ['2', 'GREEN' as const], ['3', 'RED' as const]]);
+    const sorted = buildRegister(students, summaries, { ...base, sort: 'standing' }, standings);
+    expect(sorted.rows.map(row => row.standing)).toEqual(['RED', 'YELLOW', 'GREEN', 'UNDETERMINED']);
+    expect(sorted.counts).toMatchObject({ RED: 1, YELLOW: 1, GREEN: 1, UNDETERMINED: 1 });
+    expect(buildRegister(students, summaries, { ...base, standing: 'RED' }, standings).rows.map(row => row.studentId)).toEqual(['3']);
   });
 
   it('paginates and clamps pages past the end', () => {

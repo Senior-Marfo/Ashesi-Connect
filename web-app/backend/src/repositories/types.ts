@@ -113,6 +113,8 @@ export interface StudentRepository {
   list(filter: StudentFilter): Promise<StudentSummary[]>;
   /** Summaries for students that have course records; students without any are omitted. */
   courseSummaries(studentIds: string[]): Promise<CourseSummary[]>;
+  /** Course records for many students at once; students without records are omitted. */
+  coursesFor(studentIds: string[]): Promise<Map<string, CourseRecord[]>>;
 }
 
 export interface ReviewedCurriculum {

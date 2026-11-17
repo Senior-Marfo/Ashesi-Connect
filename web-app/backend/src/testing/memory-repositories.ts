@@ -63,6 +63,9 @@ export function createMemoryRepositories(): { repositories: Repositories; store:
         .filter(student => (!filter.programme || student.programme === filter.programme) && (filter.yearGroup === undefined || student.yearGroup === filter.yearGroup))
         .sort((a, b) => a.studentId.localeCompare(b.studentId))
         .map(student => structuredClone(student)),
+      async coursesFor(studentIds) {
+        return new Map(studentIds.filter(id => (store.courses.get(id) ?? []).length > 0).map(id => [id, structuredClone(store.courses.get(id) ?? [])]));
+      },
       async courseSummaries(studentIds) {
         const summaries: CourseSummary[] = [];
         for (const studentId of studentIds) {
