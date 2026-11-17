@@ -34,3 +34,25 @@ That branch's `routes/curriculum.ts` imports `requireAuth`, `requireRole` and `A
 - read `req.auth` directly (it is typed on `Request`).
 
 Its seed script creates the IDs `demo.student.2028` and `demo.admin`. Staging must therefore set `STUDENT_ID_REGEX` / `STAFF_ID_REGEX` to accept them, or the seed should switch to IDs that match the default formats.
+
+## Web client (second increment)
+
+- **API client** (`web-app/frontend/lib/api.ts`). Keeps the access token in memory only and never in browser storage. Every request sends credentials and the `X-Requested-With` header. A `401` triggers one refresh and a retry. Concurrent requests share a single refresh, because each refresh token works only once.
+- **Session** (`lib/session.tsx`). On page load the client tries a refresh, so a reload keeps the user signed in without storing a token. `useRequireRole` sends anonymous users to sign-in, accounts with a temporary password to `/change-password/`, and users of the other role to their own home page. These redirects are for convenience; the API enforces access.
+- **Screens.** Sign-in, change password, student record and admin student lookup. Each has loading, empty and error states. The figures shown are recorded credits only, labelled as not a graduation decision until Registry rules are loaded.
+- **Accessibility.** Fields have real labels, hints are linked with `aria-describedby`, focus is visible, reduced motion is respected and dark mode is supported. On phones the course table moves the semester under the course code.
+
+### Running locally
+
+```bash
+cd web-app/backend && npm run dev:demo      # synthetic in-memory API on :4000
+cd web-app/frontend && npm run build && node e2e/static-server.mjs out   # :3000
+```
+
+Demo accounts: `20280001`, `20280002`, `20280003` (has a temporary password) and `STF-1001`, all with password `Synthetic-Demo-2028`. The demo server refuses to start with `NODE_ENV=production`.
+
+### Evidence
+
+- Frontend: 12 unit tests (API client refresh behaviour, login form errors, course table).
+- Playwright: 9 end-to-end runs at desktop and Pixel 7 sizes. They cover student sign-in, reload persistence, sign-out, a student blocked from `/admin/`, admin lookup, a wrong password, and the forced password change with a policy error.
+- Backend: the repository contract suite passes against the in-memory store. The same suite runs against MongoDB in CI.

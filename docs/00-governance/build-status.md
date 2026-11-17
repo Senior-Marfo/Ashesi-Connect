@@ -9,13 +9,16 @@ This branch is under active development and MUST NOT be deployed as a university
 - Admin activity and authentication audit log, readable at `GET /api/v1/admin/audit-log`.
 - Student self-record, admin student search and admin student profile endpoints.
 - App factory with injected repositories, so the HTTP layer is tested without a database.
-- Static-export Next.js login interface.
+- Next.js static-export web client wired to the API: sign-in, silent token refresh and session restore, sign-out, forced and voluntary password change, a student record screen and an admin student lookup. Pages are role-guarded on the client; the API enforces permissions.
+- Repository contract tests shared by the in-memory and MongoDB implementations; the MongoDB run happens in the CI `backend-mongodb` job.
+- In-memory demo API with synthetic accounts (`npm run dev:demo` in `web-app/backend`) and Playwright end-to-end journeys at desktop and phone sizes.
 
 ## Blocking work
-- Integration tests of the Mongoose repositories against a real MongoDB (CI job with `mongodb-memory-server`).
-- Wiring the Next.js login, refresh and password-change screens to the API; emailing reset notices (needs SMTP).
+- Confirm the first green run of the CI `backend-mongodb` job; it has not run in the development container, which cannot download MongoDB.
+- Emailing reset notices (needs SMTP). Admin UI for password resets and the audit log.
+- Deploying the Next.js client: `render.yaml` still publishes the legacy static demo until these screens reach parity.
 - Verified workbook ingestion, curriculum versioning, elective and track rules, and all eligibility cases.
-- Student and administrator screens, reports, imports, messaging, PDF exports, mobile app, CI and deployment.
+- Eligibility status, requirements and remaining-work screens (US-02 to US-04), severity register, reports, imports, messaging, PDF exports, mobile app and deployment.
 - Registry confirmation of course-specific grade thresholds and discrepancies.
 
 ## Release policy

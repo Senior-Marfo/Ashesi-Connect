@@ -1,7 +1,6 @@
 name: Production application CI
 on:
   push:
-    branches: [main, feat/production-graduation-tracker]
   pull_request:
     branches: [main]
 jobs:
@@ -16,22 +15,51 @@ jobs:
         with:
           node-version: '22'
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Typecheck
         run: npm run typecheck
       - name: Tests
         run: npm test
       - name: Build
         run: npm run build
-  frontend:
+  backend-mongodb:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: web-app/frontend
+        working-directory: web-app/backend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install --no-audit --no-fund
-      - run: npm run build
+      - run: npm ci --no-audit --no-fund
+      - name: Repository contract tests against MongoDB
+        run: npm run test:integration
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install backend (demo API for end-to-end tests)
+        working-directory: web-app/backend
+        run: npm ci --no-audit --no-fund
+      - name: Install frontend
+        working-directory: web-app/frontend
+        run: npm ci --no-audit --no-fund
+      - name: Typecheck
+        working-directory: web-app/frontend
+        run: npm run typecheck
+      - name: Unit tests
+        working-directory: web-app/frontend
+        run: npm test
+      - name: Build static export
+        working-directory: web-app/frontend
+        run: npm run build
+      - name: Install Playwright browser
+        working-directory: web-app/frontend
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end journeys
+        working-directory: web-app/frontend
+        run: npm run test:e2e -- --trace off

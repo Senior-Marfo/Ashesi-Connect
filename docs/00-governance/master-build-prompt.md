@@ -1,6 +1,6 @@
 # MASTER BUILD PROMPT: ASHESI GRADUATION TRACKER
 
-Paste this entire prompt into an agentic coding environment (Claude Code recommended) with the file `Degree_Audit_2028.xlsx` placed in the working directory. Connect a Figma MCP server and a GitHub/Render-capable shell if available.
+Paste this entire prompt into an agentic coding environment with the file `Degree_Audit_2028.xlsx` placed in the working directory. Connect a Figma MCP server and a GitHub/Render-capable shell if available.
 
 ---
 
