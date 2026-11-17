@@ -1,5 +1,5 @@
 import type { Grade } from './engine.js';
-import type { ProgrammeRules, TranscriptEntry } from './programme-audit.js';
+import { electiveMinimum, type ProgrammeRules, type TranscriptEntry } from './programme-audit.js';
 
 export type RequirementState = 'COMPLETED' | 'IN_PROGRESS' | 'FAILED' | 'INCOMPLETE' | 'NOT_STARTED';
 
@@ -26,7 +26,6 @@ export interface RequirementGroup {
 
 const GRADE_RANK: Grade[] = ['E', 'D', 'D+', 'C', 'C+', 'B', 'B+', 'A', 'A+'];
 // Matches evaluateProgramme: electives without a stated minimum pass at D (handbook).
-const ELECTIVE_DEFAULT_MINIMUM: Grade = 'D';
 const passes = (grade: Grade | undefined, minimum: Grade) => grade !== undefined && GRADE_RANK.indexOf(grade) >= GRADE_RANK.indexOf(minimum);
 const round = (value: number) => Math.round(value * 100) / 100;
 
@@ -59,11 +58,10 @@ export function requirementBreakdown(transcript: TranscriptEntry[], rules: Progr
     creditsInProgress: sumCredits(items, 'IN_PROGRESS')
   }));
   const electives: RequirementGroup[] = rules.electivePools.map(pool => {
-    const minimum = pool.minimumGrade ?? ELECTIVE_DEFAULT_MINIMUM;
     const taken = pool.courseCodes.filter(code => transcript.some(entry => entry.courseCode === code));
     const items = taken.map(code => {
       const credits = transcript.filter(entry => entry.courseCode === code).at(-1)?.credits ?? 1;
-      return itemFor(code, credits, minimum, transcript);
+      return itemFor(code, credits, electiveMinimum(pool, code), transcript);
     });
     return {
       category: pool.category, kind: 'ELECTIVE', items,

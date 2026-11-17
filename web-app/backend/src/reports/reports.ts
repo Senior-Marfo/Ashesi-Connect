@@ -1,5 +1,5 @@
 import type { EligibilityView } from '../eligibility/assess.js';
-import { PROVISIONAL_PASSING_GRADES } from '../register/provisional-pass.js';
+import { passesCourse, type PassMarks } from '../domain/eligibility/pass-marks.js';
 import type { CourseRecord } from '../repositories/types.js';
 
 const GRADES = ['A+', 'A', 'B+', 'B', 'C+', 'C', 'D+', 'D', 'E'] as const;
@@ -53,8 +53,27 @@ export interface CourseOutcome {
   grades: Record<Grade, number>;
 }
 
+/** Bands of credits still outstanding after courses in progress, for students still studying. */
+export const CREDIT_BANDS = ['0', '0.5–4', '4.5–8', '8.5–16', 'Over 16'] as const;
+export type CreditBand = (typeof CREDIT_BANDS)[number];
+
+/** Where each assessed, current year group is heading, judged by advisory standing. */
+export interface GraduationProjection {
+  yearGroup: number;
+  /** The year group's planned graduation term. */
+  term: string;
+  /** Green: on track for the planned term. */
+  onPlan: number;
+  /** Yellow: can still finish on time but needs attention. */
+  atRisk: number;
+  /** Red: not enough terms left at the maximum load, so likely to finish later. */
+  likelyLater: number;
+}
+
 export interface Reports {
   totals: { students: number; assessed: number; graduatedCohorts: number[] };
+  creditsRemaining: Record<CreditBand, number>;
+  projections: GraduationProjection[];
   standings: StandingCounts;
   cohortOutcomes: CohortOutcome[];
   cohortProgress: CohortProgress[];
@@ -83,18 +102,25 @@ function nonCompletionReasons(student: ReportStudent): Set<NonCompletionReason> 
   return reasons;
 }
 
+function creditBand(credits: number): CreditBand {
+  if (credits <= 0) return '0';
+  if (credits <= 4) return '0.5–4';
+  if (credits <= 8) return '4.5–8';
+  return credits <= 16 ? '8.5–16' : 'Over 16';
+}
+
 function groupBy<K>(students: ReportStudent[], key: (student: ReportStudent) => K): Map<K, ReportStudent[]> {
   const groups = new Map<K, ReportStudent[]>();
   for (const student of students) groups.set(key(student), [...(groups.get(key(student)) ?? []), student]);
   return groups;
 }
 
-const passedCredits = (courses: CourseRecord[]) => courses.reduce((sum, course) => {
+const passedCredits = (courses: CourseRecord[], marks: PassMarks) => courses.reduce((sum, course) => {
   const latest = course.attempts.at(-1);
-  return sum + (latest?.status === 'COMPLETED' && latest.grade && PROVISIONAL_PASSING_GRADES.includes(latest.grade) ? latest.credits : 0);
+  return sum + (latest?.status === 'COMPLETED' && passesCourse(course.courseCode, latest.grade, marks) ? latest.credits : 0);
 }, 0);
 
-function courseOutcomes(students: ReportStudent[]): CourseOutcome[] {
+function courseOutcomes(students: ReportStudent[], marks: PassMarks): CourseOutcome[] {
   const byCourse = new Map<string, CourseRecord['attempts'][]>();
   for (const student of students) for (const course of student.courses) byCourse.set(course.courseCode, [...(byCourse.get(course.courseCode) ?? []), course.attempts]);
   return [...byCourse].map(([courseCode, records]) => {
@@ -106,7 +132,7 @@ function courseOutcomes(students: ReportStudent[]): CourseOutcome[] {
       const first = attempts[0];
       if (first?.status === 'COMPLETED' && first.grade) {
         firstGraded += 1;
-        if (PROVISIONAL_PASSING_GRADES.includes(first.grade)) firstPassed += 1;
+        if (passesCourse(courseCode, first.grade, marks)) firstPassed += 1;
       }
     }
     return {
@@ -116,7 +142,7 @@ function courseOutcomes(students: ReportStudent[]): CourseOutcome[] {
       firstAttemptPassRate: rate(firstPassed, firstGraded),
       unresolvedFailures: records.filter(attempts => {
         const latest = attempts.at(-1);
-        return latest?.status === 'COMPLETED' && latest.grade !== undefined && !PROVISIONAL_PASSING_GRADES.includes(latest.grade);
+        return latest?.status === 'COMPLETED' && latest.grade !== undefined && !passesCourse(courseCode, latest.grade, marks);
       }).length,
       retakes: records.filter(attempts => attempts.length > 1).length,
       grades
@@ -126,9 +152,9 @@ function courseOutcomes(students: ReportStudent[]): CourseOutcome[] {
 
 /**
  * Aggregate reports for the Registry. Outcomes come from the same advisory assessment
- * as the student screens; course statistics use the provisional D+ pass mark.
+ * as the student screens; course statistics use the pass-mark catalogue (D+ where unset).
  */
-export function buildReports(students: ReportStudent[]): Reports {
+export function buildReports(students: ReportStudent[], marks: PassMarks): Reports {
   const standings = emptyStandings();
   for (const student of students) standings[standingOf(student)] += 1;
 
@@ -154,18 +180,31 @@ export function buildReports(students: ReportStudent[]): Reports {
     return {
       programme,
       students: group.length,
-      averagePassedCredits: round(group.reduce((sum, student) => sum + passedCredits(student.courses), 0) / group.length),
+      averagePassedCredits: round(group.reduce((sum, student) => sum + passedCredits(student.courses, marks), 0) / group.length),
       completionRate: rate(graduatedAssessed.filter(isMet).length, graduatedAssessed.length),
       standings: counts
     };
   });
 
+  const current = students.filter(student => !student.graduated && student.assessment.standing);
+  const creditsRemaining = Object.fromEntries(CREDIT_BANDS.map(band => [band, 0])) as Record<CreditBand, number>;
+  for (const student of current) creditsRemaining[creditBand(student.assessment.standing!.creditsOutstanding)] += 1;
+  const projections = [...groupBy(current, student => student.assessment.student.yearGroup)].sort(([a], [b]) => a - b).map(([yearGroup, group]) => ({
+    yearGroup,
+    term: group[0].assessment.expectedGraduation,
+    onPlan: group.filter(student => standingOf(student) === 'GREEN').length,
+    atRisk: group.filter(student => standingOf(student) === 'YELLOW').length,
+    likelyLater: group.filter(student => standingOf(student) === 'RED').length
+  }));
+
   return {
     totals: { students: students.length, assessed: students.filter(isAssessed).length, graduatedCohorts: cohortOutcomes.map(cohort => cohort.yearGroup) },
+    creditsRemaining,
+    projections,
     standings,
     cohortOutcomes,
     cohortProgress,
     programmes,
-    courses: courseOutcomes(students)
+    courses: courseOutcomes(students, marks)
   };
 }

@@ -92,10 +92,14 @@ export function repositoryContract(name: string, harness: ContractHarness) {
         { courseCode: 'CS 415', attempts: [{ credits: 1, status: 'ENROLLED' }] },
         { courseCode: 'ECON 101', attempts: [{ credits: 1, status: 'INCOMPLETE' }] }
       ]);
-      expect(await students.courseSummaries(['20280001', 'nobody'])).toEqual([{
+      expect(await students.courseSummaries(['20280001', 'nobody'], new Map())).toEqual([{
         studentId: '20280001', coursesOnRecord: 6, passedCredits: 2.5, inProgressCredits: 1, unresolvedFailures: 1, incompletes: 1
       }]);
-      expect(await students.courseSummaries([])).toEqual([]);
+      expect(await students.courseSummaries([], new Map())).toEqual([]);
+      // A C pass mark turns LEAD 111 (D+) into a failure; MATH 141 (C) still passes.
+      expect(await students.courseSummaries(['20280001'], new Map([['LEAD 111', 'C'], ['MATH 141', 'C']]))).toEqual([{
+        studentId: '20280001', coursesOnRecord: 6, passedCredits: 2, inProgressCredits: 1, unresolvedFailures: 2, incompletes: 1
+      }]);
     });
 
     it('loads course records for several students at once', async () => {
@@ -112,23 +116,43 @@ export function repositoryContract(name: string, harness: ContractHarness) {
       const second = await messages.send({ title: 'Retake', body: 'Register for MATH 141.', priority: 'HIGH', audience: { kind: 'STUDENTS', studentIds: ['20280001'] }, senderId: 'admin', sentAt: new Date('2026-11-02T00:00:00Z') }, ['20280001']);
       expect(first.recipientCount).toBe(2);
 
-      const inbox = await messages.inbox('20280001', 10);
+      const NOW = new Date('2026-11-17T00:00:00Z');
+      const inbox = await messages.inbox('20280001', 10, NOW);
       expect(inbox.map(item => item.title)).toEqual(['Retake', 'Audit review']);
       expect(inbox[0]).toMatchObject({ id: second.id, priority: 'HIGH' });
       expect(inbox[0].readAt).toBeUndefined();
-      expect(await messages.unreadCount('20280001')).toBe(2);
+      expect(await messages.unreadCount('20280001', NOW)).toBe(2);
 
-      expect(await messages.markRead('20280001', second.id)).toBe(1);
-      expect(await messages.markRead('20280001', second.id)).toBe(0);
-      expect(await messages.unreadCount('20280001')).toBe(1);
-      expect(await messages.markRead('20280001')).toBe(1);
-      expect(await messages.unreadCount('20280001')).toBe(0);
-      expect(await messages.unreadCount('20280002')).toBe(1);
-      expect(await messages.inbox('nobody', 10)).toEqual([]);
+      expect(await messages.markRead('20280001', NOW, second.id)).toBe(1);
+      expect(await messages.markRead('20280001', NOW, second.id)).toBe(0);
+      expect(await messages.unreadCount('20280001', NOW)).toBe(1);
+      expect(await messages.markRead('20280001', NOW)).toBe(1);
+      expect(await messages.unreadCount('20280001', NOW)).toBe(0);
+      expect(await messages.unreadCount('20280002', NOW)).toBe(1);
+      expect(await messages.inbox('nobody', 10, NOW)).toEqual([]);
 
       const sent = await messages.listSent(10);
       expect(sent.map(message => [message.title, message.recipientCount, message.readCount])).toEqual([['Retake', 1, 1], ['Audit review', 2, 1]]);
       expect(sent[1].audience).toEqual({ kind: 'ALL_STUDENTS' });
+    });
+
+    it('holds scheduled messages back until their time and lets them be cancelled before then', async () => {
+      const { messages } = harness.repositories();
+      const before = new Date('2026-11-17T00:00:00Z');
+      const after = new Date('2026-11-20T00:00:00Z');
+      const scheduled = await messages.send({ title: 'Later', body: 'Reminder.', priority: 'NORMAL', audience: { kind: 'ALL_STUDENTS' }, senderId: 'admin', sentAt: new Date('2026-11-18T08:00:00Z') }, ['20280001']);
+      expect(await messages.inbox('20280001', 10, before)).toEqual([]);
+      expect(await messages.unreadCount('20280001', before)).toBe(0);
+      expect(await messages.markRead('20280001', before)).toBe(0);
+      expect((await messages.inbox('20280001', 10, after)).map(item => item.title)).toEqual(['Later']);
+      expect(await messages.unreadCount('20280001', after)).toBe(1);
+
+      expect(await messages.cancelScheduled(scheduled.id, after)).toBe(false);
+      expect(await messages.cancelScheduled(scheduled.id, before)).toBe(true);
+      expect(await messages.cancelScheduled(scheduled.id, before)).toBe(false);
+      expect(await messages.inbox('20280001', 10, after)).toEqual([]);
+      expect(await messages.listSent(10)).toEqual([]);
+      expect(await messages.cancelScheduled('not-an-id', before)).toBe(false);
     });
 
     it('writes, replaces and removes students, courses and accounts', async () => {
@@ -171,6 +195,35 @@ export function repositoryContract(name: string, harness: ContractHarness) {
       await users.createIfAbsent({ identifier: 'STF-3003', passwordHash: 'h', role: 'ADMIN', forcePasswordChange: true, failedLogins: 0 });
       expect((await users.listByRole('ADMIN')).map(user => [user.identifier, user.forcePasswordChange])).toEqual([['STF-3003', true]]);
       expect((await users.listByRole('STUDENT')).map(user => user.identifier)).toEqual(['20280001']);
+    });
+
+    it('stores one pass mark per course, sorted, with an optional note', async () => {
+      const { passMarks } = harness.repositories();
+      const at = new Date('2026-11-17T00:00:00Z');
+      await passMarks.set({ courseCode: 'MATH 141', minimumGrade: 'C', note: 'Registry memo 12', updatedBy: 'admin', updatedAt: at });
+      await passMarks.set({ courseCode: 'CS 400', minimumGrade: 'C', updatedBy: 'admin', updatedAt: at });
+      await passMarks.set({ courseCode: 'MATH 141', minimumGrade: 'D+', updatedBy: 'admin2', updatedAt: at });
+      expect(await passMarks.list()).toEqual([
+        { courseCode: 'CS 400', minimumGrade: 'C', updatedBy: 'admin', updatedAt: at },
+        { courseCode: 'MATH 141', minimumGrade: 'D+', updatedBy: 'admin2', updatedAt: at }
+      ]);
+      expect((await passMarks.find('CS 400'))?.minimumGrade).toBe('C');
+      await passMarks.remove('CS 400');
+      expect(await passMarks.find('CS 400')).toBeUndefined();
+      expect((await passMarks.list()).map(mark => mark.courseCode)).toEqual(['MATH 141']);
+    });
+
+    it('keeps staff notes per student, newest first', async () => {
+      const { notes } = harness.repositories();
+      const first = await notes.add({ studentId: '20280001', body: 'Discussed MATH 141 retake.', authorId: 'admin', createdAt: new Date('2026-11-01T00:00:00Z') });
+      await notes.add({ studentId: '20280001', body: 'Capstone supervisor confirmed.', authorId: 'admin', createdAt: new Date('2026-11-02T00:00:00Z') });
+      await notes.add({ studentId: '20280002', body: 'Other student.', authorId: 'admin', createdAt: new Date('2026-11-03T00:00:00Z') });
+      expect(first.id).toBeTruthy();
+      const listed = await notes.listFor('20280001', 10);
+      expect(listed.map(note => note.body)).toEqual(['Capstone supervisor confirmed.', 'Discussed MATH 141 retake.']);
+      expect(listed[1]).toEqual(first);
+      expect(await notes.listFor('20280001', 1)).toHaveLength(1);
+      expect(await notes.listFor('nobody', 10)).toEqual([]);
     });
 
     it('reads students and courses, treating search input literally', async () => {

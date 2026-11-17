@@ -14,6 +14,15 @@ export interface StudentSummary {
   synthetic?: boolean;
 }
 
+export type SearchMatch = 'ID' | 'NAME' | 'CLOSE_ID' | 'CLOSE_NAME';
+export interface StudentSearchResult extends StudentSummary {
+  match: SearchMatch;
+}
+
+export interface StudentNote { id: string; studentId: string; body: string; author: string; createdAt: string }
+
+export type StudentDetails = Pick<StudentSummary, 'fullName' | 'programme' | 'yearGroup' | 'track'>;
+
 export interface CourseAttempt {
   credits: number;
   grade?: string;
@@ -97,9 +106,9 @@ export type MessageAudience =
   | { kind: 'STANDING'; standing: StandingLevel }
   | { kind: 'STUDENTS'; studentIds: string[] };
 export interface InboxItem { id: string; title: string; body: string; priority: MessagePriority; sentAt: string; readAt?: string }
-export interface SentMessage { id: string; title: string; body: string; priority: MessagePriority; audience: MessageAudience; sentAt: string; recipientCount: number; readCount: number }
+export interface SentMessage { id: string; title: string; body: string; priority: MessagePriority; audience: MessageAudience; sentAt: string; recipientCount: number; readCount: number; scheduled?: boolean }
 export interface MessageTemplate { id: string; title: string; body: string; priority: MessagePriority }
-export interface NewMessage { title: string; body: string; priority: MessagePriority; audience: MessageAudience }
+export interface NewMessage { title: string; body: string; priority: MessagePriority; audience: MessageAudience; sendAt?: string }
 
 export type ImportKind = 'STUDENTS' | 'COURSES';
 export interface ImportPreview { kind: ImportKind; rows: number; created: number; updated: number; errorCount: number; errors: Array<{ row: number; column?: string; message: string }> }
@@ -108,6 +117,8 @@ export interface ImportUpload { kind: ImportKind; filename: string; content: str
 
 export interface StandingThresholds { normalLoad: number; maxLoad: number; criticalFailedCourses: number }
 export interface AppSettings { standing: StandingThresholds; updatedAt?: string; updatedBy?: string }
+export type PassMarkGrade = 'D+' | 'C';
+export interface PassMark { courseCode: string; minimumGrade: PassMarkGrade; note?: string; updatedBy: string; updatedAt: string }
 export interface AdminAccount { id: string; identifier: string; forcePasswordChange: boolean; lockedUntil?: string }
 export interface AuditEntry { action: string; actorId?: string; actorIdentifier?: string; actorRole?: string; subject?: string; metadata?: Record<string, string | number | boolean>; at: string; ip?: string }
 
@@ -120,6 +131,9 @@ export interface ReportFilters { programme?: string; yearGroup?: number }
 export interface Reports {
   generatedAt: string;
   totals: { students: number; assessed: number; graduatedCohorts: number[] };
+  creditsRemaining: Record<string, number>;
+  projections: Array<{ yearGroup: number; term: string; onPlan: number; atRisk: number; likelyLater: number }>;
+  messaging: { messages: number; recipients: number; read: number; readRate: number | null };
   standings: StandingCounts;
   cohortOutcomes: Array<{ yearGroup: number; students: number; assessed: number; requirementsMet: number; completionRate: number | null; reasons: Record<NonCompletionReason, number> }>;
   cohortProgress: Array<{ yearGroup: number; students: number; assessed: number; averagePercentComplete: number | null; standings: StandingCounts }>;
@@ -260,6 +274,7 @@ export function createApiClient(baseUrl: string, fetchImpl: Fetch = (input, init
     messageTemplates: () => authorised<{ templates: MessageTemplate[] }>('/api/v1/admin/messages/templates'),
     previewAudience: (audience: MessageAudience) => authorised<{ recipientCount: number; unknownIds: string[] }>('/api/v1/admin/messages/preview', { method: 'POST', body: JSON.stringify({ audience }) }),
     sendMessage: (message: NewMessage) => authorised<{ message: SentMessage; unknownIds: string[] }>('/api/v1/admin/messages', { method: 'POST', body: JSON.stringify(message) }),
+    cancelMessage: (messageId: string) => authorised<void>(`/api/v1/admin/messages/${encodeURIComponent(messageId)}`, { method: 'DELETE' }),
     sentMessages: () => authorised<{ messages: SentMessage[] }>('/api/v1/admin/messages'),
     importHistory: () => authorised<{ batches: ImportBatch[] }>('/api/v1/admin/imports'),
     previewImport: (upload: ImportUpload) => authorised<ImportPreview>('/api/v1/admin/imports/preview', { method: 'POST', body: JSON.stringify(upload) }),
@@ -268,6 +283,9 @@ export function createApiClient(baseUrl: string, fetchImpl: Fetch = (input, init
     issueTemporaryPassword: (identifier: string) => authorised<{ temporaryPassword: string }>('/api/v1/admin/users/reset-password', { method: 'POST', body: JSON.stringify({ identifier }) }),
     settings: () => authorised<AppSettings>('/api/v1/admin/settings'),
     saveThresholds: (standing: StandingThresholds) => authorised<AppSettings>('/api/v1/admin/settings/standing', { method: 'PUT', body: JSON.stringify(standing) }),
+    passMarks: () => authorised<{ defaultMinimumGrade: string; passMarks: PassMark[] }>('/api/v1/admin/settings/pass-marks'),
+    setPassMark: (courseCode: string, minimumGrade: PassMarkGrade, note?: string) => authorised<{ courseCode: string; minimumGrade: PassMarkGrade }>(`/api/v1/admin/settings/pass-marks/${encodeURIComponent(courseCode)}`, { method: 'PUT', body: JSON.stringify({ minimumGrade, note }) }),
+    removePassMark: (courseCode: string) => authorised<void>(`/api/v1/admin/settings/pass-marks/${encodeURIComponent(courseCode)}`, { method: 'DELETE' }),
     admins: () => authorised<{ admins: AdminAccount[] }>('/api/v1/admin/settings/admins'),
     createAdmin: (identifier: string) => authorised<{ identifier: string; temporaryPassword: string }>('/api/v1/admin/settings/admins', { method: 'POST', body: JSON.stringify({ identifier }) }),
     auditLog: (query: { limit: number; action?: string }) => authorised<{ entries: AuditEntry[] }>(`/api/v1/admin/audit-log?${queryString(query)}`),
@@ -282,7 +300,15 @@ export function createApiClient(baseUrl: string, fetchImpl: Fetch = (input, init
       if (!response.ok) await parse(response);
       return response.blob();
     },
-    searchStudents: (query: string) => authorised<{ students: StudentSummary[] }>(`/api/v1/admin/students?q=${encodeURIComponent(query)}`),
+    searchStudents: (query: string) => authorised<{ students: StudentSearchResult[] }>(`/api/v1/admin/students?q=${encodeURIComponent(query)}`),
+    createStudent: (student: StudentDetails & { studentId: string }) => authorised<{ student: StudentSummary; accountCreated: boolean }>('/api/v1/admin/records/students', { method: 'POST', body: JSON.stringify(student) }),
+    updateStudent: (studentId: string, changes: Partial<StudentDetails>) => authorised<{ student: StudentSummary; changed: string[] }>(`/api/v1/admin/records/students/${encodeURIComponent(studentId)}`, { method: 'PATCH', body: JSON.stringify(changes) }),
+    saveCourseRecord: (studentId: string, courseCode: string, attempts: CourseAttempt[]) => authorised<{ course: CourseRecord }>(`/api/v1/admin/records/students/${encodeURIComponent(studentId)}/courses/${encodeURIComponent(courseCode)}`, { method: 'PUT', body: JSON.stringify({ attempts }) }),
+    removeCourseRecord: (studentId: string, courseCode: string) => authorised<void>(`/api/v1/admin/records/students/${encodeURIComponent(studentId)}/courses/${encodeURIComponent(courseCode)}`, { method: 'DELETE' }),
+    studentNotes: (studentId: string) => authorised<{ notes: StudentNote[] }>(`/api/v1/admin/students/${encodeURIComponent(studentId)}/notes`),
+    addStudentNote: (studentId: string, body: string) => authorised<{ note: StudentNote }>(`/api/v1/admin/students/${encodeURIComponent(studentId)}/notes`, { method: 'POST', body: JSON.stringify({ body }) }),
+    studentMessages: (studentId: string) => authorised<{ messages: InboxItem[] }>(`/api/v1/admin/students/${encodeURIComponent(studentId)}/messages`),
+    recordAuditExport: (studentId: string) => authorised<void>(`/api/v1/admin/students/${encodeURIComponent(studentId)}/audit-export`, { method: 'POST' }),
     studentRecord: (studentId: string) => authorised<StudentRecord>(`/api/v1/admin/students/${encodeURIComponent(studentId)}`)
   };
 }

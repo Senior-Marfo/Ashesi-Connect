@@ -4,15 +4,20 @@ import { ADMIN_NAV, AppShell, FullPageLoading, Notice, SkeletonRows } from '../.
 import { CurriculumCatalogue, type CatalogueLoad } from '../../components/curriculum-catalogue';
 import { RequirementTree } from '../../components/requirements';
 import { StatusCard } from '../../components/standing';
+import { RecordEditor } from '../../components/record-editor';
+import { StaffPanel } from '../../components/staff-panel';
 import { StudentProfile } from '../../components/student-record';
 import { ApiError, type Eligibility } from '../../lib/api';
-import type { StudentRecord, StudentSummary } from '../../lib/api';
+import type { SearchMatch, StudentRecord, StudentSearchResult } from '../../lib/api';
+import { forgetRecentStudents, loadRecentStudents, rememberStudent, type RecentStudent } from '../../lib/recent-students';
 import { useRequireRole, useSession } from '../../lib/session';
 
-type Results = { status: 'idle' | 'loading' | 'error' } | { status: 'ready'; students: StudentSummary[] };
+type Results = { status: 'idle' | 'loading' | 'error' } | { status: 'ready'; students: StudentSearchResult[] };
 type Profile = { status: 'none' | 'loading' | 'error' } | { status: 'ready'; record: StudentRecord; eligibility?: Eligibility };
 
 const ID_FRAGMENT = /^[\w-]*$/;
+const SEARCH_TEXT = /^[\p{L}\p{N}\s'.-]*$/u;
+const CLOSE_MATCH: Partial<Record<SearchMatch, string>> = { CLOSE_ID: 'Close ID match', CLOSE_NAME: 'Close name match' };
 
 export default function AdminPage() {
   const session = useRequireRole('ADMIN');
@@ -33,7 +38,25 @@ export default function AdminPage() {
     }
   }
   const [catalogue, setCatalogue] = useState<CatalogueLoad>({ status: 'loading' });
-  const validQuery = ID_FRAGMENT.test(query.trim());
+  const [recent, setRecent] = useState<RecentStudent[]>([]);
+  const [exportError, setExportError] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [reloads, setReloads] = useState(0);
+  const validQuery = SEARCH_TEXT.test(query.trim());
+
+  useEffect(() => { setRecent(loadRecentStudents()); }, []);
+
+  async function exportAudit(studentId: string) {
+    setExportError(false);
+    try {
+      await api.recordAuditExport(studentId);
+      // The printed audit carries the full requirement tree, not just its summary line.
+      document.querySelectorAll<HTMLDetailsElement>('details.admin-requirements').forEach(details => { details.open = true; });
+      window.print();
+    } catch {
+      setExportError(true);
+    }
+  }
 
   useEffect(() => {
     const term = query.trim();
@@ -69,35 +92,59 @@ export default function AdminPage() {
     return () => { active = false; };
   }, [api, session]);
 
+  useEffect(() => { setEditing(false); }, [selected]);
+
   useEffect(() => {
     if (!selected) return;
     let active = true;
-    setProfile({ status: 'loading' });
+    // A reload after an edit keeps the current record on screen until the fresh one arrives.
+    setProfile(current => (current.status === 'ready' && current.record.student.studentId === selected ? current : { status: 'loading' }));
     api.studentRecord(selected)
       .then(async record => {
         const eligibility = await api.studentEligibility(selected).catch(() => undefined);
-        if (active) setProfile({ status: 'ready', record, eligibility });
+        if (!active) return;
+        setProfile({ status: 'ready', record, eligibility });
+        setRecent(rememberStudent(record.student));
       })
       .catch(() => { if (active) setProfile({ status: 'error' }); });
     return () => { active = false; };
-  }, [api, selected]);
+  }, [api, selected, reloads]);
 
   if (!session) return <FullPageLoading />;
 
   return (
     <AppShell eyebrow="Registry workspace" title="Student lookup" nav={ADMIN_NAV}>
       <div className="workspace">
-        <section aria-labelledby="search-heading">
+        <section aria-labelledby="search-heading" className="no-print">
           <h2 id="search-heading" className="visually-hidden">Search</h2>
           <div className="field">
-            <label htmlFor="student-search">Student ID</label>
-            <input id="student-search" className="input mono" inputMode="numeric" autoComplete="off" aria-describedby="search-hint" value={query} onChange={event => setQuery(event.target.value)} placeholder="e.g. 2028" />
-            <small id="search-hint">Type the start of an ID. Every lookup is recorded in the audit log.</small>
+            <label htmlFor="student-search">Student ID or name</label>
+            <input id="student-search" className="input" type="search" autoComplete="off" spellCheck={false} aria-describedby="search-hint" value={query} onChange={event => setQuery(event.target.value)} placeholder="e.g. 2028 or Mensah" />
+            <small id="search-hint">Type the start of an ID or any part of a name. Close matches appear when nothing matches exactly. Every lookup is recorded in the audit log.</small>
           </div>
-          {!validQuery && <Notice tone="error">IDs contain only letters, digits and hyphens.</Notice>}
+          {!validQuery && <Notice tone="error">Search with letters, digits, spaces, hyphens or apostrophes only.</Notice>}
+          {!query.trim() && recent.length > 0 && (
+            <div className="recent">
+              <div className="recent-head">
+                <h3>Recently opened</h3>
+                <button type="button" className="link-button" onClick={() => { forgetRecentStudents(); setRecent([]); }}>Clear</button>
+              </div>
+              <ul className="results">
+                {recent.map(student => (
+                  <li key={student.studentId}>
+                    <button type="button" aria-current={student.studentId === selected} onClick={() => setSelected(student.studentId)}>
+                      <span className="mono">{student.studentId}</span>
+                      <small>{student.fullName}</small>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {results.status === 'loading' && <SkeletonRows rows={3} />}
           {results.status === 'error' && <Notice tone="error">Search failed. Try again.</Notice>}
-          {results.status === 'ready' && results.students.length === 0 && <p className="caption">No students match “{query.trim()}”.</p>}
+          {results.status === 'ready' && results.students.length === 0 && <p className="caption">No students match “{query.trim()}”, even allowing for a typo.</p>}
+          {results.status === 'ready' && results.students.length > 0 && CLOSE_MATCH[results.students[0].match] && <p className="caption">Nothing matches exactly. Did you mean one of these?</p>}
           {results.status === 'ready' && results.students.length > 0 && (
             <ul className="results">
               {results.students.map(student => (
@@ -105,6 +152,7 @@ export default function AdminPage() {
                   <button type="button" aria-current={student.studentId === selected} onClick={() => setSelected(student.studentId)}>
                     <span className="mono">{student.studentId}</span>
                     <small>{student.fullName} · {student.programme} {student.yearGroup}{student.synthetic ? ' · Synthetic' : ''}</small>
+                    {CLOSE_MATCH[student.match] && <small className="match-kind">{CLOSE_MATCH[student.match]}</small>}
                   </button>
                 </li>
               ))}
@@ -119,8 +167,19 @@ export default function AdminPage() {
             <>
               <div className="report-head">
                 <h2 className="profile-title" id="profile-heading">{profile.record.student.fullName}</h2>
-                <button type="button" className="button ghost" onClick={() => void issuePassword(profile.record.student.studentId)}>Issue temporary password</button>
+                <div className="actions no-print">
+                  <button type="button" className="button ghost" aria-expanded={editing} onClick={() => setEditing(current => !current)}>{editing ? 'Close editor' : 'Edit record'}</button>
+                  <button type="button" className="button ghost" onClick={() => void exportAudit(profile.record.student.studentId)}>Print or save audit PDF</button>
+                  <button type="button" className="button ghost" onClick={() => void issuePassword(profile.record.student.studentId)}>Issue temporary password</button>
+                </div>
               </div>
+              <p className="print-only caption">Graduation audit printed {new Date().toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' })}. Advisory only: not an official Registry certification.</p>
+              {exportError && <Notice tone="error">The export could not be recorded, so it was not started. Try again.</Notice>}
+              {editing && (
+                <div className="no-print">
+                  <RecordEditor api={api} student={profile.record.student} courses={profile.record.courses} onSaved={() => setReloads(count => count + 1)} />
+                </div>
+              )}
               {temporary?.studentId === profile.record.student.studentId && <div className="synthetic-notice"><Notice tone={temporary.tone}>{temporary.text}</Notice></div>}
               <StudentProfile record={profile.record} passMarks={profile.eligibility && Object.fromEntries(profile.eligibility.requirements.flatMap(group => group.items.map(item => [item.code, item.minimumGrade])))}>
                 {profile.eligibility
@@ -135,11 +194,12 @@ export default function AdminPage() {
                     </>
                   : <Notice tone="error">Graduation status could not be loaded for this student.</Notice>}
               </StudentProfile>
+              <StaffPanel api={api} studentId={profile.record.student.studentId} />
             </>
           )}
         </section>
       </div>
-      <CurriculumCatalogue load={catalogue} />
+      <div className="no-print"><CurriculumCatalogue load={catalogue} /></div>
     </AppShell>
   );
 }

@@ -11,7 +11,8 @@ export const STUDENT_NAV: NavItem[] = [
   { href: '/student/requirements/', label: 'Requirements' },
   { href: '/student/remaining/', label: 'Remaining' },
   { href: '/student/courses/', label: 'Courses' },
-  { href: '/student/inbox/', label: 'Inbox' }
+  { href: '/student/inbox/', label: 'Inbox' },
+  { href: '/student/profile/', label: 'Profile' }
 ];
 
 export const ADMIN_NAV: NavItem[] = [

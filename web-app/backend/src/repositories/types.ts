@@ -1,4 +1,5 @@
 import type { Role } from '../auth/permissions.js';
+import type { PassMarkGrade, PassMarks } from '../domain/eligibility/pass-marks.js';
 
 export interface UserRecord {
   id: string;
@@ -59,7 +60,15 @@ export type AuditAction =
   | 'ADMIN_IMPORT_ROLLED_BACK'
   | 'ADMIN_SETTINGS_UPDATED'
   | 'ADMIN_USER_CREATED'
-  | 'ADMIN_REGISTER_EXPORTED';
+  | 'ADMIN_REGISTER_EXPORTED'
+  | 'ADMIN_STUDENT_NOTE_ADDED'
+  | 'ADMIN_AUDIT_EXPORTED'
+  | 'ADMIN_PASS_MARK_UPDATED'
+  | 'ADMIN_STUDENT_CREATED'
+  | 'ADMIN_STUDENT_UPDATED'
+  | 'ADMIN_COURSE_RECORD_UPDATED'
+  | 'ADMIN_COURSE_RECORD_REMOVED'
+  | 'ADMIN_MESSAGE_CANCELLED';
 
 export interface AuditEntry {
   action: AuditAction;
@@ -104,7 +113,7 @@ export interface StudentFilter {
   yearGroup?: number;
 }
 
-/** Facts derived from a student's latest attempt at each course, using the provisional pass mark. */
+/** Facts derived from a student's latest attempt at each course, using the catalogue pass marks. */
 export interface CourseSummary {
   studentId: string;
   coursesOnRecord: number;
@@ -120,7 +129,7 @@ export interface StudentRepository {
   listCourses(studentId: string): Promise<CourseRecord[]>;
   list(filter: StudentFilter): Promise<StudentSummary[]>;
   /** Summaries for students that have course records; students without any are omitted. */
-  courseSummaries(studentIds: string[]): Promise<CourseSummary[]>;
+  courseSummaries(studentIds: string[], passMarks: PassMarks): Promise<CourseSummary[]>;
   /** Course records for many students at once; students without records are omitted. */
   coursesFor(studentIds: string[]): Promise<Map<string, CourseRecord[]>>;
   /** Creates or replaces a student's details. */
@@ -155,6 +164,7 @@ export interface MessageRecord {
   priority: MessagePriority;
   audience: MessageAudience;
   senderId: string;
+  /** When it reaches inboxes; a future time means the message is scheduled. */
   sentAt: Date;
   recipientCount: number;
 }
@@ -169,13 +179,17 @@ export interface InboxItem {
 }
 
 export interface MessageRepository {
-  /** Stores the message and one receipt per recipient (delivery to the in-app inbox). */
+  /** Stores the message and one receipt per recipient, delivered to the in-app inbox at `sentAt`. */
   send(message: Omit<MessageRecord, 'id' | 'recipientCount'>, recipientIds: string[]): Promise<MessageRecord>;
-  inbox(studentId: string, limit: number): Promise<InboxItem[]>;
-  unreadCount(studentId: string): Promise<number>;
-  /** Marks one message, or every message when no ID is given, as read; returns how many changed. */
-  markRead(studentId: string, messageId?: string): Promise<number>;
+  /** Messages delivered by `now`, newest first; scheduled ones stay hidden until then. */
+  inbox(studentId: string, limit: number, now: Date): Promise<InboxItem[]>;
+  unreadCount(studentId: string, now: Date): Promise<number>;
+  /** Marks one delivered message, or every delivered message when no ID is given, as read; returns how many changed. */
+  markRead(studentId: string, now: Date, messageId?: string): Promise<number>;
+  /** Newest send time first, scheduled messages included. */
   listSent(limit: number): Promise<Array<MessageRecord & { readCount: number }>>;
+  /** Deletes a message and its receipts if it has not been delivered by `now`; resolves whether it did. */
+  cancelScheduled(messageId: string, now: Date): Promise<boolean>;
 }
 
 export type ImportKind = 'STUDENTS' | 'COURSES';
@@ -219,6 +233,39 @@ export interface SettingsRepository {
   update(settings: AppSettings): Promise<void>;
 }
 
+export interface StudentNote {
+  id: string;
+  studentId: string;
+  body: string;
+  authorId: string;
+  createdAt: Date;
+}
+
+/** Staff-only notes on a student; students never read them. */
+export interface StudentNoteRepository {
+  add(note: Omit<StudentNote, 'id'>): Promise<StudentNote>;
+  /** Newest first. */
+  listFor(studentId: string, limit: number): Promise<StudentNote[]>;
+}
+
+export interface PassMarkRecord {
+  courseCode: string;
+  minimumGrade: PassMarkGrade;
+  /** Where the decision comes from, e.g. a Registry memo. */
+  note?: string;
+  updatedBy: string;
+  updatedAt: Date;
+}
+
+/** Per-course minimum passing grades; courses not listed use the provisional D+. */
+export interface PassMarkRepository {
+  /** Sorted by course code. */
+  list(): Promise<PassMarkRecord[]>;
+  find(courseCode: string): Promise<PassMarkRecord | undefined>;
+  set(record: PassMarkRecord): Promise<void>;
+  remove(courseCode: string): Promise<void>;
+}
+
 export interface Repositories {
   users: UserRepository;
   refreshTokens: RefreshTokenRepository;
@@ -228,4 +275,6 @@ export interface Repositories {
   messages: MessageRepository;
   imports: ImportRepository;
   settings: SettingsRepository;
+  notes: StudentNoteRepository;
+  passMarks: PassMarkRepository;
 }

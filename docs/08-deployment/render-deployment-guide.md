@@ -77,7 +77,7 @@ Record results in `docs/07-testing/test-reports/`.
 
 ## Rollback
 
-On the service's **Events** page in Render, choose an earlier successful deploy and **Rollback**. Collections are additive (`users`, `refreshtokens`, `auditlogs`, `students`, `enrollments`), so an older build can run against the newer database.
+On the service's **Events** page in Render, choose an earlier successful deploy and **Rollback**. Collections are additive (`users`, `refreshtokens`, `auditlogs`, `students`, `enrollments`, `messages`, `messagereceipts`, `importbatches`, `settings`, `studentnotes`, `passmarks`), so an older build can run against the newer database.
 
 ## Data safety
 

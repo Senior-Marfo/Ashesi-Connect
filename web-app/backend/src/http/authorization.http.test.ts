@@ -3,7 +3,7 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { ADMIN_PASSWORD, STUDENT_PASSWORD, buildTestApp } from '../testing/fixtures.js';
 
-const ADMIN_ROUTES: Array<['get' | 'post' | 'put', string]> = [
+const ADMIN_ROUTES: Array<['get' | 'post' | 'put' | 'patch' | 'delete', string]> = [
   ['get', '/api/v1/admin/students'],
   ['get', '/api/v1/admin/students/20260002'],
   ['get', '/api/v1/admin/audit-log'],
@@ -24,7 +24,19 @@ const ADMIN_ROUTES: Array<['get' | 'post' | 'put', string]> = [
   ['get', '/api/v1/admin/reports/courses.csv'],
   ['get', '/api/v1/admin/students/20260002/eligibility'],
   ['get', '/api/v1/admin/register.csv'],
-  ['post', '/api/v1/admin/curricula/review']
+  ['post', '/api/v1/admin/curricula/review'],
+  ['get', '/api/v1/admin/students/20260002/notes'],
+  ['post', '/api/v1/admin/students/20260002/notes'],
+  ['get', '/api/v1/admin/students/20260002/messages'],
+  ['post', '/api/v1/admin/students/20260002/audit-export'],
+  ['get', '/api/v1/admin/settings/pass-marks'],
+  ['put', '/api/v1/admin/settings/pass-marks/MATH%20141'],
+  ['delete', '/api/v1/admin/settings/pass-marks/MATH%20141'],
+  ['post', '/api/v1/admin/records/students'],
+  ['patch', '/api/v1/admin/records/students/20260002'],
+  ['put', '/api/v1/admin/records/students/20260002/courses/CS%20111'],
+  ['delete', '/api/v1/admin/records/students/20260002/courses/CS%20111'],
+  ['delete', '/api/v1/admin/messages/message-1']
 ];
 
 async function tokenFor(app: Awaited<ReturnType<typeof buildTestApp>>['app'], identifier: string, password: string): Promise<string> {
@@ -94,7 +106,7 @@ describe('admin activity logging', () => {
     expect(store.auditLog.some(entry => entry.action === 'ADMIN_STUDENT_SEARCHED' && entry.metadata?.query === '2026')).toBe(true);
   });
 
-  it('rejects search input that is not an ID fragment', async () => {
+  it('rejects search input that is not an ID or name fragment', async () => {
     const { app } = await buildTestApp();
     const token = await tokenFor(app, 'STF-1001', ADMIN_PASSWORD);
     const response = await request(app).get('/api/v1/admin/students').query({ q: '.*' }).auth(token, { type: 'bearer' });

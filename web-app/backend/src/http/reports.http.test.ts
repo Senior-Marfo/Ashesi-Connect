@@ -13,6 +13,21 @@ async function withSyntheticCohorts() {
 }
 
 describe('reports API', () => {
+  it('reports projections, credits remaining and messaging reach', async () => {
+    const { app, token, store } = await withSyntheticCohorts();
+    store.messages.push({ id: 'm1', title: 'Sent', body: 'b', priority: 'NORMAL', audience: { kind: 'ALL_STUDENTS' }, senderId: 'u-admin-1', sentAt: new Date('2026-11-10T00:00:00Z'), recipientCount: 4 });
+    store.messages.push({ id: 'm2', title: 'Scheduled', body: 'b', priority: 'NORMAL', audience: { kind: 'ALL_STUDENTS' }, senderId: 'u-admin-1', sentAt: new Date('2026-12-01T00:00:00Z'), recipientCount: 9 });
+    store.receipts.push(
+      ...['a', 'b', 'c', 'd'].map((studentId, index) => ({ messageId: 'm1', studentId, deliveredAt: new Date('2026-11-10T00:00:00Z'), readAt: index === 0 ? new Date('2026-11-11T00:00:00Z') : undefined }))
+    );
+    const body = (await request(app).get('/api/v1/admin/reports').auth(token, { type: 'bearer' })).body;
+    expect(body.messaging).toEqual({ messages: 1, recipients: 4, read: 1, readRate: 25 });
+    const current = body.cohortProgress.reduce((sum: number, cohort: { assessed: number }) => sum + cohort.assessed, 0);
+    expect(Object.values(body.creditsRemaining as Record<string, number>).reduce((a, b) => a + b, 0)).toBe(current);
+    expect(body.projections.map((p: { yearGroup: number }) => p.yearGroup)).toEqual(body.cohortProgress.map((c: { yearGroup: number }) => c.yearGroup));
+    for (const projection of body.projections) expect(projection.term).toMatch(/^\d{4} (Spring|Fall)$/);
+  });
+
   it('returns every report section and records the view', async () => {
     const { app, token, store } = await withSyntheticCohorts();
     const response = await request(app).get('/api/v1/admin/reports').auth(token, { type: 'bearer' });

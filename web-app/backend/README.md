@@ -35,8 +35,11 @@ npm test               # unit and HTTP tests; no database needed
 | GET | `/api/v1/students/me` | `student:read:own` |
 | GET | `/api/v1/students/me/eligibility` | `student:read:own`; status, standing, requirements, next steps |
 | GET | `/api/v1/admin/students/:studentId/eligibility` | `student:read:any`; same assessment, audit-logged |
-| GET | `/api/v1/admin/students?q=` | `student:read:any` |
+| GET | `/api/v1/admin/students?q=` | `student:read:any`; ID prefix, name or close match (US-06) |
 | GET | `/api/v1/admin/students/:studentId` | `student:read:any` |
+| GET/POST | `/api/v1/admin/students/:studentId/notes` | read `student:read:any`; add `student:note:write`, audit-logged |
+| GET | `/api/v1/admin/students/:studentId/messages` | `student:read:any`; messages received, with read time |
+| POST | `/api/v1/admin/students/:studentId/audit-export` | `student:read:any`; records a printed or PDF audit |
 | GET | `/api/v1/admin/register` | `student:read:any`; filters `programme`, `yearGroup`, `flag`, `standing`; `sort`, `order`, `page`, `pageSize` |
 | GET | `/api/v1/admin/register.csv` | `student:read:any`; same filters, all matching rows |
 | POST | `/api/v1/admin/users/reset-password` | `user:reset-password` |
@@ -49,6 +52,12 @@ npm test               # unit and HTTP tests; no database needed
 | GET/POST | `/api/v1/admin/imports` (+ `/preview`, `/:id/rollback`) | `records:import`; CSV only, up to 4 MB |
 | GET/PUT | `/api/v1/admin/settings` (+ `/standing`) | `settings:manage` |
 | GET/POST | `/api/v1/admin/settings/admins` | `user:manage` |
+| POST | `/api/v1/admin/records/students` | `records:edit`; creates a student and a locked account |
+| PATCH | `/api/v1/admin/records/students/:studentId` | `records:edit`; name, programme, year group, track |
+| PUT/DELETE | `/api/v1/admin/records/students/:studentId/courses/:courseCode` | `records:edit`; body `{ attempts: [...] }`, oldest first; synthetic records refused (`409`) |
+| DELETE | `/api/v1/admin/messages/:messageId` | `message:send`; cancels a scheduled message before delivery (`409` otherwise) |
+| GET | `/api/v1/admin/settings/pass-marks` | `settings:manage`; per-course pass marks (default D+) |
+| PUT/DELETE | `/api/v1/admin/settings/pass-marks/:courseCode` | `settings:manage`; body `{ minimumGrade: 'D+' \| 'C', note? }`, audit-logged |
 | GET | `/api/v1/admin/reports` | `report:read`; filters `programme`, `yearGroup` |
 | GET | `/api/v1/admin/reports/{cohorts,programmes,courses}.csv` | `report:read`; same filters |
 | GET | `/api/v1/admin/curricula` | `curriculum:read` |

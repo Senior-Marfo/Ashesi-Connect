@@ -62,6 +62,31 @@ test('admin finds a student by ID prefix and opens their record', async ({ page 
   await expect(page.getByRole('heading', { name: 'Curriculum catalogue' })).toBeVisible();
 });
 
+test('admin finds a student by a misspelt name, keeps a note, sees messages and prints the audit', async ({ page }, testInfo) => {
+  await signIn(page, 'STF-1001');
+  await page.evaluate(() => { window.print = () => { document.body.dataset.printed = 'yes'; }; });
+  await page.getByLabel('Student ID or name').fill('mensha');
+  await expect(page.getByText('Nothing matches exactly. Did you mean one of these?')).toBeVisible();
+  await page.getByRole('button', { name: /20280001.*Close name match/ }).click();
+  await expect(page.getByRole('heading', { name: 'Ama Synthetic Mensah' })).toBeVisible();
+
+  const note = `Advised on MATH 141 retake (${testInfo.project.name}).`;
+  await page.getByLabel('New note').fill(note);
+  await page.getByRole('button', { name: 'Add note' }).click();
+  await expect(page.getByRole('region', { name: 'Staff notes' }).getByRole('listitem').first()).toContainText(note);
+  await expect(page.getByRole('region', { name: 'Messages received' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Print or save audit PDF' }).click();
+  await expect(page.locator('body')).toHaveAttribute('data-printed', 'yes');
+  await expect(page.locator('details.admin-requirements')).toHaveAttribute('open', '');
+
+  await page.getByLabel('Student ID or name').fill('');
+  await expect(page.getByRole('heading', { name: 'Recently opened' })).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: /20280001.*Ama Synthetic Mensah/ }).click();
+  await expect(page.getByRole('region', { name: 'Staff notes' })).toContainText(note);
+});
+
 test('wrong password shows a generic error', async ({ page }) => {
   await signIn(page, '20280001', 'not-the-password');
   await expect(page.locator('.notice.error')).toContainText('do not match an active account');
@@ -96,7 +121,8 @@ test('admin filters and sorts the register, then opens a student from it', async
   await signIn(page, 'STF-1001');
   await page.getByRole('link', { name: 'Register' }).click();
   await expect(page.getByRole('heading', { name: 'Student register' })).toBeVisible();
-  await expect(page.getByText(/Page 1 of \d+ · 63 students/)).toBeVisible();
+  // Other journeys may add real students to the shared demo server, so only the filtered count is exact.
+  await expect(page.getByText(/Page 1 of \d+ · \d+ students/)).toBeVisible();
 
   await page.getByLabel('Programme').selectOption('BA');
   await expect(page.getByText(/· 7 students/)).toBeVisible();
@@ -181,6 +207,8 @@ test('admin imports a student, issues a temporary password, then undoes the impo
   await expect(admin.getByText(/Imported students.csv: 1 new/)).toBeVisible();
 
   await admin.getByRole('link', { name: 'Student lookup' }).click();
+  // Wait for the client-side navigation; the Imports page also has a student ID field.
+  await expect(admin.getByRole('heading', { name: 'Student lookup' })).toBeVisible();
   await admin.getByLabel('Student ID').fill(id);
   await admin.getByRole('button', { name: new RegExp(id) }).click();
   admin.once('dialog', dialog => void dialog.accept());
@@ -221,4 +249,114 @@ test('admin adjusts thresholds, creates an administrator and reviews the audit l
   await normal.fill('5');
   await page.getByRole('button', { name: 'Save thresholds' }).click();
   await expect(page.getByText('Saved.')).toBeVisible();
+});
+
+test('admin sets a C pass mark, the student sees it on their requirements, then the admin removes it', async ({ browser }) => {
+  const admin = await (await browser.newContext()).newPage();
+  await signIn(admin, 'STF-1001');
+  await admin.getByRole('link', { name: 'Settings' }).click();
+  const section = admin.getByRole('region', { name: 'Course pass marks' });
+  await section.getByLabel('Course code').fill('math 141');
+  admin.once('dialog', dialog => void dialog.accept());
+  await section.getByRole('button', { name: 'Save pass mark' }).click();
+  await expect(section.getByText('MATH 141 now passes at C or above.')).toBeVisible();
+  await expect(section.getByRole('row', { name: /MATH 141/ })).toContainText('STF-1001');
+
+  const student = await (await browser.newContext()).newPage();
+  await signIn(student, '20280001');
+  await student.getByRole('link', { name: 'Requirements' }).click();
+  await expect(student.locator('.tree-items li', { hasText: 'MATH 141' })).toContainText('Pass mark C');
+
+  admin.once('dialog', dialog => void dialog.accept());
+  await section.getByRole('button', { name: 'Remove the pass mark for MATH 141' }).click();
+  await expect(section.getByText('MATH 141 passes at the default D+ again.')).toBeVisible();
+  await student.reload();
+  await expect(student.locator('.tree-items li', { hasText: 'MATH 141' })).toContainText('Pass mark D+');
+});
+
+test('admin adds a student by hand, corrects their details and records a course with a retake', async ({ page }, testInfo) => {
+  const id = testInfo.project.name === 'desktop' ? '20319001' : '20319002';
+  await signIn(page, 'STF-1001');
+  await page.getByRole('link', { name: 'Imports' }).click();
+  const add = page.getByRole('region', { name: 'Add one student' });
+  await add.getByLabel('New student ID').fill(id);
+  await add.getByLabel('Full name').fill('Yaa Manual Asantewaa');
+  await add.getByLabel('Programme').selectOption('MIS');
+  await add.getByLabel('Year group').fill('2031');
+  await add.getByRole('button', { name: 'Add student' }).click();
+  await expect(add.getByText(`Added ${id}.`)).toBeVisible();
+
+  await page.getByRole('link', { name: 'Student lookup' }).click();
+  await page.getByLabel('Student ID or name').fill(id);
+  await page.getByRole('button', { name: new RegExp(id) }).click();
+  await page.getByRole('button', { name: 'Edit record' }).click();
+  await page.getByLabel('Maths track').selectOption('pre-calculus');
+  await page.getByRole('button', { name: 'Save details' }).click();
+  await expect(page.getByText('Saved: track.')).toBeVisible();
+  await expect(page.locator('.facts')).toContainText('pre-calculus');
+
+  await page.getByLabel('Course code').fill('math 141');
+  await page.getByRole('group', { name: 'Attempt 1' }).getByLabel('Grade').selectOption('E');
+  await page.getByRole('button', { name: 'Add a retake' }).click();
+  await page.getByRole('group', { name: 'Attempt 2' }).getByLabel('Grade').selectOption('B');
+  await page.getByRole('button', { name: 'Add course' }).click();
+  await expect(page.getByText('Saved MATH 141 with 2 attempts.')).toBeVisible();
+  await expect(page.getByRole('row', { name: /MATH 141/ })).toContainText('B');
+
+  await page.getByLabel('Student ID or name').fill('20280002');
+  await page.getByRole('button', { name: /20280002/ }).click();
+  await page.getByRole('button', { name: 'Edit record' }).click();
+  await expect(page.getByText(/Synthetic records are managed by the seeding workflow/)).toBeVisible();
+});
+
+test('admin selects students in the register, schedules a message to them, then cancels it', async ({ page }) => {
+  await signIn(page, 'STF-1001');
+  await page.getByRole('link', { name: 'Register' }).click();
+  await page.getByLabel('Programme').selectOption('BA');
+  await expect(page.getByText(/· 7 students/)).toBeVisible();
+  await page.getByLabel('Select every student on this page').check();
+  const bar = page.getByRole('region', { name: 'Selected students' });
+  await expect(bar).toContainText('7 selected');
+  await page.getByLabel('Select 20280002').uncheck();
+  await expect(bar).toContainText('6 selected');
+  await bar.getByRole('link', { name: 'Message selected' }).click();
+
+  await expect(page).toHaveURL(/\/admin\/messages\/\?to=/);
+  await expect(page.getByLabel('Send to')).toHaveValue('STUDENTS');
+  await expect(page.getByText('6 recipients')).toBeVisible();
+  const title = `Scheduled check ${Date.now()}`;
+  await page.getByLabel('Title', { exact: true }).fill(title);
+  await page.getByLabel('Message', { exact: true }).fill('Your audit review is next week.');
+  await page.getByLabel('Send later').check();
+  const tomorrow = new Date(Date.now() + 86_400_000);
+  await page.getByLabel('Delivery time').fill(new Date(tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60_000).toISOString().slice(0, 16));
+  page.once('dialog', dialog => void dialog.accept());
+  await page.getByRole('button', { name: 'Schedule message' }).click();
+  await expect(page.getByText(/Scheduled for .* to 6 students\./)).toBeVisible();
+
+  const item = page.locator('.sent-list > li', { hasText: title });
+  await expect(item).toContainText('Scheduled for');
+  page.once('dialog', dialog => void dialog.accept());
+  await item.getByRole('button', { name: 'Cancel scheduled message' }).click();
+  await expect(page.getByText(`Cancelled “${title}”.`)).toBeVisible();
+  await expect(page.locator('.sent-list > li', { hasText: title })).toHaveCount(0);
+});
+
+test('reports show the outlook for current year groups and messaging reach', async ({ page }) => {
+  await signIn(page, 'STF-1001');
+  await page.getByRole('link', { name: 'Reports' }).click();
+  const outlook = page.getByRole('region', { name: 'Outlook for current year groups' });
+  await expect(outlook.getByRole('img', { name: 'Students by credits still to complete' })).toBeVisible();
+  await expect(outlook.getByRole('columnheader', { name: 'Likely later' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Messaging reach' })).toContainText('Messages delivered');
+});
+
+test('a student reads their profile and reaches the password change', async ({ page }) => {
+  await signIn(page, '20280001');
+  await page.getByRole('link', { name: 'Profile' }).click();
+  await expect(page.getByRole('heading', { name: 'Profile and security' })).toBeVisible();
+  await expect(page.locator('.facts')).toContainText('20280001');
+  await expect(page.locator('.facts')).toContainText('Standard');
+  await page.getByRole('link', { name: 'Change password' }).click();
+  await expect(page.getByRole('heading', { name: 'Change password' })).toBeVisible();
 });

@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { graduationTermEnded } from '../domain/eligibility/terms.js';
+import { loadPassMarks } from '../eligibility/curriculum.js';
 import { assessAll } from '../eligibility/standings.js';
 import { toCsv } from '../reports/csv.js';
 import { NON_COMPLETION_REASONS, buildReports, type Reports } from '../reports/reports.js';
@@ -44,12 +45,21 @@ export function reportRoutes(repositories: Repositories, now: () => Date): Route
     }
     const today = now();
     const students = await repositories.students.list(parsed.data);
-    const assessed = await assessAll(students, repositories, today);
+    const [assessed, passMarks] = await Promise.all([assessAll(students, repositories, today), loadPassMarks(repositories)]);
     const reports = buildReports(students.map(student => ({
       ...assessed.get(student.studentId)!,
       graduated: graduationTermEnded(student.yearGroup, today)
-    })));
+    })), passMarks);
     return { filters: parsed.data, reports };
+  };
+
+  /** Reach of every delivered message; scheduled ones are left out until they go out. Not narrowed by the filters. */
+  const messagingReach = async () => {
+    const at = now();
+    const delivered = (await repositories.messages.listSent(1000)).filter(message => message.sentAt <= at);
+    const recipients = delivered.reduce((sum, message) => sum + message.recipientCount, 0);
+    const read = delivered.reduce((sum, message) => sum + message.readCount, 0);
+    return { messages: delivered.length, recipients, read, readRate: recipients > 0 ? Math.round((1000 * read) / recipients) / 10 : null };
   };
 
   const audit = (req: Request, metadata: Record<string, string | number>) => repositories.auditLog.append({
@@ -61,7 +71,7 @@ export function reportRoutes(repositories: Repositories, now: () => Date): Route
     if (!result) return;
     await audit(req, { ...result.filters });
     res.setHeader('cache-control', 'no-store');
-    res.json({ generatedAt: now().toISOString(), filters: result.filters, ...result.reports });
+    res.json({ generatedAt: now().toISOString(), filters: result.filters, ...result.reports, messaging: await messagingReach() });
   }));
 
   router.get('/:section.csv', requirePermission('report:read'), asyncHandler(async (req, res) => {

@@ -73,6 +73,7 @@ body { margin: 0; background: var(--surface); color: var(--ink); font: 16px/1.5 
 .input:focus { border-color: var(--maroon); outline: none; box-shadow: 0 0 0 3px var(--maroon-tint); }
 
 .button { font: 600 15px var(--font-ui); min-height: 48px; padding: 0 var(--space-5); border-radius: var(--radius); border: 1px solid var(--maroon); background: var(--maroon); color: #fff; cursor: pointer; transition: background 120ms ease; }
+a.button { display: inline-flex; align-items: center; text-decoration: none; }
 .button:hover { background: var(--maroon-strong); }
 .button:disabled { opacity: 0.6; cursor: progress; }
 .button.ghost { background: transparent; color: var(--ink); border-color: var(--line); min-height: 40px; padding: 0 var(--space-4); }
@@ -291,8 +292,82 @@ body { margin: 0; background: var(--surface); color: var(--ink); font: 16px/1.5 
 .report-kpis { margin-top: var(--space-5); }
 .field.inline { grid-auto-flow: column; align-items: center; gap: var(--space-2); }
 
+/* Register selection */
+.select-cell { width: 40px; }
+.select-cell input { width: 18px; height: 18px; accent-color: var(--maroon); }
+.register tr[data-selected] { background: var(--maroon-tint); }
+.selection-bar { display: flex; gap: var(--space-4); align-items: center; flex-wrap: wrap; margin: var(--space-4) 0; padding: var(--space-3) var(--space-4); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); position: sticky; top: var(--space-2); z-index: 2; }
+.selection-bar .button { min-height: 40px; }
+
+/* Scheduled messages */
+.schedule { display: grid; gap: var(--space-3); }
+.check { display: flex; gap: var(--space-2); align-items: center; font-size: 14px; font-weight: 600; }
+.check input { width: 18px; height: 18px; accent-color: var(--maroon); }
+
+/* Report outlook */
+.outlook { display: grid; gap: var(--space-6); }
+@media (min-width: 960px) { .outlook { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
+
+/* Manual record editing */
+.record-editor { display: grid; gap: var(--space-6); margin: 0 0 var(--space-6); padding: var(--space-5); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.record-editor h3 { font: 400 22px/1.2 var(--font-display); margin: 0 0 var(--space-3); }
+.record-form { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); align-items: start; }
+.record-form .span-2 { grid-column: span 2; }
+.record-form .span-all, .record-form .record-actions { grid-column: 1 / -1; }
+@media (max-width: 559px) { .record-form .span-2 { grid-column: 1 / -1; } }
+.record-actions { display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: center; }
+.course-editor { display: grid; gap: var(--space-4); }
+.record-editor .input { width: 100%; min-width: 0; box-sizing: border-box; }
+.record-editor .field { min-width: 0; }
+.attempts { border: 0; padding: 0; margin: 0; display: grid; gap: var(--space-3); justify-items: start; }
+.attempts legend { font-weight: 600; font-size: 14px; margin-bottom: var(--space-2); padding: 0; }
+.attempt-row { display: grid; width: 100%; gap: var(--space-3); grid-template-columns: 24px repeat(4, minmax(0, 1fr)) auto; align-items: end; }
+.attempt-number { align-self: center; padding-top: 22px; font: 600 14px var(--font-ui); color: var(--ink-soft); }
+.attempt-row .link-button { padding-bottom: 14px; }
+.link-button:disabled { color: var(--ink-soft); cursor: not-allowed; text-decoration: none; }
+@media (max-width: 719px) {
+  .attempt-row { grid-template-columns: 24px 1fr 1fr; padding-bottom: var(--space-3); border-bottom: 1px solid var(--line); }
+  .attempt-row .attempt-number { grid-row: span 2; align-self: start; }
+  .attempt-row .link-button { grid-column: 2 / -1; padding-bottom: 0; }
+}
+
+/* Course pass marks */
+.pass-mark-form { display: grid; gap: var(--space-4); margin-bottom: var(--space-5); align-items: start; }
+@media (min-width: 960px) {
+  .pass-mark-form { grid-template-columns: 180px auto minmax(0, 1fr) auto; }
+  /* Line the radios and button up with the inputs, below the field labels. */
+  .pass-mark-form > .radios { display: grid; grid-template-columns: auto auto; column-gap: var(--space-4); }
+  .pass-mark-form > .radios legend { float: none; grid-column: 1 / -1; margin: 0 0 var(--space-1); }
+  .pass-mark-form > .radios label { min-height: 48px; }
+  .pass-mark-form > .button { margin-top: 26px; }
+}
+
+/* US-06 student lookup */
+.recent { margin-top: var(--space-5); }
+.recent-head { display: flex; justify-content: space-between; align-items: baseline; }
+.recent-head h3 { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); }
+.link-button { all: unset; cursor: pointer; color: var(--maroon); font-size: 14px; font-weight: 600; }
+.link-button:hover { text-decoration: underline; }
+.link-button:focus-visible { outline: 2px solid var(--maroon); outline-offset: 2px; }
+.match-kind { font-style: italic; }
+.report-head .actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.print-only { display: none; }
+.staff-panel { display: grid; gap: var(--space-6); margin-top: var(--space-7); padding-top: var(--space-6); border-top: 1px solid var(--line); }
+@media (min-width: 1200px) { .staff-panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
+.staff-panel h3 { font: 400 22px/1.2 var(--font-display); margin: 0 0 var(--space-2); }
+.staff-panel form { display: grid; gap: var(--space-3); justify-items: start; margin: var(--space-4) 0 var(--space-5); }
+.staff-panel .field { width: 100%; }
+.timeline { list-style: none; margin: 0; padding: 0 0 0 var(--space-4); border-left: 2px solid var(--line); display: grid; gap: var(--space-4); }
+.timeline li { position: relative; }
+.timeline li::before { content: ''; position: absolute; left: calc(-1 * var(--space-4) - 5px); top: 0.55em; width: 8px; height: 8px; border-radius: 50%; background: var(--maroon); }
+.timeline p { margin: 0; }
+.timeline-body { white-space: pre-wrap; max-width: 70ch; }
+.timeline-title { font-weight: 600; }
+
 @media print {
   .topbar, .no-print, .filters, .skip { display: none !important; }
+  .print-only { display: block; }
+  .workspace { display: block; }
   body { background: #fff; color: #000; }
   .page { padding: 0; max-width: none; }
   .report-section, .status-card, tr { break-inside: avoid; }

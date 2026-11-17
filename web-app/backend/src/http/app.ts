@@ -14,6 +14,8 @@ import { settingsRoutes } from './settings-routes.js';
 import { adminMessageRoutes, studentMessageRoutes } from './message-routes.js';
 import { reportRoutes } from './report-routes.js';
 import { authenticate, requestId, requirePasswordChanged, CSRF_HEADER } from './middleware.js';
+import { recordRoutes } from './record-routes.js';
+import { studentProfileRoutes } from './student-profile-routes.js';
 import { studentRoutes } from './student-routes.js';
 
 export interface AppDependencies {
@@ -73,11 +75,13 @@ export function createApp({ config, repositories, isHealthy, now = () => new Dat
   const protectedRoutes = [authenticate(config.accessTokenSecret), requirePasswordChanged()];
   app.use('/api/v1/auth', authRoutes(config, auth));
   app.use('/api/v1/students', ...protectedRoutes, studentRoutes(repositories, now), curriculumStudentRouter);
-  app.use('/api/v1/students/me/messages', ...protectedRoutes, studentMessageRoutes(repositories));
+  app.use('/api/v1/students/me/messages', ...protectedRoutes, studentMessageRoutes(repositories, now));
   app.use('/api/v1/admin/messages', ...protectedRoutes, adminMessageRoutes(repositories, now));
   app.use('/api/v1/admin/reports', ...protectedRoutes, reportRoutes(repositories, now));
   app.use('/api/v1/admin/imports', ...protectedRoutes, importRoutes(config, repositories, now));
   app.use('/api/v1/admin/settings', ...protectedRoutes, settingsRoutes(config, repositories, now));
+  app.use('/api/v1/admin/students', ...protectedRoutes, studentProfileRoutes(repositories, now));
+  app.use('/api/v1/admin/records', ...protectedRoutes, recordRoutes(config, repositories, now));
   app.use('/api/v1/admin', ...protectedRoutes, adminRoutes(repositories, auth, now), curriculumAdminRouter);
 
   if (config.staticDir) serveWebClient(app, resolve(config.staticDir));

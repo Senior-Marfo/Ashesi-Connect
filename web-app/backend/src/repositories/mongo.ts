@@ -1,12 +1,12 @@
 import { isValidObjectId } from 'mongoose';
 import { isRole } from '../auth/permissions.js';
 import { DEFAULT_STANDING_CONFIG } from '../domain/eligibility/standing.js';
-import { AuditLog, Enrollment, ImportBatchModel, SettingsModel, Message, MessageReceipt, RefreshToken, Student, User } from '../models.js';
+import { AuditLog, Enrollment, ImportBatchModel, SettingsModel, Message, MessageReceipt, PassMarkModel, RefreshToken, Student, StudentNoteModel, User } from '../models.js';
 import { CurriculumRecord } from '../models/curriculum.js';
 import { selectCohortCurriculum } from '../domain/eligibility/cohort-selection.js';
 import type { ProgrammeRules } from '../domain/eligibility/programme-audit.js';
-import { PROVISIONAL_PASSING_GRADES } from '../register/provisional-pass.js';
-import type { AuditEntry, CourseRecord, CourseSummary, ImportBatch, MessageAudience, MessagePriority, MessageRecord, Repositories, StudentSummary, UserRecord } from './types.js';
+import { passingGradesByCourse } from '../domain/eligibility/pass-marks.js';
+import type { AuditEntry, CourseRecord, CourseSummary, ImportBatch, MessageAudience, MessagePriority, MessageRecord, PassMarkRecord, Repositories, StudentSummary, UserRecord } from './types.js';
 
 function toUser(doc: { _id: unknown; identifier: string; passwordHash: string; role: string; studentId?: string | null; forcePasswordChange?: boolean | null; failedLogins?: number | null; lockedUntil?: Date | null; passwordChangedAt?: Date | null }): UserRecord {
   if (!isRole(doc.role)) throw new Error(`Unknown role on user ${String(doc._id)}`);
@@ -98,6 +98,33 @@ export function createMongoRepositories(): Repositories {
         await SettingsModel.updateOne({ _id: 'app' }, { $set: settings }, { upsert: true });
       }
     },
+    passMarks: {
+      async list() {
+        const docs = await PassMarkModel.find({}, { _id: 0, __v: 0 }).sort({ courseCode: 1 }).lean();
+        return docs.map(doc => ({ ...doc, note: doc.note ?? undefined }) as PassMarkRecord);
+      },
+      async find(courseCode) {
+        const doc = await PassMarkModel.findOne({ courseCode }, { _id: 0, __v: 0 }).lean();
+        return doc ? ({ ...doc, note: doc.note ?? undefined } as PassMarkRecord) : undefined;
+      },
+      async set(record) {
+        const { note, ...fields } = record;
+        await PassMarkModel.updateOne({ courseCode: record.courseCode }, { $set: { ...fields, ...(note ? { note } : {}) }, ...(note ? {} : { $unset: { note: 1 } }) }, { upsert: true });
+      },
+      async remove(courseCode) {
+        await PassMarkModel.deleteOne({ courseCode });
+      }
+    },
+    notes: {
+      async add(note) {
+        const doc = await StudentNoteModel.create(note);
+        return { ...note, id: String(doc._id) };
+      },
+      async listFor(studentId, limit) {
+        const docs = await StudentNoteModel.find({ studentId }).sort({ createdAt: -1, _id: -1 }).limit(limit).lean();
+        return docs.map(doc => ({ id: String(doc._id), studentId: doc.studentId, body: doc.body, authorId: doc.authorId, createdAt: doc.createdAt }));
+      }
+    },
     imports: {
       async create(batch) {
         const doc = await ImportBatchModel.create(batch);
@@ -133,8 +160,8 @@ export function createMongoRepositories(): Repositories {
         }
         return { ...message, id: messageId, recipientCount: recipientIds.length };
       },
-      async inbox(studentId, limit) {
-        const receipts = await MessageReceipt.find({ studentId }).sort({ deliveredAt: -1 }).limit(limit).lean();
+      async inbox(studentId, limit, now) {
+        const receipts = await MessageReceipt.find({ studentId, deliveredAt: { $lte: now } }).sort({ deliveredAt: -1 }).limit(limit).lean();
         const messages = await Message.find({ _id: { $in: receipts.map(receipt => receipt.messageId).filter(isValidObjectId) } }).lean();
         const byId = new Map(messages.map(message => [String(message._id), message]));
         return receipts.flatMap(receipt => {
@@ -145,10 +172,17 @@ export function createMongoRepositories(): Repositories {
           }] : [];
         });
       },
-      unreadCount: studentId => MessageReceipt.countDocuments({ studentId, readAt: { $exists: false } }),
-      async markRead(studentId, messageId) {
-        const result = await MessageReceipt.updateMany({ studentId, readAt: { $exists: false }, ...(messageId ? { messageId } : {}) }, { $set: { readAt: new Date() } });
+      unreadCount: (studentId, now) => MessageReceipt.countDocuments({ studentId, deliveredAt: { $lte: now }, readAt: { $exists: false } }),
+      async markRead(studentId, now, messageId) {
+        const result = await MessageReceipt.updateMany({ studentId, deliveredAt: { $lte: now }, readAt: { $exists: false }, ...(messageId ? { messageId } : {}) }, { $set: { readAt: now } });
         return result.modifiedCount;
+      },
+      async cancelScheduled(messageId, now) {
+        if (!isValidObjectId(messageId)) return false;
+        const deleted = await Message.deleteOne({ _id: messageId, sentAt: { $gt: now } });
+        if (deleted.deletedCount !== 1) return false;
+        await MessageReceipt.deleteMany({ messageId });
+        return true;
       },
       async listSent(limit) {
         const messages = await Message.find({}).sort({ sentAt: -1 }).limit(limit).lean();
@@ -195,17 +229,22 @@ export function createMongoRepositories(): Repositories {
         const docs = await Student.find(query, studentProjection).sort({ studentId: 1 }).lean();
         return docs as StudentSummary[];
       },
-      async courseSummaries(studentIds) {
+      async courseSummaries(studentIds, passMarks) {
         if (studentIds.length === 0) return [];
         const latest = { $arrayElemAt: ['$attempts', -1] };
         const credits = (condition: object) => ({ $sum: { $cond: [condition, '$latest.credits', 0] } });
         const count = (condition: object) => ({ $sum: { $cond: [condition, 1, 0] } });
         const graded = { $and: [{ $eq: ['$latest.status', 'COMPLETED'] }, { $ne: [{ $ifNull: ['$latest.grade', null] }, null] }] };
-        const passed = { $and: [graded, { $in: ['$latest.grade', PROVISIONAL_PASSING_GRADES] }] };
-        const failed = { $and: [graded, { $not: [{ $in: ['$latest.grade', PROVISIONAL_PASSING_GRADES] }] }] };
+        const { overrides, fallback } = passingGradesByCourse(passMarks);
+        const passingGrades = overrides.length
+          ? { $switch: { branches: overrides.map(group => ({ case: { $in: ['$courseCode', group.courseCodes] }, then: group.grades })), default: fallback } }
+          : fallback;
+        const passes = { $in: ['$latest.grade', passingGrades] };
+        const passed = { $and: [graded, passes] };
+        const failed = { $and: [graded, { $not: [passes] }] };
         const docs = await Enrollment.aggregate<CourseSummary>([
           { $match: { studentId: { $in: studentIds }, 'attempts.0': { $exists: true } } },
-          { $project: { studentId: 1, latest } },
+          { $project: { studentId: 1, courseCode: 1, latest } },
           { $group: {
             _id: '$studentId',
             coursesOnRecord: { $sum: 1 },

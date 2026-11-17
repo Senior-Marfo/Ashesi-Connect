@@ -1,6 +1,7 @@
 'use client';
 import { useState, type ChangeEvent } from 'react';
 import { ADMIN_NAV, AppShell, FullPageLoading, Notice, SkeletonRows } from '../../../components/app-shell';
+import { StudentDetailsForm } from '../../../components/record-editor';
 import { ApiError, type ImportKind, type ImportPreview, type ImportUpload } from '../../../lib/api';
 import { saveBlob } from '../../../lib/download';
 import { useRequireRole, useSession } from '../../../lib/session';
@@ -151,6 +152,14 @@ export default function ImportsPage() {
           )}
         </section>
       </div>
+      <section aria-labelledby="single-student" className="report-section">
+        <h2 id="single-student" className="section-title">Add one student</h2>
+        <p className="caption">For a single record without a CSV file. The student gets an account once you issue a temporary password from their record. Course records are added from the record’s editor in Student lookup.</p>
+        <StudentDetailsForm withId submitLabel="Add student" onSubmit={async details => {
+          const { student } = await api.createStudent(details);
+          return `Added ${student.studentId}. Open it in Student lookup to add courses or issue a temporary password.`;
+        }} />
+      </section>
     </AppShell>
   );
 }

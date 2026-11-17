@@ -44,4 +44,10 @@ describe('requirement breakdown', () => {
     expect(groups[3]).toMatchObject({ creditsRequired: 2, creditsCompleted: 1, options: ['CS 352', 'CS 361'] });
     expect(item('CS 351')).toMatchObject({ state: 'COMPLETED', minimumGrade: 'D' });
   });
+
+  it('applies a per-course pass mark inside an elective pool', () => {
+    const strict = requirementBreakdown(transcript, { ...rules, electivePools: [{ ...rules.electivePools[0], courseMinimums: { 'CS 351': 'C' } }] });
+    const strictItem = strict.flatMap(group => group.items).find(entry => entry.code === 'CS 351');
+    expect(strictItem).toMatchObject({ state: 'FAILED', minimumGrade: 'C' });
+  });
 });
