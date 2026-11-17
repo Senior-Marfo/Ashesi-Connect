@@ -11,7 +11,7 @@
   --info-bg: #f3efe9;
   --error: #b3261e;
   --error-bg: #fbeceb;
-  --progress: #9a6a00;
+  --progress: #8a5d00;
   --progress-bg: #fbf1da;
   --ok: #17784a;
   --ok-bg: #e4f4eb;
@@ -100,6 +100,7 @@ a.button { display: inline-flex; align-items: center; text-decoration: none; }
 .caption { font-size: 13px; color: var(--ink-soft); max-width: 70ch; margin: var(--space-3) 0 var(--space-6); }
 .empty { padding: var(--space-6) 0; color: var(--ink-soft); text-align: center; border: 1px dashed var(--line); border-radius: var(--radius); }
 
+.table-wrap:focus-visible { outline: 2px solid var(--maroon); outline-offset: 2px; }
 .table-wrap { overflow-x: auto; }
 .courses { width: 100%; border-collapse: collapse; font-size: 15px; }
 .courses th, .courses td { text-align: left; padding: var(--space-3) var(--space-3) var(--space-3) 0; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -267,7 +268,8 @@ a.button { display: inline-flex; align-items: center; text-decoration: none; }
 .split-part { display: grid; place-items: center; min-width: 4px; }
 .split-part.critical { background: var(--status-critical); color: #fff; }
 .split-part.warning { background: var(--status-warning); color: #0b0b0b; }
-.split-part.good { background: var(--status-good); color: #fff; }
+/* Near-black on green: 5.9:1, where white would be 3.4:1. */
+.split-part.good { background: var(--status-good); color: #0b0b0b; }
 .split-part.none { background: var(--status-none); color: var(--ink); }
 .split-share { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .split-legend { list-style: none; padding: 0; margin: var(--space-3) 0 0; display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-5); }
@@ -395,6 +397,8 @@ a.button { display: inline-flex; align-items: center; text-decoration: none; }
 .radios { border: 0; padding: 0; margin: 0; display: flex; gap: var(--space-5); align-items: center; }
 .radios legend { font-weight: 600; font-size: 14px; margin-bottom: var(--space-1); padding: 0; float: left; margin-right: var(--space-5); }
 .radios label { display: flex; gap: var(--space-2); align-items: center; font-weight: 400; }
+/* WCAG 2.2 target size: at least 24px. */
+.radios input[type='radio'] { width: 24px; height: 24px; margin: 0; accent-color: var(--maroon); }
 .recipients { margin: 0; font-weight: 600; }
 .sent-list { list-style: none; margin: var(--space-4) 0 0; padding: 0; display: grid; gap: var(--space-4); }
 .sent-list > li { padding-bottom: var(--space-4); border-bottom: 1px solid var(--line); }

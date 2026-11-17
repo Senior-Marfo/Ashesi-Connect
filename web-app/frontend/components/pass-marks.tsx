@@ -88,7 +88,7 @@ export function PassMarks({ api }: { api: Api }) {
       {load.status === 'error' && <Notice tone="error">Pass marks could not be loaded.</Notice>}
       {load.status === 'ready' && load.marks.length === 0 && <p className="empty">No course has a confirmed pass mark yet. Every course passes at D+.</p>}
       {load.status === 'ready' && load.marks.length > 0 && (
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0} role="region" aria-label="Pass marks by course">
           <table className="courses">
             <caption className="visually-hidden">Course pass marks</caption>
             <thead><tr><th scope="col">Course</th><th scope="col">Pass mark</th><th scope="col" className="wide-only">Source</th><th scope="col" className="wide-only">Set by</th><th scope="col"><span className="visually-hidden">Actions</span></th></tr></thead>

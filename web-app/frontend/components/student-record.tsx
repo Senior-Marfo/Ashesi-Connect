@@ -66,7 +66,7 @@ export function CourseTable({ courses, passMarks }: { courses: CourseRecord[]; p
     return <p className="empty">No courses are on record yet.</p>;
   }
   return (
-    <div className="table-wrap">
+    <div className="table-wrap" tabIndex={0} role="region" aria-label="Courses and grades">
       <table className="courses">
         <caption className="visually-hidden">Courses and grades</caption>
         <thead>

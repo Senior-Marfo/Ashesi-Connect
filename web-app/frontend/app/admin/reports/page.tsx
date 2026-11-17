@@ -131,7 +131,7 @@ function ReportBody({ reports, exportCsv }: { reports: Reports; exportCsv: (sect
 
       <section className="report-section" aria-labelledby="programmes">
         <SectionHead id="programmes" title="Programme comparison" onExport={() => exportCsv('programmes')} />
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0} role="region" aria-label="Programme comparison">
           <table className="courses report-table">
             <thead><tr><th scope="col">Programme</th><th scope="col" className="num">Students</th><th scope="col" className="num">Avg passed credits</th><th scope="col">Completion (graduated)</th><th scope="col">Standing</th></tr></thead>
             <tbody>

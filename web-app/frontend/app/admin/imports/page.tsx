@@ -115,7 +115,7 @@ export default function ImportsPage() {
               {preview.errorCount > 0 ? (
                 <>
                   <Notice tone="error">Fix these problems and choose the file again. Nothing has been imported.</Notice>
-                  <div className="table-wrap">
+                  <div className="table-wrap" tabIndex={0} role="region" aria-label="Import problems">
                     <table className="courses">
                       <thead><tr><th scope="col">Row</th><th scope="col">Column</th><th scope="col">Problem</th></tr></thead>
                       <tbody>{preview.errors.map((error, index) => <tr key={index}><td>{error.row || '—'}</td><td className="mono">{error.column ?? '—'}</td><td>{error.message}</td></tr>)}</tbody>
