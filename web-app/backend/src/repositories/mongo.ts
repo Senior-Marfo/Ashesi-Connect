@@ -1,6 +1,9 @@
 import { isValidObjectId } from 'mongoose';
 import { isRole } from '../auth/permissions.js';
 import { AuditLog, Enrollment, RefreshToken, Student, User } from '../models.js';
+import { CurriculumRecord } from '../models/curriculum.js';
+import { selectCohortCurriculum } from '../domain/eligibility/cohort-selection.js';
+import type { ProgrammeRules } from '../domain/eligibility/programme-audit.js';
 import { PROVISIONAL_PASSING_GRADES } from '../register/provisional-pass.js';
 import type { AuditEntry, CourseRecord, CourseSummary, Repositories, StudentSummary, UserRecord } from './types.js';
 
@@ -75,6 +78,20 @@ export function createMongoRepositories(): Repositories {
       async list({ limit, action }) {
         const docs = await AuditLog.find(action ? { action } : {}).sort({ at: -1 }).limit(limit).select({ _id: 0, __v: 0 }).lean();
         return docs as unknown as AuditEntry[];
+      }
+    },
+    curricula: {
+      async findReviewed(programme, track, yearGroup) {
+        const records = (await CurriculumRecord.find({ programme, track, status: 'REVIEWED', validationIssues: { $size: 0 } })
+          .select('version rules status validationIssues sources -_id').limit(200).lean()) as unknown as Array<{ version: unknown; rules: unknown; validationIssues?: unknown; sources?: unknown }>;
+        const selection = selectCohortCurriculum(yearGroup, records.map(record => ({
+          version: String(record.version),
+          status: 'REVIEWED' as const,
+          validationIssues: Array.isArray(record.validationIssues) ? record.validationIssues.map(String) : ['INVALID_VALIDATION_ISSUES'],
+          sources: Array.isArray(record.sources) ? record.sources.map((source: { effectiveYear?: unknown }) => ({ effectiveYear: typeof source.effectiveYear === 'number' ? source.effectiveYear : Number.NaN })) : []
+        })));
+        const selected = records.find(record => String(record.version) === selection.selectedVersion);
+        return selected ? { version: String(selected.version), rules: { ...(selected.rules as ProgrammeRules), verifiedByRegistry: false } } : undefined;
       }
     },
     students: {

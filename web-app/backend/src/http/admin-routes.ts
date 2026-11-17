@@ -1,6 +1,8 @@
 import { Router, type Request } from 'express';
 import { z } from 'zod';
 import type { AuthService } from '../auth/service.js';
+import { assessEligibility } from '../eligibility/assess.js';
+import { curriculumFor } from '../eligibility/curriculum.js';
 import { REGISTER_FLAGS, REGISTER_SORTS, buildRegister, filterAndSort, registerCsv, registerRows } from '../register/register.js';
 import type { AuditAction, AuditEntry, Repositories } from '../repositories/types.js';
 import { asyncHandler, contextOf, requirePermission } from './middleware.js';
@@ -22,7 +24,7 @@ const registerSchema = z.object({
 });
 const resetSchema = z.object({ identifier: z.string().trim().min(3).max(64) });
 
-export function adminRoutes(repositories: Repositories, auth: AuthService): Router {
+export function adminRoutes(repositories: Repositories, auth: AuthService, now: () => Date): Router {
   const router = Router();
 
   const audit = (req: Request, action: AuditAction, subject?: string, metadata?: AuditEntry['metadata']) =>
@@ -51,6 +53,18 @@ export function adminRoutes(repositories: Repositories, auth: AuthService): Rout
     }
     await audit(req, 'ADMIN_STUDENT_VIEWED', student.studentId);
     res.json({ student, courses: await repositories.students.listCourses(student.studentId) });
+  }));
+
+  router.get('/students/:studentId/eligibility', requirePermission('student:read:any'), asyncHandler(async (req, res) => {
+    const parsed = studentIdSchema.safeParse(req.params.studentId);
+    const student = parsed.success ? await repositories.students.findById(parsed.data) : undefined;
+    if (!student) {
+      res.status(404).json({ error: 'NOT_FOUND' });
+      return;
+    }
+    const [courses, curriculum] = await Promise.all([repositories.students.listCourses(student.studentId), curriculumFor(student, repositories)]);
+    await audit(req, 'ADMIN_ELIGIBILITY_VIEWED', student.studentId);
+    res.json(assessEligibility(student, courses, curriculum, now()));
   }));
 
   const loadRegister = async (filter: { programme?: string; yearGroup?: number }) => {

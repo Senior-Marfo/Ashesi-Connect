@@ -37,16 +37,13 @@ export async function createDemoApp(env: NodeJS.ProcessEnv = process.env) {
     { studentId: '20280002', fullName: 'Kofi Synthetic Boateng', programme: 'BA', yearGroup: 2028, track: 'pre-calculus', synthetic: true },
     { studentId: '20280003', fullName: 'Esi Synthetic Owusu', programme: 'ME', yearGroup: 2029, track: 'calculus-1-2', synthetic: true }
   );
-  store.courses.set('20280001', [
-    { courseCode: 'CS 111', attempts: [{ credits: 1, grade: 'B+', status: 'COMPLETED', semester: '2024 Fall' }] },
-    { courseCode: 'MATH 141', attempts: [
-      { credits: 1, grade: 'D', status: 'COMPLETED', semester: '2024 Fall' },
-      { credits: 1, grade: 'B', status: 'COMPLETED', semester: '2025 Spring' }
-    ] },
-    { courseCode: 'CS 212', attempts: [{ credits: 1, grade: 'A', status: 'COMPLETED', semester: '2025 Spring' }] },
-    { courseCode: 'SOAN 211', attempts: [{ credits: 0.5, grade: 'A+', status: 'COMPLETED', semester: '2025 Fall' }] },
-    { courseCode: 'CS 415', attempts: [{ credits: 1, status: 'ENROLLED', semester: '2026 Fall' }] }
-  ]);
+  // Ama carries a full generated 2028 CS record, with a MATH 141 retake kept for the browser tests.
+  const amaRecord = generateSyntheticDataset({ count: 5, seed: 41, today: new Date('2026-11-17T00:00:00Z'), yearGroups: [2028] })
+    .enrollments.filter(enrollment => enrollment.studentId === '92800005')
+    .map(({ courseCode, attempts }) => courseCode === 'MATH 141'
+      ? { courseCode, attempts: [{ credits: 1, grade: 'D', status: 'COMPLETED' as const, semester: '2024 Fall' }, { ...attempts[attempts.length - 1], semester: '2025 Spring' }] }
+      : { courseCode, attempts });
+  store.courses.set('20280001', amaRecord);
   store.courses.set('20280002', [
     { courseCode: 'BUSA 101', attempts: [{ credits: 1, grade: 'C+', status: 'COMPLETED', semester: '2024 Fall' }] },
     { courseCode: 'ECON 101', attempts: [{ credits: 1, status: 'INCOMPLETE', semester: '2025 Spring' }] }

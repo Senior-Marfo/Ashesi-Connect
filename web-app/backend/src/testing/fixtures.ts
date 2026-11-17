@@ -26,5 +26,6 @@ export async function buildTestApp(overrides: NodeJS.ProcessEnv = {}) {
   store.courses.set('20260002', [{ courseCode: 'BUSA 101', attempts: [{ credits: 1, grade: 'A', status: 'COMPLETED', semester: '2024-FALL' }] }]);
 
   const config = testConfig(overrides);
-  return { app: createApp({ config, repositories, isHealthy: () => true }), store, repositories, config };
+  const app = createApp({ config, repositories, isHealthy: () => true, now: () => new Date('2026-11-17T00:00:00Z') });
+  return { app, store, repositories, config };
 }

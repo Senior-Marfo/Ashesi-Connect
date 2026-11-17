@@ -21,7 +21,7 @@ export function creditTotals(courses: CourseRecord[]) {
   return { graded, inProgress };
 }
 
-export function StudentProfile({ record, children }: { record: StudentRecord; children?: ReactNode }) {
+export function StudentProfile({ record, passMarks, children }: { record: StudentRecord; passMarks?: Record<string, string>; children?: ReactNode }) {
   const { student, courses } = record;
   const totals = creditTotals(courses);
   return (
@@ -38,7 +38,7 @@ export function StudentProfile({ record, children }: { record: StudentRecord; ch
         <div><dt>Track</dt><dd>{student.track}</dd></div>
       </dl>
       <dl className="figures">
-        <div><dt>Graded credits</dt><dd>{totals.graded}</dd></div>
+        <div><dt>Credits graded (any grade)</dt><dd>{totals.graded}</dd></div>
         <div><dt>In progress</dt><dd>{totals.inProgress}</dd></div>
         <div><dt>Courses on record</dt><dd>{courses.length}</dd></div>
       </dl>
@@ -46,12 +46,22 @@ export function StudentProfile({ record, children }: { record: StudentRecord; ch
         These figures summarise recorded courses only. They are not a graduation decision: pass marks and programme requirements are still awaiting Registry confirmation.
       </p>
       {children}
-      <CourseTable courses={courses} />
+      <CourseTable courses={courses} passMarks={passMarks} />
     </>
   );
 }
 
-export function CourseTable({ courses }: { courses: CourseRecord[] }) {
+const GRADE_ORDER = ['E', 'D', 'D+', 'C', 'C+', 'B', 'B+', 'A', 'A+'];
+
+/** With a course's pass mark known, a graded attempt shows Passed or Below pass mark (US-05). */
+function attemptLabel(attempt: CourseAttempt, passMark: string | undefined): { text: string; className: string } {
+  if (attempt.status !== 'COMPLETED' || !attempt.grade || !passMark) return { text: statusLabel[attempt.status], className: attempt.status.toLowerCase() };
+  return GRADE_ORDER.indexOf(attempt.grade) >= GRADE_ORDER.indexOf(passMark)
+    ? { text: 'Passed', className: 'completed' }
+    : { text: 'Below pass mark', className: 'incomplete' };
+}
+
+export function CourseTable({ courses, passMarks }: { courses: CourseRecord[]; passMarks?: Record<string, string> }) {
   if (courses.length === 0) {
     return <p className="empty">No courses are on record yet.</p>;
   }
@@ -78,7 +88,7 @@ export function CourseTable({ courses }: { courses: CourseRecord[] }) {
                   )}
                 </th>
                 <td className="grade">{attempt?.grade ?? '—'}</td>
-                <td><span className={`chip ${attempt?.status.toLowerCase() ?? ''}`}>{attempt ? statusLabel[attempt.status] : 'No attempt'}</span></td>
+                <td>{attempt ? (() => { const label = attemptLabel(attempt, passMarks?.[course.courseCode]); return <span className={`chip ${label.className}`}>{label.text}</span>; })() : <span className="chip">No attempt</span>}</td>
                 <td className="wide-only">{attempt?.semester ?? '—'}</td>
                 <td className="num">{attempt?.credits ?? 0}</td>
               </tr>

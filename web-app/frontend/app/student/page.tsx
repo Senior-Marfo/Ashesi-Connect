@@ -1,43 +1,34 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { AppShell, FullPageLoading, Notice, SkeletonRows } from '../../components/app-shell';
-import { AcademicPreviewPanel, type PreviewLoad } from '../../components/academic-preview';
-import { StudentProfile } from '../../components/student-record';
-import type { StudentRecord } from '../../lib/api';
-import { useRequireRole, useSession } from '../../lib/session';
-
-type Load = { status: 'loading' } | { status: 'error' } | { status: 'ready'; record: StudentRecord };
+import Link from 'next/link';
+import { Notice } from '../../components/app-shell';
+import { StatusCard } from '../../components/standing';
+import { StudentEligibilityPage } from '../../lib/eligibility-pages';
 
 export default function StudentHomePage() {
-  const session = useRequireRole('STUDENT');
-  const { api } = useSession();
-  const [load, setLoad] = useState<Load>({ status: 'loading' });
-  const [preview, setPreview] = useState<PreviewLoad>({ status: 'loading' });
-
-  useEffect(() => {
-    if (!session) return;
-    let active = true;
-    api.myRecord()
-      .then(record => { if (active) setLoad({ status: 'ready', record }); })
-      .catch(() => { if (active) setLoad({ status: 'error' }); });
-    api.academicPreview()
-      .then(result => { if (active) setPreview({ status: 'ready', preview: result }); })
-      .catch(() => { if (active) setPreview({ status: 'unavailable' }); });
-    return () => { active = false; };
-  }, [api, session]);
-
-  if (!session) return <FullPageLoading />;
-
-  const firstName = load.status === 'ready' ? load.record.student.fullName.split(' ')[0] : undefined;
   return (
-    <AppShell eyebrow="My academic record" title={firstName ? `Hello, ${firstName}` : 'Your record'}>
-      {load.status === 'loading' && <SkeletonRows rows={6} />}
-      {load.status === 'error' && <Notice tone="error">Your record could not be loaded. Refresh the page, and contact the Registry if this continues.</Notice>}
-      {load.status === 'ready' && (
-        <StudentProfile record={load.record}>
-          <AcademicPreviewPanel load={preview} />
-        </StudentProfile>
+    <StudentEligibilityPage eyebrow="My graduation status" title="Where you stand">
+      {eligibility => (
+        <>
+          {eligibility.student.synthetic && <div className="synthetic-notice"><Notice>Synthetic record: a fictional student with illustrative courses, loaded for demonstration. Not real academic data.</Notice></div>}
+          <p className="lede">Hello, {eligibility.student.fullName.split(' ')[0]}. {eligibility.student.programme} · year group {eligibility.student.yearGroup} · {eligibility.student.track} track</p>
+          <StatusCard eligibility={eligibility} />
+          {eligibility.requirements.length > 0 && (
+            <section aria-labelledby="areas-heading" className="areas">
+              <h2 id="areas-heading" className="section-title">By requirement area</h2>
+              <ul>
+                {eligibility.requirements.map(group => (
+                  <li key={group.category}>
+                    <span>{group.category}</span>
+                    <span className="meter"><span style={{ width: `${Math.min(100, (group.creditsCompleted / Math.max(group.creditsRequired, 0.01)) * 100)}%` }} /></span>
+                    <span className="num">{group.creditsCompleted}/{group.creditsRequired}</span>
+                  </li>
+                ))}
+              </ul>
+              <p><Link href="/student/requirements/">See every requirement</Link> · <Link href="/student/remaining/">See what remains</Link></p>
+            </section>
+          )}
+        </>
       )}
-    </AppShell>
+    </StudentEligibilityPage>
   );
 }

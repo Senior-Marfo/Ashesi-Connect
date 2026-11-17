@@ -10,18 +10,33 @@ async function signIn(page: Page, identifier: string, password = PASSWORD) {
   await page.getByRole('button', { name: 'Sign in' }).click();
 }
 
-test('student sees their own record, stays signed in across reloads and can sign out', async ({ page }) => {
+test('student sees their status, requirements, remaining work and courses, stays signed in and can sign out', async ({ page }) => {
   await signIn(page, '20280001');
   await expect(page).toHaveURL(/\/student\/$/);
-  await expect(page.getByRole('heading', { name: 'Hello, Ama' })).toBeVisible();
-  await expect(page.getByRole('row', { name: /MATH 141/ })).toContainText('Earlier: D (2024 Fall)');
+  const status = page.getByRole('region', { name: 'Graduation status' });
+  await expect(status).toContainText('Not yet eligible');
+  await expect(status.locator('.standing')).toBeVisible();
+  await expect(status.getByRole('img', { name: /credits completed/ })).toBeVisible();
+  await expect(status).toContainText('illustrative synthetic programme rules');
+  await expect(page.getByText('Hello, Ama.')).toBeVisible();
   await expect(page.getByText('Kofi')).toHaveCount(0);
-  const progress = page.getByRole('region', { name: 'Graduation progress' });
-  await expect(progress).toContainText('Provisional');
-  await expect(progress).toContainText('unavailable right now');
+
+  await page.getByRole('link', { name: 'Requirements' }).click();
+  await expect(page.getByRole('heading', { name: 'My requirements' })).toBeVisible();
+  await page.getByRole('button', { name: /^In progress/ }).click();
+  await expect(page.locator('.tree-items li').first()).toContainText('In progress');
+
+  await page.getByRole('link', { name: 'Remaining' }).click();
+  await expect(page.getByRole('heading', { name: 'This term in progress' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '2027 Spring' })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Courses' }).click();
+  const maths = page.getByRole('row', { name: /MATH 141/ });
+  await expect(maths).toContainText('Earlier: D (2024 Fall)');
+  await expect(maths).toContainText('Passed');
 
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Hello, Ama' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'My courses' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('heading', { name: 'Graduation Tracker' })).toBeVisible();
@@ -43,6 +58,7 @@ test('admin finds a student by ID prefix and opens their record', async ({ page 
   await page.getByRole('button', { name: /20280002/ }).click();
   await expect(page.getByRole('heading', { name: 'Kofi Synthetic Boateng' })).toBeVisible();
   await expect(page.getByRole('row', { name: /ECON 101/ })).toContainText('Incomplete');
+  await expect(page.getByRole('region', { name: 'Graduation status' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Curriculum catalogue' })).toBeVisible();
 });
 
@@ -68,7 +84,7 @@ test('an account with a temporary password must set a new one first', async ({ p
   await page.getByLabel('Confirm new password').fill('Fresh-Start-2029!');
   await page.getByRole('button', { name: 'Save new password' }).click();
   await expect(page).toHaveURL(/\/student\/$/);
-  await expect(page.getByRole('heading', { name: 'Hello, Esi' })).toBeVisible();
+  await expect(page.getByText('Hello, Esi.')).toBeVisible();
 });
 
 test('the legacy fictional demo stays available under /demo/', async ({ page }) => {

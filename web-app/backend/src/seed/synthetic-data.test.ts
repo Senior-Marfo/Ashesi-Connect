@@ -46,7 +46,9 @@ describe('synthetic dataset', () => {
     const retaken = dataset.enrollments.filter(e => e.attempts.length > 1);
     expect(retaken.length).toBeGreaterThan(20);
     for (const record of retaken) {
-      expect(['D', 'E']).toContain(record.attempts[0].grade);
+      // Retaken after a fail (D or E), a D+ where the course needs a C, or an incomplete.
+      const first = record.attempts[0];
+      expect(first.status === 'INCOMPLETE' || ['D', 'E', 'D+'].includes(first.grade ?? '')).toBe(true);
       expect(record.attempts[1].semester).not.toBe(record.attempts[0].semester);
     }
   });

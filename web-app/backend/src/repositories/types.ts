@@ -50,6 +50,7 @@ export type AuditAction =
   | 'ADMIN_STUDENT_VIEWED'
   | 'ADMIN_AUDIT_LOG_VIEWED'
   | 'ADMIN_REGISTER_VIEWED'
+  | 'ADMIN_ELIGIBILITY_VIEWED'
   | 'ADMIN_REGISTER_EXPORTED';
 
 export interface AuditEntry {
@@ -114,9 +115,20 @@ export interface StudentRepository {
   courseSummaries(studentIds: string[]): Promise<CourseSummary[]>;
 }
 
+export interface ReviewedCurriculum {
+  version: string;
+  rules: import('../domain/eligibility/programme-audit.js').ProgrammeRules;
+}
+
+export interface CurriculumRepository {
+  /** The single Registry-reviewed, issue-free curriculum for this programme, track and cohort, if any. */
+  findReviewed(programme: string, track: string, yearGroup: number): Promise<ReviewedCurriculum | undefined>;
+}
+
 export interface Repositories {
   users: UserRepository;
   refreshTokens: RefreshTokenRepository;
   auditLog: AuditLogRepository;
   students: StudentRepository;
+  curricula: CurriculumRepository;
 }

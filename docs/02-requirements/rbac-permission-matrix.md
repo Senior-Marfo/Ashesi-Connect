@@ -4,8 +4,8 @@ Permissions are granted per role in `web-app/backend/src/auth/permissions.ts` an
 
 | Permission | STUDENT | ADMIN | Used by |
 |---|:-:|:-:|---|
-| `student:read:own` | ✓ | | `GET /api/v1/students/me`, `/students/me/academic-preview`, `/students/me/curriculum`, `/students/me/audit-readiness` |
-| `student:read:any` | | ✓ | `GET /api/v1/admin/students`, `GET /api/v1/admin/students/:studentId`, `GET /api/v1/admin/register`, `GET /api/v1/admin/register.csv` |
+| `student:read:own` | ✓ | | `GET /api/v1/students/me`, `/students/me/eligibility`, `/students/me/academic-preview`, `/students/me/curriculum`, `/students/me/audit-readiness` |
+| `student:read:any` | | ✓ | `GET /api/v1/admin/students`, `GET /api/v1/admin/students/:studentId`, `GET /api/v1/admin/students/:studentId/eligibility`, `GET /api/v1/admin/register`, `GET /api/v1/admin/register.csv` |
 | `user:reset-password` | | ✓ | `POST /api/v1/admin/users/reset-password` |
 | `audit-log:read` | | ✓ | `GET /api/v1/admin/audit-log` |
 | `curriculum:read` | | ✓ | `GET /api/v1/admin/curricula` |

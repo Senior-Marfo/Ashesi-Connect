@@ -1,5 +1,5 @@
 import { PROVISIONAL_PASSING_GRADES } from '../register/provisional-pass.js';
-import type { AuditEntry, CourseRecord, CourseSummary, RefreshTokenRecord, Repositories, StudentSummary, UserRecord } from '../repositories/types.js';
+import type { AuditEntry, CourseRecord, CourseSummary, ReviewedCurriculum, RefreshTokenRecord, Repositories, StudentSummary, UserRecord } from '../repositories/types.js';
 
 export interface MemoryStore {
   users: UserRecord[];
@@ -7,10 +7,11 @@ export interface MemoryStore {
   auditLog: AuditEntry[];
   students: StudentSummary[];
   courses: Map<string, CourseRecord[]>;
+  curricula: Array<ReviewedCurriculum & { programme: string; track: string; yearGroup: number }>;
 }
 
 export function createMemoryRepositories(): { repositories: Repositories; store: MemoryStore } {
-  const store: MemoryStore = { users: [], refreshTokens: [], auditLog: [], students: [], courses: new Map() };
+  const store: MemoryStore = { users: [], refreshTokens: [], auditLog: [], students: [], courses: new Map(), curricula: [] };
   const revokeWhere = (predicate: (record: RefreshTokenRecord) => boolean) => {
     for (const record of store.refreshTokens) if (!record.revokedAt && predicate(record)) record.revokedAt = new Date();
   };
@@ -46,6 +47,12 @@ export function createMemoryRepositories(): { repositories: Repositories; store:
       async append(entry) { store.auditLog.push(structuredClone(entry)); },
       list: async ({ limit, action }) =>
         store.auditLog.filter(entry => !action || entry.action === action).slice().reverse().slice(0, limit)
+    },
+    curricula: {
+      async findReviewed(programme, track, yearGroup) {
+        const matches = store.curricula.filter(c => c.programme === programme && c.track === track && c.yearGroup === yearGroup);
+        return matches.length === 1 ? structuredClone({ version: matches[0].version, rules: matches[0].rules }) : undefined;
+      }
     },
     students: {
       findById: async studentId => structuredClone(store.students.find(student => student.studentId === studentId)),

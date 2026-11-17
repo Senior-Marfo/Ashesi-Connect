@@ -2,12 +2,15 @@
 import { useEffect, useState } from 'react';
 import { ADMIN_NAV, AppShell, FullPageLoading, Notice, SkeletonRows } from '../../components/app-shell';
 import { CurriculumCatalogue, type CatalogueLoad } from '../../components/curriculum-catalogue';
+import { RequirementTree } from '../../components/requirements';
+import { StatusCard } from '../../components/standing';
 import { StudentProfile } from '../../components/student-record';
+import type { Eligibility } from '../../lib/api';
 import type { StudentRecord, StudentSummary } from '../../lib/api';
 import { useRequireRole, useSession } from '../../lib/session';
 
 type Results = { status: 'idle' | 'loading' | 'error' } | { status: 'ready'; students: StudentSummary[] };
-type Profile = { status: 'none' | 'loading' | 'error' } | { status: 'ready'; record: StudentRecord };
+type Profile = { status: 'none' | 'loading' | 'error' } | { status: 'ready'; record: StudentRecord; eligibility?: Eligibility };
 
 const ID_FRAGMENT = /^[\w-]*$/;
 
@@ -60,7 +63,10 @@ export default function AdminPage() {
     let active = true;
     setProfile({ status: 'loading' });
     api.studentRecord(selected)
-      .then(record => { if (active) setProfile({ status: 'ready', record }); })
+      .then(async record => {
+        const eligibility = await api.studentEligibility(selected).catch(() => undefined);
+        if (active) setProfile({ status: 'ready', record, eligibility });
+      })
       .catch(() => { if (active) setProfile({ status: 'error' }); });
     return () => { active = false; };
   }, [api, selected]);
@@ -101,7 +107,19 @@ export default function AdminPage() {
           {profile.status === 'ready' && (
             <>
               <h2 className="profile-title" id="profile-heading">{profile.record.student.fullName}</h2>
-              <StudentProfile record={profile.record} />
+              <StudentProfile record={profile.record} passMarks={profile.eligibility && Object.fromEntries(profile.eligibility.requirements.flatMap(group => group.items.map(item => [item.code, item.minimumGrade])))}>
+                {profile.eligibility
+                  ? <>
+                      <StatusCard eligibility={profile.eligibility} />
+                      {profile.eligibility.requirements.length > 0 && (
+                        <details className="admin-requirements">
+                          <summary>All requirements</summary>
+                          <RequirementTree groups={profile.eligibility.requirements} />
+                        </details>
+                      )}
+                    </>
+                  : <Notice tone="error">Graduation status could not be loaded for this student.</Notice>}
+              </StudentProfile>
             </>
           )}
         </section>

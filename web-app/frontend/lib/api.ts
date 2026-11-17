@@ -33,25 +33,6 @@ export interface StudentRecord {
 
 export type RemainingReason = 'NOT_TAKEN' | 'FAILED' | 'IN_PROGRESS' | 'INCOMPLETE' | 'ELECTIVE_SLOT_OPEN' | 'AFRICAN_STUDIES_MISSING' | 'CREDIT_SHORTFALL';
 
-/** Advisory only: never an official audit, graduation approval or Registry certification. */
-export interface AcademicPreview {
-  status: 'INSUFFICIENT_DATA' | 'REQUIREMENTS_OUTSTANDING' | 'ACADEMIC_REQUIREMENTS_MET';
-  officialCertification: false;
-  programme: string;
-  track: string;
-  yearGroup: number;
-  curriculumVersion: string | null;
-  issues: string[];
-  exploratoryGpa?: { gpa: number | null; issues: string[] };
-  audit: null | {
-    creditsEarned: number;
-    creditsRequired: number;
-    creditsInProgress: number;
-    percentComplete: number;
-    remainingRequirements: Array<{ code: string; category: string; credits: number; reason: RemainingReason }>;
-  };
-}
-
 export interface CurriculumSummary {
   programme: string;
   track: string;
@@ -59,6 +40,53 @@ export interface CurriculumSummary {
   status: 'DRAFT' | 'REVIEWED' | 'SUPERSEDED';
   validationIssues: string[];
   updatedAt?: string;
+}
+
+export type StandingLevel = 'GREEN' | 'YELLOW' | 'RED';
+export type StandingReason =
+  | 'REQUIREMENTS_MET' | 'ON_TRACK' | 'FAILED_COURSE_TO_RETAKE' | 'INCOMPLETE_TO_RESOLVE' | 'HEAVY_LOAD_NEEDED'
+  | 'MULTIPLE_FAILED_COURSES' | 'CANNOT_FINISH_IN_TIME' | 'PAST_EXPECTED_GRADUATION';
+export type RequirementState = 'COMPLETED' | 'IN_PROGRESS' | 'FAILED' | 'INCOMPLETE' | 'NOT_STARTED';
+
+export interface RequirementItem { code: string; credits: number; minimumGrade: string; state: RequirementState; grade?: string; attempts: number }
+export interface RequirementGroup {
+  category: string;
+  kind: 'REQUIRED' | 'ELECTIVE';
+  creditsRequired: number;
+  creditsCompleted: number;
+  creditsInProgress: number;
+  items: RequirementItem[];
+  options: string[];
+}
+
+export interface Standing {
+  level: StandingLevel;
+  reasons: StandingReason[];
+  creditsOutstanding: number;
+  termsRemaining: number;
+  creditsPerTermNeeded: number | null;
+}
+
+export interface NextAction { kind: 'RETAKE' | 'RESOLVE_INCOMPLETE' | 'TAKE_COURSE' | 'CHOOSE_ELECTIVE'; code: string; category: string; credits: number }
+
+/** Advisory only: never an official audit, graduation approval or Registry certification. */
+export interface Eligibility {
+  student: StudentSummary;
+  officialCertification: false;
+  status: 'NO_CURRICULUM' | 'DATA_ISSUES' | 'REQUIREMENTS_MET' | 'REQUIREMENTS_REMAINING';
+  curriculum: { basis: 'REVIEWED' | 'SYNTHETIC'; version: string } | null;
+  expectedGraduation: string;
+  audit: null | {
+    creditsEarned: number;
+    creditsRequired: number;
+    creditsInProgress: number;
+    percentComplete: number;
+    remainingRequirements: Array<{ code: string; category: string; credits: number; reason: RemainingReason }>;
+  };
+  standing: Standing | null;
+  requirements: RequirementGroup[];
+  nextActions: NextAction[];
+  issues: string[];
 }
 
 export type RegisterFlag = 'UNRESOLVED_FAILURE' | 'INCOMPLETE' | 'NO_RECORDS';
@@ -180,7 +208,8 @@ export function createApiClient(baseUrl: string, fetchImpl: Fetch = (input, init
       return acceptTokens(response);
     },
     myRecord: () => authorised<StudentRecord>('/api/v1/students/me'),
-    academicPreview: () => authorised<AcademicPreview>('/api/v1/students/me/academic-preview'),
+    myEligibility: () => authorised<Eligibility>('/api/v1/students/me/eligibility'),
+    studentEligibility: (studentId: string) => authorised<Eligibility>(`/api/v1/admin/students/${encodeURIComponent(studentId)}/eligibility`),
     curricula: () => authorised<{ curricula: CurriculumSummary[] }>('/api/v1/admin/curricula'),
     register: (query: RegisterQuery) => authorised<RegisterPage>(`/api/v1/admin/register?${registerParams(query)}`),
     async registerCsv(query: RegisterQuery): Promise<Blob> {

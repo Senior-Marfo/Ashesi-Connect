@@ -16,6 +16,8 @@ export interface AppDependencies {
   config: AppConfig;
   repositories: Repositories;
   isHealthy: () => boolean;
+  /** Clock for term calculations; injectable for tests. */
+  now?: () => Date;
 }
 
 const authErrorStatus: Record<AuthError['code'], number> = {
@@ -25,7 +27,7 @@ const authErrorStatus: Record<AuthError['code'], number> = {
   USER_NOT_FOUND: 404
 };
 
-export function createApp({ config, repositories, isHealthy }: AppDependencies): Express {
+export function createApp({ config, repositories, isHealthy, now = () => new Date() }: AppDependencies): Express {
   const auth = new AuthService({ config, ...repositories });
   const app = express();
 
@@ -64,8 +66,8 @@ export function createApp({ config, repositories, isHealthy }: AppDependencies):
 
   const protectedRoutes = [authenticate(config.accessTokenSecret), requirePasswordChanged()];
   app.use('/api/v1/auth', authRoutes(config, auth));
-  app.use('/api/v1/students', ...protectedRoutes, studentRoutes(repositories), curriculumStudentRouter);
-  app.use('/api/v1/admin', ...protectedRoutes, adminRoutes(repositories, auth), curriculumAdminRouter);
+  app.use('/api/v1/students', ...protectedRoutes, studentRoutes(repositories, now), curriculumStudentRouter);
+  app.use('/api/v1/admin', ...protectedRoutes, adminRoutes(repositories, auth, now), curriculumAdminRouter);
 
   if (config.staticDir) serveWebClient(app, resolve(config.staticDir));
 

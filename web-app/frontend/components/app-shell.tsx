@@ -6,6 +6,13 @@ import { useSession } from '../lib/session';
 
 export interface NavItem { href: string; label: string }
 
+export const STUDENT_NAV: NavItem[] = [
+  { href: '/student/', label: 'Status' },
+  { href: '/student/requirements/', label: 'Requirements' },
+  { href: '/student/remaining/', label: 'Remaining' },
+  { href: '/student/courses/', label: 'Courses' }
+];
+
 export const ADMIN_NAV: NavItem[] = [
   { href: '/admin/', label: 'Student lookup' },
   { href: '/admin/register/', label: 'Register' }

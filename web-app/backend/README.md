@@ -33,6 +33,8 @@ npm test               # unit and HTTP tests; no database needed
 | POST | `/api/v1/auth/logout` | refresh cookie + `X-Requested-With` |
 | POST | `/api/v1/auth/password` | any signed-in user |
 | GET | `/api/v1/students/me` | `student:read:own` |
+| GET | `/api/v1/students/me/eligibility` | `student:read:own`; status, standing, requirements, next steps |
+| GET | `/api/v1/admin/students/:studentId/eligibility` | `student:read:any`; same assessment, audit-logged |
 | GET | `/api/v1/admin/students?q=` | `student:read:any` |
 | GET | `/api/v1/admin/students/:studentId` | `student:read:any` |
 | GET | `/api/v1/admin/register` | `student:read:any`; filters `programme`, `yearGroup`, `flag`; `sort`, `order`, `page`, `pageSize` |
