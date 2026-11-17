@@ -1,0 +1,800 @@
+openapi: 3.1.0
+info:
+  title: Ashesi Graduation Tracker API
+  version: 1.0.0
+  summary: Advisory graduation tracking for students and the Registry. Independent prototype, not an official Ashesi University service.
+  description: |
+    Every route under `/api/v1/students` and `/api/v1/admin` needs a bearer access token from
+    `/auth/login` or `/auth/refresh`, and is checked against the permission named in each
+    operation (`x-permission`; see `docs/02-requirements/rbac-permission-matrix.md`).
+    Accounts that still have a temporary password receive `403 PASSWORD_CHANGE_REQUIRED`
+    everywhere except `/auth/password` and `/auth/logout`.
+
+    Errors are JSON `{ "error": CODE, "message"?: text }`; `docs/05-api/error-catalogue.md` lists
+    every code. Graduation results are advisory and never a Registry certification
+    (`officialCertification` is always `false`).
+servers:
+  - url: https://ashesi-graduation-tracker.onrender.com
+    description: Live service (Render)
+  - url: http://localhost:3000
+    description: Local in-memory demo (`npm run dev:demo` in web-app/backend)
+
+security:
+  - bearer: []
+
+tags:
+  - name: Health
+  - name: Auth
+  - name: Student self-service
+  - name: Student messages
+  - name: Admin students
+  - name: Admin records
+  - name: Register
+  - name: Reports
+  - name: Messaging
+  - name: Imports
+  - name: Settings
+  - name: Curriculum
+  - name: Audit log
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Liveness and database readiness
+      security: []
+      responses:
+        '200': { description: Ready, content: { application/json: { schema: { type: object, properties: { status: { const: ok } } } } } }
+        '503': { description: 'Database unavailable' }
+
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Sign in with a student or staff ID; the server decides the role
+      security: []
+      description: Rate limited per IP address and ID (default 10 per 15 minutes). Accounts lock for 15 minutes after 5 failures; locked and unknown accounts get the same response as a wrong password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [identifier, password], properties: { identifier: { type: string }, password: { type: string } } }
+      responses:
+        '200': { $ref: '#/components/responses/Session' }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+        '401': { description: INVALID_CREDENTIALS, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: TOO_MANY_ATTEMPTS, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Exchange the refresh cookie for a new access token (the cookie rotates)
+      security: []
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      description: Reusing a rotated refresh token revokes the whole token family.
+      responses:
+        '200': { $ref: '#/components/responses/Session' }
+        '401': { description: 'INVALID_REFRESH_TOKEN' }
+        '403': { description: 'CSRF_HEADER_MISSING' }
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke the refresh token and clear the cookie
+      security: []
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '204': { description: 'Signed out' }
+
+  /api/v1/auth/password:
+    post:
+      tags: [Auth]
+      summary: Change the password (also how a temporary password is replaced)
+      description: Signs out every other session. Policy is at least 12 characters, at least three of lowercase, uppercase, digits and symbols, and not containing the ID.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [currentPassword, newPassword], properties: { currentPassword: { type: string }, newPassword: { type: string } } }
+      responses:
+        '200': { $ref: '#/components/responses/Session' }
+        '401': { description: 'INVALID_CREDENTIALS (current password wrong)' }
+        '422': { description: 'WEAK_PASSWORD, with the rule in `message`' }
+
+  /api/v1/students/me:
+    get:
+      tags: [Student self-service]
+      summary: The signed-in student's record and courses
+      x-permission: student:read:own
+      responses:
+        '200': { description: Record, content: { application/json: { schema: { $ref: '#/components/schemas/StudentRecord' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/students/me/eligibility:
+    get:
+      tags: [Student self-service]
+      summary: Advisory graduation assessment, standing and requirement tree
+      x-permission: student:read:own
+      responses:
+        '200': { description: Assessment, content: { application/json: { schema: { $ref: '#/components/schemas/Eligibility' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/students/me/curriculum:
+    get:
+      tags: [Curriculum]
+      summary: The Registry-reviewed curriculum that applies to the student, if any
+      x-permission: student:read:own
+      responses:
+        '200': { description: 'Curriculum or a reason none applies' }
+        '404': { description: 'STUDENT_NOT_FOUND' }
+
+  /api/v1/students/me/audit-readiness:
+    get:
+      tags: [Curriculum]
+      summary: Which data a full audit would still need (provisional)
+      x-permission: student:read:own
+      responses:
+        '200': { description: 'Readiness report' }
+        '503': { description: 'AUDIT_READINESS_UNAVAILABLE' }
+
+  /api/v1/students/me/academic-preview:
+    get:
+      tags: [Curriculum]
+      summary: Provisional progress preview against a reviewed curriculum
+      x-permission: student:read:own
+      responses:
+        '200': { description: 'Preview' }
+        '409': { description: 'CURRICULUM_UNAVAILABLE' }
+        '503': { description: 'ACADEMIC_PREVIEW_UNAVAILABLE' }
+
+  /api/v1/students/me/messages:
+    get:
+      tags: [Student messages]
+      summary: Inbox (delivered messages only, newest first) and unread count
+      x-permission: message:read:own
+      responses:
+        '200':
+          description: Inbox
+          content:
+            application/json:
+              schema: { type: object, properties: { messages: { type: array, items: { $ref: '#/components/schemas/InboxItem' } }, unread: { type: integer } } }
+
+  /api/v1/students/me/messages/unread-count:
+    get:
+      tags: [Student messages]
+      summary: Unread count for the badge
+      x-permission: message:read:own
+      responses:
+        '200': { description: Count, content: { application/json: { schema: { type: object, properties: { unread: { type: integer } } } } } }
+
+  /api/v1/students/me/messages/read-all:
+    post:
+      tags: [Student messages]
+      summary: Mark every delivered message read
+      x-permission: message:read:own
+      responses:
+        '200': { $ref: '#/components/responses/Marked' }
+
+  /api/v1/students/me/messages/{messageId}/read:
+    post:
+      tags: [Student messages]
+      summary: Mark one message read
+      x-permission: message:read:own
+      parameters: [{ name: messageId, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { $ref: '#/components/responses/Marked' }
+
+  /api/v1/admin/students:
+    get:
+      tags: [Admin students]
+      summary: Search by ID prefix or name, with close matches when nothing matches as typed (audit-logged)
+      x-permission: student:read:any
+      parameters:
+        - { name: q, in: query, description: 'Letters, digits, spaces, hyphens, apostrophes and full stops only; anything else is refused with 400', schema: { type: string, maxLength: 64 } }
+      responses:
+        '200':
+          description: Up to 50 matches
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  students:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/StudentSummary'
+                        - { type: object, properties: { match: { enum: [ID, NAME, CLOSE_ID, CLOSE_NAME] } } }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+
+  /api/v1/admin/students/{studentId}:
+    get:
+      tags: [Admin students]
+      summary: A student's record and courses (audit-logged)
+      x-permission: student:read:any
+      parameters: [{ $ref: '#/components/parameters/StudentId' }]
+      responses:
+        '200': { description: Record, content: { application/json: { schema: { $ref: '#/components/schemas/StudentRecord' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/admin/students/{studentId}/eligibility:
+    get:
+      tags: [Admin students]
+      summary: The same advisory assessment the student sees (audit-logged)
+      x-permission: student:read:any
+      parameters: [{ $ref: '#/components/parameters/StudentId' }]
+      responses:
+        '200': { description: Assessment, content: { application/json: { schema: { $ref: '#/components/schemas/Eligibility' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/admin/students/{studentId}/notes:
+    get:
+      tags: [Admin students]
+      summary: Staff-only notes, newest first
+      x-permission: student:read:any
+      parameters: [{ $ref: '#/components/parameters/StudentId' }]
+      responses:
+        '200': { description: Notes, content: { application/json: { schema: { type: object, properties: { notes: { type: array, items: { $ref: '#/components/schemas/StudentNote' } } } } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [Admin students]
+      summary: Add a note (append-only, audit-logged)
+      x-permission: student:note:write
+      parameters: [{ $ref: '#/components/parameters/StudentId' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [body], properties: { body: { type: string, minLength: 1, maxLength: 2000 } } } } }
+      responses:
+        '201': { description: Added, content: { application/json: { schema: { type: object, properties: { note: { $ref: '#/components/schemas/StudentNote' } } } } } }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/admin/students/{studentId}/messages:
+    get:
+      tags: [Admin students]
+      summary: Messages delivered to this student, with read times
+      x-permission: student:read:any
+      parameters: [{ $ref: '#/components/parameters/StudentId' }]
+      responses:
+        '200': { description: Messages, content: { application/json: { schema: { type: object, properties: { messages: { type: array, items: { $ref: '#/components/schemas/InboxItem' } } } } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/admin/students/{studentId}/audit-export:
+    post:
+      tags: [Admin students]
+      summary: Record a printed or PDF audit export before the client prints
+      x-permission: student:read:any
+      parameters: [{ $ref: '#/components/parameters/StudentId' }]
+      responses:
+        '204': { description: 'Recorded' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/admin/records/students:
+    post:
+      tags: [Admin records]
+      summary: Create one student; the account stays locked until an admin issues a temporary password
+      x-permission: records:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - { type: object, required: [studentId], properties: { studentId: { type: string, description: Must match STUDENT_ID_REGEX } } }
+                - $ref: '#/components/schemas/StudentDetails'
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { type: object, properties: { student: { $ref: '#/components/schemas/StudentSummary' }, accountCreated: { type: boolean } } } } } }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+        '409': { description: 'STUDENT_EXISTS' }
+
+  /api/v1/admin/records/students/{studentId}:
+    patch:
+      tags: [Admin records]
+      summary: Change a student's name, programme, year group or track (only changed fields are logged)
+      x-permission: records:edit
+      parameters: [{ $ref: '#/components/parameters/StudentId' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/StudentDetailsPartial' } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { type: object, properties: { student: { $ref: '#/components/schemas/StudentSummary' }, changed: { type: array, items: { type: string } } } } } } }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/SyntheticRecord' }
+
+  /api/v1/admin/records/students/{studentId}/courses/{courseCode}:
+    parameters:
+      - { $ref: '#/components/parameters/StudentId' }
+      - { name: courseCode, in: path, required: true, description: 'Like "MATH 141"; "math141" is normalised', schema: { type: string } }
+    put:
+      tags: [Admin records]
+      summary: Create or replace a course record with its attempts, oldest first
+      x-permission: records:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [attempts], properties: { attempts: { type: array, minItems: 1, maxItems: 10, items: { $ref: '#/components/schemas/CourseAttempt' } } } }
+      responses:
+        '200': { description: 'Replaced' }
+        '201': { description: 'Added' }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/SyntheticRecord' }
+    delete:
+      tags: [Admin records]
+      summary: Remove a course record and all its attempts
+      x-permission: records:edit
+      responses:
+        '204': { description: 'Removed' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/SyntheticRecord' }
+
+  /api/v1/admin/register:
+    get:
+      tags: [Register]
+      summary: Filterable, sortable, paginated register of all students with advisory standing (audit-logged)
+      x-permission: student:read:any
+      parameters:
+        - { $ref: '#/components/parameters/Programme' }
+        - { $ref: '#/components/parameters/YearGroup' }
+        - { name: standing, in: query, schema: { enum: [RED, YELLOW, GREEN, UNDETERMINED] } }
+        - { name: flag, in: query, schema: { enum: [UNRESOLVED_FAILURE, INCOMPLETE, NO_RECORDS] } }
+        - { name: sort, in: query, schema: { type: string, default: studentId } }
+        - { name: order, in: query, schema: { enum: [asc, desc], default: asc } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 10, maximum: 200, default: 50 } }
+      responses:
+        '200': { description: 'One page with totals and counts by standing and flag' }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+
+  /api/v1/admin/register.csv:
+    get:
+      tags: [Register]
+      summary: The filtered register as CSV (audit-logged)
+      x-permission: student:read:any
+      parameters: [{ $ref: '#/components/parameters/Programme' }, { $ref: '#/components/parameters/YearGroup' }]
+      responses:
+        '200': { description: CSV, content: { text/csv: { schema: { type: string } } } }
+
+  /api/v1/admin/reports:
+    get:
+      tags: [Reports]
+      summary: All report sections, computed on the server (audit-logged)
+      description: Standing distribution, outcomes of graduated year groups with reasons, progress, credits still to complete, projected graduation, programme comparison, course pass rates and grades, and messaging reach.
+      x-permission: report:read
+      parameters: [{ $ref: '#/components/parameters/Programme' }, { $ref: '#/components/parameters/YearGroup' }]
+      responses:
+        '200': { description: 'Reports' }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+
+  /api/v1/admin/reports/{section}.csv:
+    get:
+      tags: [Reports]
+      summary: One report section as CSV
+      x-permission: report:read
+      parameters:
+        - { name: section, in: path, required: true, schema: { enum: [cohorts, programmes, courses] } }
+        - { $ref: '#/components/parameters/Programme' }
+        - { $ref: '#/components/parameters/YearGroup' }
+      responses:
+        '200': { description: CSV, content: { text/csv: { schema: { type: string } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/admin/messages:
+    get:
+      tags: [Messaging]
+      summary: Sent and scheduled messages with read receipts
+      x-permission: message:send
+      responses:
+        '200': { description: 'Up to 100 messages, each with readCount and scheduled' }
+    post:
+      tags: [Messaging]
+      summary: Send now or schedule (audit-logged); recipients are fixed when the message is created
+      x-permission: message:send
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/NewMessage' } } }
+      responses:
+        '201': { description: 'Sent or scheduled; unknown student IDs are listed' }
+        '400': { description: 'INVALID_INPUT or INVALID_SCHEDULE' }
+        '422': { description: 'NO_RECIPIENTS' }
+
+  /api/v1/admin/messages/preview:
+    post:
+      tags: [Messaging]
+      summary: Count the recipients an audience would reach
+      x-permission: message:send
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [audience], properties: { audience: { $ref: '#/components/schemas/Audience' } } } } }
+      responses:
+        '200': { description: Count, content: { application/json: { schema: { type: object, properties: { recipientCount: { type: integer }, unknownIds: { type: array, items: { type: string } } } } } } }
+
+  /api/v1/admin/messages/templates:
+    get:
+      tags: [Messaging]
+      summary: Reminder templates
+      x-permission: message:send
+      responses:
+        '200': { description: 'Templates' }
+
+  /api/v1/admin/messages/{messageId}:
+    delete:
+      tags: [Messaging]
+      summary: Cancel a scheduled message before it is delivered (audit-logged)
+      x-permission: message:send
+      parameters: [{ name: messageId, in: path, required: true, schema: { type: string } }]
+      responses:
+        '204': { description: 'Cancelled' }
+        '409': { description: 'NOT_CANCELLABLE (already delivered or unknown)' }
+
+  /api/v1/admin/imports:
+    get:
+      tags: [Imports]
+      summary: Import history, newest first
+      x-permission: records:import
+      responses:
+        '200': { description: 'Batches' }
+    post:
+      tags: [Imports]
+      summary: Apply a CSV import all-or-nothing (audit-logged)
+      x-permission: records:import
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ImportUpload' } } }
+      responses:
+        '201': { description: 'Applied batch' }
+        '422': { description: 'IMPORT_HAS_ERRORS' }
+
+  /api/v1/admin/imports/preview:
+    post:
+      tags: [Imports]
+      summary: Validate a CSV file and report row-level problems without writing anything
+      x-permission: records:import
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ImportUpload' } } }
+      responses:
+        '200': { description: 'Preview with created, updated and errors' }
+
+  /api/v1/admin/imports/{batchId}/rollback:
+    post:
+      tags: [Imports]
+      summary: Undo the latest applied import exactly (audit-logged)
+      x-permission: records:import
+      parameters: [{ name: batchId, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: 'Rolled back' }
+        '409': { description: 'NOT_LATEST_IMPORT' }
+
+  /api/v1/admin/users/reset-password:
+    post:
+      tags: [Admin students]
+      summary: Issue a one-time temporary password (audit-logged; must be changed at first sign-in)
+      x-permission: user:reset-password
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [identifier], properties: { identifier: { type: string } } } } }
+      responses:
+        '200': { description: 'Temporary password (Cache-Control: no-store)' }
+        '404': { description: 'USER_NOT_FOUND' }
+
+  /api/v1/admin/settings:
+    get:
+      tags: [Settings]
+      summary: Current standing thresholds
+      x-permission: settings:manage
+      responses:
+        '200': { description: 'Settings' }
+
+  /api/v1/admin/settings/standing:
+    put:
+      tags: [Settings]
+      summary: Change standing thresholds (audit-logged with previous values)
+      x-permission: settings:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [normalLoad, maxLoad, criticalFailedCourses]
+              properties:
+                normalLoad: { type: number, minimum: 1, maximum: 10, multipleOf: 0.5 }
+                maxLoad: { type: number, minimum: 1, maximum: 10, multipleOf: 0.5, description: At least normalLoad }
+                criticalFailedCourses: { type: integer, minimum: 1, maximum: 20 }
+      responses:
+        '200': { description: 'Saved' }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+
+  /api/v1/admin/settings/admins:
+    get:
+      tags: [Settings]
+      summary: Administrator accounts
+      x-permission: user:manage
+      responses:
+        '200': { description: 'Admins' }
+    post:
+      tags: [Settings]
+      summary: Create an administrator with a one-time temporary password (audit-logged)
+      x-permission: user:manage
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [identifier], properties: { identifier: { type: string, description: Must match STAFF_ID_REGEX } } } } }
+      responses:
+        '201': { description: 'Created' }
+        '400': { description: 'INVALID_STAFF_ID' }
+        '409': { description: 'ACCOUNT_EXISTS' }
+
+  /api/v1/admin/settings/pass-marks:
+    get:
+      tags: [Settings]
+      summary: Per-course pass marks (courses not listed pass at D+)
+      x-permission: settings:manage
+      responses:
+        '200': { description: 'Pass marks' }
+
+  /api/v1/admin/settings/pass-marks/{courseCode}:
+    parameters: [{ name: courseCode, in: path, required: true, schema: { type: string } }]
+    put:
+      tags: [Settings]
+      summary: Set a course's pass mark (audit-logged with the previous value)
+      x-permission: settings:manage
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [minimumGrade], properties: { minimumGrade: { enum: [D+, C] }, note: { type: string, maxLength: 500 } } } } }
+      responses:
+        '200': { description: 'Saved' }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+    delete:
+      tags: [Settings]
+      summary: Remove a pass mark so the course passes at D+ again
+      x-permission: settings:manage
+      responses:
+        '204': { description: 'Removed' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/admin/curricula:
+    get:
+      tags: [Curriculum]
+      summary: Read-only curriculum catalogue
+      x-permission: curriculum:read
+      responses:
+        '200': { description: 'Curricula with status and validation issues' }
+
+  /api/v1/admin/curricula/review:
+    post:
+      tags: [Curriculum]
+      summary: Mark a validated curriculum as Registry-reviewed
+      description: Disabled unless `ENABLE_CURRICULUM_REVIEW=yes`, and the reviewer must be listed in `CURRICULUM_REVIEWER_IDS`.
+      x-permission: curriculum:review
+      responses:
+        '200': { description: 'Reviewed' }
+        '403': { description: 'REVIEWER_NOT_AUTHORIZED' }
+        '404': { description: 'CURRICULUM_NOT_FOUND' }
+        '503': { description: 'CURRICULUM_REVIEW_DISABLED' }
+
+  /api/v1/admin/audit-log:
+    get:
+      tags: [Audit log]
+      summary: Latest audit entries, with actors shown by their IDs (viewing is itself logged)
+      x-permission: audit-log:read
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+        - { name: action, in: query, schema: { type: string, pattern: '^[A-Z_]+$' } }
+      responses:
+        '200': { description: 'Entries' }
+
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 15-minute access token. Web clients keep the rotating refresh token in an httpOnly cookie (`agt_refresh`, path `/api/v1/auth`); the mobile app stores the same cookie value in the platform keystore.
+
+  parameters:
+    Csrf:
+      name: x-requested-with
+      in: header
+      required: true
+      description: Any value. Required on refresh and logout as CSRF protection.
+      schema: { type: string }
+    StudentId:
+      name: studentId
+      in: path
+      required: true
+      schema: { type: string, pattern: '^[\w-]{1,64}$' }
+    Programme:
+      name: programme
+      in: query
+      schema: { enum: [BA, ECON, LLB, MIS, CS, CE, EE, ME, MT, BE] }
+    YearGroup:
+      name: yearGroup
+      in: query
+      schema: { type: integer, minimum: 2000, maximum: 2100 }
+
+  responses:
+    Session:
+      description: 'Signed in. Sets the `agt_refresh` cookie (HttpOnly, Secure, SameSite=Strict). Cache-Control: no-store.'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              accessToken: { type: string }
+              expiresIn: { type: integer, description: Seconds }
+              role: { enum: [STUDENT, ADMIN] }
+              passwordChangeRequired: { type: boolean }
+    Marked:
+      description: How many messages changed
+      content: { application/json: { schema: { type: object, properties: { marked: { type: integer } } } } }
+    InvalidInput:
+      description: INVALID_INPUT; `message` explains the first problem where the route provides one
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    NotFound:
+      description: NOT_FOUND
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    SyntheticRecord:
+      description: SYNTHETIC_RECORD; synthetic records belong to the seeding workflow
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string, description: Stable code from the error catalogue }
+        message: { type: string, description: Readable explanation, when available }
+        requestId: { type: string, description: Present on INTERNAL_ERROR for log lookup }
+
+    StudentSummary:
+      type: object
+      properties:
+        studentId: { type: string }
+        fullName: { type: string }
+        programme: { type: string }
+        yearGroup: { type: integer }
+        track: { enum: [standard, pre-calculus, calculus-1-2] }
+        synthetic: { type: boolean, description: Fictional demonstration record }
+
+    StudentDetails:
+      type: object
+      required: [fullName, programme, yearGroup, track]
+      properties:
+        fullName: { type: string, minLength: 1, maxLength: 120 }
+        programme: { enum: [BA, ECON, LLB, MIS, CS, CE, EE, ME, MT, BE] }
+        yearGroup: { type: integer, minimum: 2000, maximum: 2100 }
+        track: { enum: [standard, pre-calculus, calculus-1-2] }
+
+    StudentDetailsPartial:
+      type: object
+      minProperties: 1
+      properties:
+        fullName: { type: string, minLength: 1, maxLength: 120 }
+        programme: { enum: [BA, ECON, LLB, MIS, CS, CE, EE, ME, MT, BE] }
+        yearGroup: { type: integer, minimum: 2000, maximum: 2100 }
+        track: { enum: [standard, pre-calculus, calculus-1-2] }
+
+    CourseAttempt:
+      type: object
+      required: [credits, status]
+      description: A graded attempt needs a grade; an enrolled or incomplete one has none. Only the latest attempt can be enrolled or incomplete.
+      properties:
+        credits: { type: number, exclusiveMinimum: 0, maximum: 4, multipleOf: 0.5 }
+        status: { enum: [COMPLETED, ENROLLED, INCOMPLETE] }
+        grade: { enum: [A+, A, B+, B, C+, C, D+, D, E] }
+        semester: { type: string, pattern: '^\d{4} (Fall|Spring|Summer)$' }
+
+    StudentRecord:
+      type: object
+      properties:
+        student: { $ref: '#/components/schemas/StudentSummary' }
+        courses:
+          type: array
+          items: { type: object, properties: { courseCode: { type: string }, attempts: { type: array, items: { $ref: '#/components/schemas/CourseAttempt' } } } }
+
+    Eligibility:
+      type: object
+      description: Advisory only. See `docs/03-design/severity-model.md` for standing.
+      properties:
+        student: { $ref: '#/components/schemas/StudentSummary' }
+        officialCertification: { const: false }
+        status: { enum: [NO_CURRICULUM, DATA_ISSUES, REQUIREMENTS_MET, REQUIREMENTS_REMAINING] }
+        curriculum: { type: [object, 'null'], properties: { basis: { enum: [REVIEWED, SYNTHETIC] }, version: { type: string } } }
+        expectedGraduation: { type: string, examples: ['2028 Spring'] }
+        audit:
+          type: [object, 'null']
+          properties:
+            creditsEarned: { type: number }
+            creditsRequired: { type: number }
+            creditsInProgress: { type: number }
+            percentComplete: { type: number }
+            remainingRequirements:
+              type: array
+              items:
+                type: object
+                properties:
+                  code: { type: string }
+                  category: { type: string }
+                  credits: { type: number }
+                  reason: { enum: [NOT_TAKEN, FAILED, IN_PROGRESS, INCOMPLETE, ELECTIVE_SLOT_OPEN, AFRICAN_STUDIES_MISSING, CREDIT_SHORTFALL] }
+        standing:
+          type: [object, 'null']
+          properties:
+            level: { enum: [GREEN, YELLOW, RED] }
+            reasons: { type: array, items: { type: string } }
+            creditsOutstanding: { type: number }
+            termsRemaining: { type: integer }
+            creditsPerTermNeeded: { type: [number, 'null'] }
+        requirements:
+          type: array
+          items:
+            type: object
+            properties:
+              category: { type: string }
+              kind: { enum: [REQUIRED, ELECTIVE] }
+              creditsRequired: { type: number }
+              creditsCompleted: { type: number }
+              creditsInProgress: { type: number }
+              options: { type: array, items: { type: string } }
+              items:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    code: { type: string }
+                    credits: { type: number }
+                    minimumGrade: { type: string }
+                    state: { enum: [COMPLETED, IN_PROGRESS, FAILED, INCOMPLETE, NOT_STARTED] }
+                    grade: { type: string }
+                    attempts: { type: integer }
+        nextActions:
+          type: array
+          items: { type: object, properties: { kind: { enum: [RETAKE, RESOLVE_INCOMPLETE, TAKE_COURSE, CHOOSE_ELECTIVE] }, code: { type: string }, category: { type: string }, credits: { type: number } } }
+        issues: { type: array, items: { type: string } }
+
+    InboxItem:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        body: { type: string }
+        priority: { enum: [NORMAL, HIGH] }
+        sentAt: { type: string, format: date-time }
+        readAt: { type: string, format: date-time }
+
+    StudentNote:
+      type: object
+      properties:
+        id: { type: string }
+        studentId: { type: string }
+        body: { type: string }
+        author: { type: string, description: Staff ID of the author }
+        createdAt: { type: string, format: date-time }
+
+    Audience:
+      oneOf:
+        - { type: object, required: [kind], properties: { kind: { const: ALL_STUDENTS } } }
+        - { type: object, required: [kind, programme], properties: { kind: { const: PROGRAMME }, programme: { type: string } } }
+        - { type: object, required: [kind, yearGroup], properties: { kind: { const: YEAR_GROUP }, yearGroup: { type: integer } } }
+        - { type: object, required: [kind, standing], properties: { kind: { const: STANDING }, standing: { enum: [RED, YELLOW, GREEN] } } }
+        - { type: object, required: [kind, studentIds], properties: { kind: { const: STUDENTS }, studentIds: { type: array, minItems: 1, maxItems: 500, items: { type: string } } } }
+
+    NewMessage:
+      type: object
+      required: [title, body, audience]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        body: { type: string, minLength: 1, maxLength: 5000 }
+        priority: { enum: [NORMAL, HIGH], default: NORMAL }
+        audience: { $ref: '#/components/schemas/Audience' }
+        sendAt: { type: string, format: date-time, description: 'Optional; at least 1 minute and at most 180 days ahead' }
+
+    ImportUpload:
+      type: object
+      required: [kind, filename, content]
+      properties:
+        kind: { enum: [STUDENTS, COURSES] }
+        filename: { type: string, pattern: '\.csv$' }
+        content: { type: string, maxLength: 4000000, description: The CSV text }

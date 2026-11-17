@@ -23,6 +23,8 @@ One Render web service from `render.yaml`. See the [Render deployment guide](doc
 ## Links
 
 - [Figma design](https://www.figma.com/design/oEZD3Gm9qLxUgRZh1hY3nL)
+- [Handoff: where everything is](docs/09-handoff/final-handoff.md)
+- [API reference (OpenAPI)](docs/05-api/openapi.yaml)
 - [Build status](docs/00-governance/build-status.md)
 - [Current implementation and limits](docs/01-implementation/iteration-2.md)
 - [Master build prompt](docs/00-governance/master-build-prompt.md)
