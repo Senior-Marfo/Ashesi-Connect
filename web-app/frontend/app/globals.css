@@ -325,3 +325,11 @@ body { margin: 0; background: var(--surface); color: var(--ink); font: 16px/1.5 
 .sent-list > li { padding-bottom: var(--space-4); border-bottom: 1px solid var(--line); }
 .sent-head { display: flex; gap: var(--space-3); align-items: baseline; flex-wrap: wrap; }
 .sent-list p { margin: var(--space-1) 0; font-size: 13px; }
+
+/* Settings */
+.admin-list { list-style: none; padding: 0; margin: var(--space-3) 0 var(--space-5); display: grid; gap: var(--space-2); }
+.admin-list li { display: flex; gap: var(--space-3); align-items: center; padding-bottom: var(--space-2); border-bottom: 1px solid var(--line); }
+.inline-form { margin-bottom: var(--space-3); }
+.audit-filter { max-width: 320px; margin: var(--space-4) 0; }
+.nowrap { white-space: nowrap; }
+td.details { font-size: 13px; }

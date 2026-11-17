@@ -14,6 +14,7 @@ This branch is under active development and MUST NOT be deployed as a university
 - Next.js static-export web client wired to the API: sign-in, silent token refresh and session restore, sign-out, forced and voluntary password change, a student record screen and an admin student lookup. Pages are role-guarded on the client; the API enforces permissions.
 - Controlled curriculum import, validation and review workflow from `feat/2028-workbook-safe-import`, merged 2026-11-17. Students see a provisional progress preview, and admins see a read-only curriculum catalogue. Review writes stay off unless `ENABLE_CURRICULUM_REVIEW=yes` is set and the reviewer is on the allowlist.
 - US-02 to US-05 student screens: status card with standing and progress ring, requirement tree, remaining-work plan, and courses marked Passed / Below pass mark. They use a Registry-reviewed curriculum for real students and illustrative synthetic rules for synthetic students only.
+- Settings: adjustable standing thresholds used by every assessment, admin account creation with temporary passwords, and an audit-log viewer.
 - Record imports: CSV import of students and course records with a row-level preview, all-or-nothing apply, batch history and exact undo. New student accounts stay locked until an admin issues a temporary password.
 - US-11 and US-12 messaging: admins compose messages (with templates) for all students, a programme, a year group, a standing or specific IDs, with a live recipient count, audit logging and read receipts. Students have an inbox with an unread badge and mark-as-read.
 - US-08 to US-10 reports: standing distribution, graduation outcomes by year group with reasons for not completing (year-on-year comparison), progress of current year groups, programme comparison, course pass rates, retakes and grade distribution. Includes a print stylesheet and CSV per section.
@@ -24,7 +25,7 @@ This branch is under active development and MUST NOT be deployed as a university
 
 ## Blocking work
 - Confirm the first green run of the CI `backend-mongodb` job; it has not run in the development container, which cannot download MongoDB.
-- Emailing reset notices (needs SMTP). Admin UI for password resets and the audit log.
+- Emailing reset notices and message copies (needs SMTP).
 - First live deploy: `render.yaml` is ready as a one-service Blueprint (`docs/08-deployment/render-deployment-guide.md`). It needs a MongoDB Atlas connection string, and the post-deploy smoke test must be recorded.
 - Verified workbook ingestion, curriculum versioning, elective and track rules, and all eligibility cases.
 - Loading the official 2028 curriculum (needs `Degree_Audit_2028.xlsx` and Registry review) so real students get a standing. Then: imports, messaging, PDF exports, mobile app and deployment.

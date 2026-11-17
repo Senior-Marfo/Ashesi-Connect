@@ -10,6 +10,7 @@ import { curriculumAdminRouter, curriculumStudentRouter } from '../routes/curric
 import { adminRoutes } from './admin-routes.js';
 import { authRoutes } from './auth-routes.js';
 import { importRoutes } from './import-routes.js';
+import { settingsRoutes } from './settings-routes.js';
 import { adminMessageRoutes, studentMessageRoutes } from './message-routes.js';
 import { reportRoutes } from './report-routes.js';
 import { authenticate, requestId, requirePasswordChanged, CSRF_HEADER } from './middleware.js';
@@ -76,6 +77,7 @@ export function createApp({ config, repositories, isHealthy, now = () => new Dat
   app.use('/api/v1/admin/messages', ...protectedRoutes, adminMessageRoutes(repositories, now));
   app.use('/api/v1/admin/reports', ...protectedRoutes, reportRoutes(repositories, now));
   app.use('/api/v1/admin/imports', ...protectedRoutes, importRoutes(config, repositories, now));
+  app.use('/api/v1/admin/settings', ...protectedRoutes, settingsRoutes(config, repositories, now));
   app.use('/api/v1/admin', ...protectedRoutes, adminRoutes(repositories, auth, now), curriculumAdminRouter);
 
   if (config.staticDir) serveWebClient(app, resolve(config.staticDir));

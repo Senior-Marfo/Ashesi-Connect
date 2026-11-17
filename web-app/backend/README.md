@@ -47,6 +47,8 @@ npm test               # unit and HTTP tests; no database needed
 | POST/GET | `/api/v1/admin/messages` (+ `/preview`, `/templates`) | `message:send` |
 | GET/POST | `/api/v1/students/me/messages` (+ `/unread-count`, `/:id/read`, `/read-all`) | `message:read:own` |
 | GET/POST | `/api/v1/admin/imports` (+ `/preview`, `/:id/rollback`) | `records:import`; CSV only, up to 4 MB |
+| GET/PUT | `/api/v1/admin/settings` (+ `/standing`) | `settings:manage` |
+| GET/POST | `/api/v1/admin/settings/admins` | `user:manage` |
 | GET | `/api/v1/admin/reports` | `report:read`; filters `programme`, `yearGroup` |
 | GET | `/api/v1/admin/reports/{cohorts,programmes,courses}.csv` | `report:read`; same filters |
 | GET | `/api/v1/admin/curricula` | `curriculum:read` |

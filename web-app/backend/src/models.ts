@@ -108,3 +108,11 @@ const importBatchSchema = new Schema({
   undo: { type: [Schema.Types.Mixed], default: [] }
 });
 export const ImportBatchModel = model('ImportBatch', importBatchSchema);
+
+const settingsSchema = new Schema({
+  _id: { type: String, default: 'app' },
+  standing: { normalLoad: Number, maxLoad: Number, criticalFailedCourses: Number },
+  updatedAt: Date,
+  updatedBy: String
+});
+export const SettingsModel = model('Settings', settingsSchema);

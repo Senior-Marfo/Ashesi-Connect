@@ -199,3 +199,26 @@ test('admin imports a student, issues a temporary password, then undoes the impo
   await expect(admin.getByText('Undid students.csv.')).toBeVisible();
   await expect(admin.locator('.sent-list > li').first()).toContainText('Undone');
 });
+
+test('admin adjusts thresholds, creates an administrator and reviews the audit log', async ({ page }, testInfo) => {
+  const staffId = testInfo.project.name === 'desktop' ? 'STF-7001' : 'STF-7002';
+  await signIn(page, 'STF-1001');
+  await page.getByRole('link', { name: 'Settings' }).click();
+  const normal = page.getByLabel('Normal load (credits per term)');
+  await expect(normal).toHaveValue('5');
+  await normal.fill('4.5');
+  await page.getByRole('button', { name: 'Save thresholds' }).click();
+  await expect(page.getByText('Saved. Standing everywhere now uses these thresholds.')).toBeVisible();
+
+  await page.getByLabel('New administrator’s staff ID').fill(staffId);
+  await page.getByRole('button', { name: 'Create administrator' }).click();
+  await expect(page.getByText(new RegExp(`Created ${staffId}. Temporary password`))).toBeVisible();
+  await expect(page.locator('.admin-list')).toContainText(staffId);
+
+  await page.getByLabel('Activity').selectOption('ADMIN_SETTINGS_UPDATED');
+  await expect(page.getByRole('cell', { name: 'Admin settings updated' }).first()).toBeVisible();
+
+  await normal.fill('5');
+  await page.getByRole('button', { name: 'Save thresholds' }).click();
+  await expect(page.getByText('Saved.')).toBeVisible();
+});

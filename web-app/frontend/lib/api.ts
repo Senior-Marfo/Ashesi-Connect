@@ -106,6 +106,11 @@ export interface ImportPreview { kind: ImportKind; rows: number; created: number
 export interface ImportBatch { id: string; kind: ImportKind; filename: string; createdAt: string; rows: number; created: number; updated: number; status: 'APPLIED' | 'ROLLED_BACK'; rolledBackAt?: string; canUndo?: boolean }
 export interface ImportUpload { kind: ImportKind; filename: string; content: string }
 
+export interface StandingThresholds { normalLoad: number; maxLoad: number; criticalFailedCourses: number }
+export interface AppSettings { standing: StandingThresholds; updatedAt?: string; updatedBy?: string }
+export interface AdminAccount { id: string; identifier: string; forcePasswordChange: boolean; lockedUntil?: string }
+export interface AuditEntry { action: string; actorId?: string; actorIdentifier?: string; actorRole?: string; subject?: string; metadata?: Record<string, string | number | boolean>; at: string; ip?: string }
+
 export type StandingCounts = Record<StandingLevel | 'UNDETERMINED', number>;
 export const NON_COMPLETION_REASONS = ['FAILED_COURSE', 'INCOMPLETE_COURSE', 'REQUIRED_COURSE_NOT_TAKEN', 'CAPSTONE_OUTSTANDING', 'ELECTIVES_SHORT', 'CREDIT_SHORTFALL', 'STILL_IN_PROGRESS'] as const;
 export type NonCompletionReason = (typeof NON_COMPLETION_REASONS)[number];
@@ -261,6 +266,11 @@ export function createApiClient(baseUrl: string, fetchImpl: Fetch = (input, init
     applyImport: (upload: ImportUpload) => authorised<{ batch: ImportBatch }>('/api/v1/admin/imports', { method: 'POST', body: JSON.stringify(upload) }),
     undoImport: (batchId: string) => authorised<{ status: string }>(`/api/v1/admin/imports/${encodeURIComponent(batchId)}/rollback`, { method: 'POST' }),
     issueTemporaryPassword: (identifier: string) => authorised<{ temporaryPassword: string }>('/api/v1/admin/users/reset-password', { method: 'POST', body: JSON.stringify({ identifier }) }),
+    settings: () => authorised<AppSettings>('/api/v1/admin/settings'),
+    saveThresholds: (standing: StandingThresholds) => authorised<AppSettings>('/api/v1/admin/settings/standing', { method: 'PUT', body: JSON.stringify(standing) }),
+    admins: () => authorised<{ admins: AdminAccount[] }>('/api/v1/admin/settings/admins'),
+    createAdmin: (identifier: string) => authorised<{ identifier: string; temporaryPassword: string }>('/api/v1/admin/settings/admins', { method: 'POST', body: JSON.stringify({ identifier }) }),
+    auditLog: (query: { limit: number; action?: string }) => authorised<{ entries: AuditEntry[] }>(`/api/v1/admin/audit-log?${queryString(query)}`),
     reports: (filters: ReportFilters) => authorised<Reports>(`/api/v1/admin/reports?${queryString(filters)}`),
     async reportCsv(section: 'cohorts' | 'programmes' | 'courses', filters: ReportFilters): Promise<Blob> {
       const response = await sendAuthorised(`/api/v1/admin/reports/${section}.csv?${queryString(filters)}`);

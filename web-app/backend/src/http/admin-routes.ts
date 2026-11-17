@@ -64,9 +64,9 @@ export function adminRoutes(repositories: Repositories, auth: AuthService, now: 
       res.status(404).json({ error: 'NOT_FOUND' });
       return;
     }
-    const [courses, curriculum] = await Promise.all([repositories.students.listCourses(student.studentId), curriculumFor(student, repositories)]);
+    const [courses, curriculum, settings] = await Promise.all([repositories.students.listCourses(student.studentId), curriculumFor(student, repositories), repositories.settings.get()]);
     await audit(req, 'ADMIN_ELIGIBILITY_VIEWED', student.studentId);
-    res.json(assessEligibility(student, courses, curriculum, now()));
+    res.json(assessEligibility(student, courses, curriculum, now(), settings.standing));
   }));
 
   const loadRegister = async (filter: { programme?: string; yearGroup?: number }) => {
@@ -125,8 +125,10 @@ export function adminRoutes(repositories: Repositories, auth: AuthService, now: 
       return;
     }
     const entries = await repositories.auditLog.list({ limit: parsed.data.limit, action: parsed.data.action as AuditAction | undefined });
+    const actorIds = [...new Set(entries.flatMap(entry => (entry.actorId ? [entry.actorId] : [])))];
+    const actors = new Map((await Promise.all(actorIds.map(id => repositories.users.findById(id)))).flatMap(user => (user ? [[user.id, user.identifier] as const] : [])));
     await audit(req, 'ADMIN_AUDIT_LOG_VIEWED');
-    res.json({ entries });
+    res.json({ entries: entries.map(entry => ({ ...entry, actorIdentifier: entry.actorId ? actors.get(entry.actorId) : undefined })) });
   }));
 
   return router;

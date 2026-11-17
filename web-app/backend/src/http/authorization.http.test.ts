@@ -3,7 +3,7 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { ADMIN_PASSWORD, STUDENT_PASSWORD, buildTestApp } from '../testing/fixtures.js';
 
-const ADMIN_ROUTES: Array<['get' | 'post', string]> = [
+const ADMIN_ROUTES: Array<['get' | 'post' | 'put', string]> = [
   ['get', '/api/v1/admin/students'],
   ['get', '/api/v1/admin/students/20260002'],
   ['get', '/api/v1/admin/audit-log'],
@@ -13,6 +13,10 @@ const ADMIN_ROUTES: Array<['get' | 'post', string]> = [
   ['get', '/api/v1/admin/reports'],
   ['get', '/api/v1/admin/messages'],
   ['get', '/api/v1/admin/imports'],
+  ['get', '/api/v1/admin/settings'],
+  ['put', '/api/v1/admin/settings/standing'],
+  ['get', '/api/v1/admin/settings/admins'],
+  ['post', '/api/v1/admin/settings/admins'],
   ['post', '/api/v1/admin/imports/preview'],
   ['post', '/api/v1/admin/imports'],
   ['post', '/api/v1/admin/messages'],
@@ -103,5 +107,6 @@ describe('admin activity logging', () => {
     const response = await request(app).get('/api/v1/admin/audit-log').query({ limit: 5 }).auth(token, { type: 'bearer' });
     expect(response.status).toBe(200);
     expect(response.body.entries[0].action).toBe('AUTH_LOGIN_SUCCEEDED');
+    expect(response.body.entries[0].actorIdentifier).toBe('STF-1001');
   });
 });

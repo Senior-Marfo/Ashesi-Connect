@@ -19,7 +19,8 @@ export const ADMIN_NAV: NavItem[] = [
   { href: '/admin/register/', label: 'Register' },
   { href: '/admin/reports/', label: 'Reports' },
   { href: '/admin/messages/', label: 'Messages' },
-  { href: '/admin/imports/', label: 'Imports' }
+  { href: '/admin/imports/', label: 'Imports' },
+  { href: '/admin/settings/', label: 'Settings' }
 ];
 
 /** Student navigation with the inbox's unread count; refreshes when `version` changes. */

@@ -1,6 +1,7 @@
 import { isValidObjectId } from 'mongoose';
 import { isRole } from '../auth/permissions.js';
-import { AuditLog, Enrollment, ImportBatchModel, Message, MessageReceipt, RefreshToken, Student, User } from '../models.js';
+import { DEFAULT_STANDING_CONFIG } from '../domain/eligibility/standing.js';
+import { AuditLog, Enrollment, ImportBatchModel, SettingsModel, Message, MessageReceipt, RefreshToken, Student, User } from '../models.js';
 import { CurriculumRecord } from '../models/curriculum.js';
 import { selectCohortCurriculum } from '../domain/eligibility/cohort-selection.js';
 import type { ProgrammeRules } from '../domain/eligibility/programme-audit.js';
@@ -40,6 +41,10 @@ export function createMongoRepositories(): Repositories {
         const unset = Object.entries(changes).filter(([, value]) => value === undefined).map(([key]) => [key, 1]);
         const set = Object.fromEntries(Object.entries(changes).filter(([, value]) => value !== undefined));
         await User.updateOne({ _id: id }, { $set: set, ...(unset.length ? { $unset: Object.fromEntries(unset) } : {}) });
+      },
+      async listByRole(role) {
+        const docs = await User.find({ role }, { identifier: 1, forcePasswordChange: 1, lockedUntil: 1 }).sort({ identifier: 1 }).lean();
+        return docs.map(doc => ({ id: String(doc._id), identifier: doc.identifier, forcePasswordChange: doc.forcePasswordChange ?? true, lockedUntil: doc.lockedUntil ?? undefined }));
       },
       async removeByIdentifier(identifier) {
         await User.deleteOne({ identifier });
@@ -81,6 +86,16 @@ export function createMongoRepositories(): Repositories {
       async list({ limit, action }) {
         const docs = await AuditLog.find(action ? { action } : {}).sort({ at: -1 }).limit(limit).select({ _id: 0, __v: 0 }).lean();
         return docs as unknown as AuditEntry[];
+      }
+    },
+    settings: {
+      async get() {
+        const doc = await SettingsModel.findById('app').lean();
+        const standing = { ...DEFAULT_STANDING_CONFIG, ...Object.fromEntries(Object.entries(doc?.standing ?? {}).filter(([, value]) => typeof value === 'number')) };
+        return { standing, updatedAt: doc?.updatedAt ?? undefined, updatedBy: doc?.updatedBy ?? undefined };
+      },
+      async update(settings) {
+        await SettingsModel.updateOne({ _id: 'app' }, { $set: settings }, { upsert: true });
       }
     },
     imports: {

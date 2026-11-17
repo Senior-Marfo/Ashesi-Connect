@@ -15,7 +15,8 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev:demo',
     cwd: '../backend',
-    env: { PORT: '3000', STATIC_DIR: '../frontend/out' },
+    // The suite signs in as the same admin many times; the production limit (10 per 15 minutes) would block it.
+    env: { PORT: '3000', STATIC_DIR: '../frontend/out', LOGIN_RATE_LIMIT_MAX: '200' },
     url: 'http://localhost:3000/health',
     reuseExistingServer: false,
     timeout: 60_000

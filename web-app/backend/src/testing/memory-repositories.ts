@@ -1,5 +1,6 @@
 import { PROVISIONAL_PASSING_GRADES } from '../register/provisional-pass.js';
-import type { AuditEntry, CourseRecord, CourseSummary, ImportBatch, MessageRecord, ReviewedCurriculum, RefreshTokenRecord, Repositories, StudentSummary, UserRecord } from '../repositories/types.js';
+import { DEFAULT_STANDING_CONFIG } from '../domain/eligibility/standing.js';
+import type { AppSettings, AuditEntry, CourseRecord, CourseSummary, ImportBatch, MessageRecord, ReviewedCurriculum, RefreshTokenRecord, Repositories, StudentSummary, UserRecord } from '../repositories/types.js';
 
 export interface MemoryStore {
   users: UserRecord[];
@@ -11,10 +12,11 @@ export interface MemoryStore {
   messages: MessageRecord[];
   receipts: Array<{ messageId: string; studentId: string; deliveredAt: Date; readAt?: Date }>;
   imports: ImportBatch[];
+  settings: AppSettings;
 }
 
 export function createMemoryRepositories(): { repositories: Repositories; store: MemoryStore } {
-  const store: MemoryStore = { users: [], refreshTokens: [], auditLog: [], students: [], courses: new Map(), curricula: [], messages: [], receipts: [], imports: [] };
+  const store: MemoryStore = { users: [], refreshTokens: [], auditLog: [], students: [], courses: new Map(), curricula: [], messages: [], receipts: [], imports: [], settings: { standing: { ...DEFAULT_STANDING_CONFIG } } };
   const revokeWhere = (predicate: (record: RefreshTokenRecord) => boolean) => {
     for (const record of store.refreshTokens) if (!record.revokedAt && predicate(record)) record.revokedAt = new Date();
   };
@@ -27,6 +29,8 @@ export function createMemoryRepositories(): { repositories: Repositories; store:
         const user = store.users.find(candidate => candidate.id === id);
         if (user) Object.assign(user, changes);
       },
+      listByRole: async role => store.users.filter(user => user.role === role).sort((a, b) => a.identifier.localeCompare(b.identifier))
+        .map(user => ({ id: user.id, identifier: user.identifier, forcePasswordChange: user.forcePasswordChange, lockedUntil: user.lockedUntil })),
       async removeByIdentifier(identifier) {
         store.users = store.users.filter(user => user.identifier !== identifier);
       },
@@ -53,6 +57,10 @@ export function createMemoryRepositories(): { repositories: Repositories; store:
       async append(entry) { store.auditLog.push(structuredClone(entry)); },
       list: async ({ limit, action }) =>
         store.auditLog.filter(entry => !action || entry.action === action).slice().reverse().slice(0, limit)
+    },
+    settings: {
+      get: async () => structuredClone(store.settings),
+      async update(settings) { store.settings = structuredClone(settings); }
     },
     imports: {
       async create(batch) {

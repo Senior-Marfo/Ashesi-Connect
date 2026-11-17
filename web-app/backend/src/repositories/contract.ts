@@ -163,6 +163,16 @@ export function repositoryContract(name: string, harness: ContractHarness) {
       expect(await imports.find('missing')).toBeUndefined();
     });
 
+    it('stores settings over the defaults and lists accounts by role', async () => {
+      const { settings, users } = harness.repositories();
+      expect((await settings.get()).standing).toEqual({ normalLoad: 5, maxLoad: 6, criticalFailedCourses: 3 });
+      await settings.update({ standing: { normalLoad: 4, maxLoad: 5.5, criticalFailedCourses: 2 }, updatedAt: new Date('2026-11-17T00:00:00Z'), updatedBy: 'admin' });
+      expect(await settings.get()).toEqual({ standing: { normalLoad: 4, maxLoad: 5.5, criticalFailedCourses: 2 }, updatedAt: new Date('2026-11-17T00:00:00Z'), updatedBy: 'admin' });
+      await users.createIfAbsent({ identifier: 'STF-3003', passwordHash: 'h', role: 'ADMIN', forcePasswordChange: true, failedLogins: 0 });
+      expect((await users.listByRole('ADMIN')).map(user => [user.identifier, user.forcePasswordChange])).toEqual([['STF-3003', true]]);
+      expect((await users.listByRole('STUDENT')).map(user => user.identifier)).toEqual(['20280001']);
+    });
+
     it('reads students and courses, treating search input literally', async () => {
       const { students } = harness.repositories();
       expect(await students.findById('20280001')).toEqual({ studentId: '20280001', fullName: 'Synthetic Student', programme: 'CS', yearGroup: 2028, track: 'standard' });

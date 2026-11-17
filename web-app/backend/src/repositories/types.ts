@@ -17,6 +17,7 @@ export interface UserRepository {
   findById(id: string): Promise<UserRecord | undefined>;
   update(id: string, changes: Partial<Omit<UserRecord, 'id' | 'identifier' | 'role'>>): Promise<void>;
   removeByIdentifier(identifier: string): Promise<void>;
+  listByRole(role: Role): Promise<Array<Pick<UserRecord, 'id' | 'identifier' | 'forcePasswordChange' | 'lockedUntil'>>>;
   /** Inserts a user unless the identifier exists; resolves whether a user was created. */
   createIfAbsent(user: Omit<UserRecord, 'id'>): Promise<boolean>;
 }
@@ -56,6 +57,8 @@ export type AuditAction =
   | 'ADMIN_MESSAGE_SENT'
   | 'ADMIN_IMPORT_APPLIED'
   | 'ADMIN_IMPORT_ROLLED_BACK'
+  | 'ADMIN_SETTINGS_UPDATED'
+  | 'ADMIN_USER_CREATED'
   | 'ADMIN_REGISTER_EXPORTED';
 
 export interface AuditEntry {
@@ -205,6 +208,17 @@ export interface ImportRepository {
   markRolledBack(id: string, at: Date): Promise<void>;
 }
 
+export interface AppSettings {
+  standing: import('../domain/eligibility/standing.js').StandingConfig;
+  updatedAt?: Date;
+  updatedBy?: string;
+}
+
+export interface SettingsRepository {
+  get(): Promise<AppSettings>;
+  update(settings: AppSettings): Promise<void>;
+}
+
 export interface Repositories {
   users: UserRepository;
   refreshTokens: RefreshTokenRepository;
@@ -213,4 +227,5 @@ export interface Repositories {
   curricula: CurriculumRepository;
   messages: MessageRepository;
   imports: ImportRepository;
+  settings: SettingsRepository;
 }

@@ -25,8 +25,8 @@ export function studentRoutes(repositories: Repositories, now: () => Date): Rout
       res.status(404).json({ error: 'NOT_FOUND' });
       return;
     }
-    const [courses, curriculum] = await Promise.all([repositories.students.listCourses(studentId), curriculumFor(student, repositories)]);
-    res.json(assessEligibility(student, courses, curriculum, now()));
+    const [courses, curriculum, settings] = await Promise.all([repositories.students.listCourses(studentId), curriculumFor(student, repositories), repositories.settings.get()]);
+    res.json(assessEligibility(student, courses, curriculum, now(), settings.standing));
   }));
 
   return router;
