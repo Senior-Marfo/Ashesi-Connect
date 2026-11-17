@@ -67,10 +67,6 @@ You can also run it from a computer with Node.js 22: in `web-app/backend`, run `
 
 ## Smoke test after each deploy
 
-**Automated:** run **Actions → Post-deploy smoke test (manual only)**. It runs `web-app/backend/scripts/smoke-test.mjs`: health, the static client, security headers, anonymous refusal, then student and admin sign-in, status, search, register and reports. These use synthetic student `92800001` with `SYNTHETIC_STUDENT_PASSWORD`, and admin `STF-0001` with the `SMOKE_ADMIN_PASSWORD` secret (STF-0001's current password). The IDs can be changed when starting the run. To run it locally: `SMOKE_BASE_URL=<origin> node web-app/backend/scripts/smoke-test.mjs`. Add `NODE_USE_ENV_PROXY=1` behind an HTTPS proxy.
-
-**By hand,** for what the script cannot see:
-
 1. `GET /health` returns `{"status":"ok"}`.
 2. The sign-in page loads, and `/demo/` shows the fictional legacy demo.
 3. Admin sign-in works, and a student ID search returns results once students are imported.
@@ -81,7 +77,7 @@ Record results in `docs/07-testing/test-reports/`.
 
 ## Rollback
 
-On the service's **Events** page in Render, choose an earlier successful deploy and **Rollback**. Collections are additive (`users`, `refreshtokens`, `auditlogs`, `students`, `enrollments`, `messages`, `messagereceipts`, `importbatches`, `settings`, `studentnotes`), so an older build can run against the newer database.
+On the service's **Events** page in Render, choose an earlier successful deploy and **Rollback**. Collections are additive (`users`, `refreshtokens`, `auditlogs`, `students`, `enrollments`, `messages`, `messagereceipts`, `importbatches`, `settings`, `studentnotes`, `passmarks`), so an older build can run against the newer database.
 
 ## Data safety
 
