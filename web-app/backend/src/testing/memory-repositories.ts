@@ -1,5 +1,5 @@
 import { PROVISIONAL_PASSING_GRADES } from '../register/provisional-pass.js';
-import type { AuditEntry, CourseRecord, CourseSummary, ReviewedCurriculum, RefreshTokenRecord, Repositories, StudentSummary, UserRecord } from '../repositories/types.js';
+import type { AuditEntry, CourseRecord, CourseSummary, MessageRecord, ReviewedCurriculum, RefreshTokenRecord, Repositories, StudentSummary, UserRecord } from '../repositories/types.js';
 
 export interface MemoryStore {
   users: UserRecord[];
@@ -8,10 +8,12 @@ export interface MemoryStore {
   students: StudentSummary[];
   courses: Map<string, CourseRecord[]>;
   curricula: Array<ReviewedCurriculum & { programme: string; track: string; yearGroup: number }>;
+  messages: MessageRecord[];
+  receipts: Array<{ messageId: string; studentId: string; deliveredAt: Date; readAt?: Date }>;
 }
 
 export function createMemoryRepositories(): { repositories: Repositories; store: MemoryStore } {
-  const store: MemoryStore = { users: [], refreshTokens: [], auditLog: [], students: [], courses: new Map(), curricula: [] };
+  const store: MemoryStore = { users: [], refreshTokens: [], auditLog: [], students: [], courses: new Map(), curricula: [], messages: [], receipts: [] };
   const revokeWhere = (predicate: (record: RefreshTokenRecord) => boolean) => {
     for (const record of store.refreshTokens) if (!record.revokedAt && predicate(record)) record.revokedAt = new Date();
   };
@@ -47,6 +49,30 @@ export function createMemoryRepositories(): { repositories: Repositories; store:
       async append(entry) { store.auditLog.push(structuredClone(entry)); },
       list: async ({ limit, action }) =>
         store.auditLog.filter(entry => !action || entry.action === action).slice().reverse().slice(0, limit)
+    },
+    messages: {
+      async send(message, recipientIds) {
+        const record: MessageRecord = { ...structuredClone(message), id: `message-${store.messages.length + 1}`, recipientCount: recipientIds.length };
+        store.messages.push(record);
+        for (const studentId of recipientIds) store.receipts.push({ messageId: record.id, studentId, deliveredAt: message.sentAt });
+        return structuredClone(record);
+      },
+      async inbox(studentId, limit) {
+        return store.receipts.filter(receipt => receipt.studentId === studentId)
+          .sort((a, b) => b.deliveredAt.getTime() - a.deliveredAt.getTime()).slice(0, limit)
+          .flatMap(receipt => {
+            const message = store.messages.find(candidate => candidate.id === receipt.messageId);
+            return message ? [{ id: message.id, title: message.title, body: message.body, priority: message.priority, sentAt: message.sentAt, readAt: receipt.readAt }] : [];
+          });
+      },
+      unreadCount: async studentId => store.receipts.filter(receipt => receipt.studentId === studentId && !receipt.readAt).length,
+      async markRead(studentId, messageId) {
+        const pending = store.receipts.filter(receipt => receipt.studentId === studentId && !receipt.readAt && (!messageId || receipt.messageId === messageId));
+        for (const receipt of pending) receipt.readAt = new Date();
+        return pending.length;
+      },
+      listSent: async limit => [...store.messages].sort((a, b) => b.sentAt.getTime() - a.sentAt.getTime()).slice(0, limit)
+        .map(message => ({ ...structuredClone(message), readCount: store.receipts.filter(receipt => receipt.messageId === message.id && receipt.readAt).length }))
     },
     curricula: {
       async findReviewed(programme, track, yearGroup) {

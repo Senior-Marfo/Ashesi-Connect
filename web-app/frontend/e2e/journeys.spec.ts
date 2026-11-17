@@ -133,3 +133,32 @@ test('admin reads reports, filters them and exports a section', async ({ page })
   await page.locator('section', { has: page.getByRole('heading', { name: 'Courses' }) }).getByRole('button', { name: 'CSV' }).click();
   expect((await download).suggestedFilename()).toBe('report-courses.csv');
 });
+
+test('admin messages a student, who reads it in the inbox', async ({ browser }, testInfo) => {
+  const title = `Audit review ${testInfo.project.name} ${Date.now()}`;
+  const admin = await (await browser.newContext()).newPage();
+  await signIn(admin, 'STF-1001');
+  await admin.getByRole('link', { name: 'Messages' }).click();
+  await admin.getByLabel('Start from a template').selectOption('audit-review');
+  await expect(admin.getByLabel('Title', { exact: true })).toHaveValue('Graduation audit review due');
+  await admin.getByLabel('Title', { exact: true }).fill(title);
+  await admin.getByLabel('Send to').selectOption('STUDENTS');
+  await admin.getByLabel('Student IDs', { exact: true }).fill('20280001, 29999999');
+  await expect(admin.getByText('1 recipient')).toBeVisible();
+  await expect(admin.getByText('not found: 29999999')).toBeVisible();
+  admin.once('dialog', dialog => void dialog.accept());
+  await admin.getByRole('button', { name: 'Send message' }).click();
+  await expect(admin.getByText(/Sent to 1 student/)).toBeVisible();
+  await expect(admin.getByRole('list', { name: `Read receipts for ${title}` })).toContainText('0 of 1 read');
+
+  const student = await (await browser.newContext()).newPage();
+  await signIn(student, '20280001');
+  const inboxLink = student.getByRole('link', { name: /Inbox/ });
+  await expect(inboxLink.locator('.badge')).toBeVisible();
+  await inboxLink.click();
+  await student.getByText(title).click();
+  await expect(student.locator('details[open]')).toContainText('Please review your graduation status');
+  await expect(student.getByText('All caught up')).toBeVisible();
+  await expect(student.getByRole('button', { name: 'Mark all as read' })).toBeDisabled();
+  await expect(inboxLink.locator('.badge')).toHaveCount(0);
+});

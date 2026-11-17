@@ -106,6 +106,31 @@ export function repositoryContract(name: string, harness: ContractHarness) {
       expect((await students.coursesFor([])).size).toBe(0);
     });
 
+    it('delivers messages to each recipient and tracks reads per student', async () => {
+      const { messages } = harness.repositories();
+      const first = await messages.send({ title: 'Audit review', body: 'Check your record.', priority: 'NORMAL', audience: { kind: 'ALL_STUDENTS' }, senderId: 'admin', sentAt: new Date('2026-11-01T00:00:00Z') }, ['20280001', '20280002']);
+      const second = await messages.send({ title: 'Retake', body: 'Register for MATH 141.', priority: 'HIGH', audience: { kind: 'STUDENTS', studentIds: ['20280001'] }, senderId: 'admin', sentAt: new Date('2026-11-02T00:00:00Z') }, ['20280001']);
+      expect(first.recipientCount).toBe(2);
+
+      const inbox = await messages.inbox('20280001', 10);
+      expect(inbox.map(item => item.title)).toEqual(['Retake', 'Audit review']);
+      expect(inbox[0]).toMatchObject({ id: second.id, priority: 'HIGH' });
+      expect(inbox[0].readAt).toBeUndefined();
+      expect(await messages.unreadCount('20280001')).toBe(2);
+
+      expect(await messages.markRead('20280001', second.id)).toBe(1);
+      expect(await messages.markRead('20280001', second.id)).toBe(0);
+      expect(await messages.unreadCount('20280001')).toBe(1);
+      expect(await messages.markRead('20280001')).toBe(1);
+      expect(await messages.unreadCount('20280001')).toBe(0);
+      expect(await messages.unreadCount('20280002')).toBe(1);
+      expect(await messages.inbox('nobody', 10)).toEqual([]);
+
+      const sent = await messages.listSent(10);
+      expect(sent.map(message => [message.title, message.recipientCount, message.readCount])).toEqual([['Retake', 1, 1], ['Audit review', 2, 1]]);
+      expect(sent[1].audience).toEqual({ kind: 'ALL_STUDENTS' });
+    });
+
     it('reads students and courses, treating search input literally', async () => {
       const { students } = harness.repositories();
       expect(await students.findById('20280001')).toEqual({ studentId: '20280001', fullName: 'Synthetic Student', programme: 'CS', yearGroup: 2028, track: 'standard' });

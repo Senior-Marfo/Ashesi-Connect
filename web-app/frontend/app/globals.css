@@ -159,7 +159,7 @@ body { margin: 0; background: var(--surface); color: var(--ink); font: 16px/1.5 
 .topnav a { padding: var(--space-2) var(--space-3); border-radius: var(--radius); color: var(--ink-soft); text-decoration: none; font-size: 14px; font-weight: 600; }
 .topnav a:hover { color: var(--ink); }
 .topnav a[aria-current='page'] { color: var(--maroon); background: var(--maroon-tint); }
-@media (max-width: 559px) { .topnav { order: 3; width: 100%; margin: var(--space-2) 0 0; } }
+@media (max-width: 559px) { .topnav { order: 3; width: 100%; margin: var(--space-2) 0 0; overflow-x: auto; scrollbar-width: none; padding-right: var(--space-4); } .topnav a { white-space: nowrap; flex: none; } }
 .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-3); align-items: end; margin: var(--space-5) 0; }
 .register-counts { margin-bottom: var(--space-5); }
 .register th .sort { all: unset; cursor: pointer; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; }
@@ -298,3 +298,30 @@ body { margin: 0; background: var(--surface); color: var(--ink); font: 16px/1.5 
   .report-section, .status-card, tr { break-inside: avoid; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* Messaging */
+.badge { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 6px; padding: 0 5px; border-radius: 999px; background: var(--maroon); color: #fff; font-size: 11px; font-weight: 700; }
+@media (prefers-color-scheme: dark) { .badge { color: #1a0d11; } }
+.inbox-tools { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3); }
+.inbox { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.inbox li { border-bottom: 1px solid var(--line); }
+.inbox summary { display: grid; grid-template-columns: 12px 1fr auto auto; gap: var(--space-3); align-items: center; padding: var(--space-4) 0; cursor: pointer; list-style: none; }
+.inbox summary::-webkit-details-marker { display: none; }
+.inbox .dot { width: 8px; height: 8px; border-radius: 50%; }
+.inbox .unread .dot { background: var(--maroon); }
+.inbox .unread .inbox-title { font-weight: 700; }
+.inbox time { font-size: 13px; white-space: nowrap; }
+.inbox-body { margin: 0 0 var(--space-4) calc(12px + var(--space-3)); white-space: pre-wrap; max-width: 70ch; }
+@media (max-width: 559px) { .inbox summary { grid-template-columns: 12px 1fr; } .inbox summary .tag, .inbox summary time { grid-column: 2; justify-self: start; } }
+.tag.high { color: var(--error); border-color: currentColor; }
+.messages-layout { display: grid; gap: var(--space-7); }
+@media (min-width: 960px) { .messages-layout { grid-template-columns: minmax(0, 5fr) minmax(0, 4fr); align-items: start; } }
+.textarea { min-height: 0; resize: vertical; line-height: 1.5; }
+.radios { border: 0; padding: 0; margin: 0; display: flex; gap: var(--space-5); align-items: center; }
+.radios legend { font-weight: 600; font-size: 14px; margin-bottom: var(--space-1); padding: 0; float: left; margin-right: var(--space-5); }
+.radios label { display: flex; gap: var(--space-2); align-items: center; font-weight: 400; }
+.recipients { margin: 0; font-weight: 600; }
+.sent-list { list-style: none; margin: var(--space-4) 0 0; padding: 0; display: grid; gap: var(--space-4); }
+.sent-list > li { padding-bottom: var(--space-4); border-bottom: 1px solid var(--line); }
+.sent-head { display: flex; gap: var(--space-3); align-items: baseline; flex-wrap: wrap; }
+.sent-list p { margin: var(--space-1) 0; font-size: 13px; }

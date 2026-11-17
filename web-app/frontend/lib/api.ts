@@ -89,6 +89,18 @@ export interface Eligibility {
   issues: string[];
 }
 
+export type MessagePriority = 'NORMAL' | 'HIGH';
+export type MessageAudience =
+  | { kind: 'ALL_STUDENTS' }
+  | { kind: 'PROGRAMME'; programme: string }
+  | { kind: 'YEAR_GROUP'; yearGroup: number }
+  | { kind: 'STANDING'; standing: StandingLevel }
+  | { kind: 'STUDENTS'; studentIds: string[] };
+export interface InboxItem { id: string; title: string; body: string; priority: MessagePriority; sentAt: string; readAt?: string }
+export interface SentMessage { id: string; title: string; body: string; priority: MessagePriority; audience: MessageAudience; sentAt: string; recipientCount: number; readCount: number }
+export interface MessageTemplate { id: string; title: string; body: string; priority: MessagePriority }
+export interface NewMessage { title: string; body: string; priority: MessagePriority; audience: MessageAudience }
+
 export type StandingCounts = Record<StandingLevel | 'UNDETERMINED', number>;
 export const NON_COMPLETION_REASONS = ['FAILED_COURSE', 'INCOMPLETE_COURSE', 'REQUIRED_COURSE_NOT_TAKEN', 'CAPSTONE_OUTSTANDING', 'ELECTIVES_SHORT', 'CREDIT_SHORTFALL', 'STILL_IN_PROGRESS'] as const;
 export type NonCompletionReason = (typeof NON_COMPLETION_REASONS)[number];
@@ -231,6 +243,14 @@ export function createApiClient(baseUrl: string, fetchImpl: Fetch = (input, init
     studentEligibility: (studentId: string) => authorised<Eligibility>(`/api/v1/admin/students/${encodeURIComponent(studentId)}/eligibility`),
     curricula: () => authorised<{ curricula: CurriculumSummary[] }>('/api/v1/admin/curricula'),
     register: (query: RegisterQuery) => authorised<RegisterPage>(`/api/v1/admin/register?${registerParams(query)}`),
+    inbox: () => authorised<{ messages: InboxItem[]; unread: number }>('/api/v1/students/me/messages'),
+    unreadCount: () => authorised<{ unread: number }>('/api/v1/students/me/messages/unread-count'),
+    markRead: (messageId: string) => authorised<{ marked: number }>(`/api/v1/students/me/messages/${encodeURIComponent(messageId)}/read`, { method: 'POST' }),
+    markAllRead: () => authorised<{ marked: number }>('/api/v1/students/me/messages/read-all', { method: 'POST' }),
+    messageTemplates: () => authorised<{ templates: MessageTemplate[] }>('/api/v1/admin/messages/templates'),
+    previewAudience: (audience: MessageAudience) => authorised<{ recipientCount: number; unknownIds: string[] }>('/api/v1/admin/messages/preview', { method: 'POST', body: JSON.stringify({ audience }) }),
+    sendMessage: (message: NewMessage) => authorised<{ message: SentMessage; unknownIds: string[] }>('/api/v1/admin/messages', { method: 'POST', body: JSON.stringify(message) }),
+    sentMessages: () => authorised<{ messages: SentMessage[] }>('/api/v1/admin/messages'),
     reports: (filters: ReportFilters) => authorised<Reports>(`/api/v1/admin/reports?${queryString(filters)}`),
     async reportCsv(section: 'cohorts' | 'programmes' | 'courses', filters: ReportFilters): Promise<Blob> {
       const response = await sendAuthorised(`/api/v1/admin/reports/${section}.csv?${queryString(filters)}`);

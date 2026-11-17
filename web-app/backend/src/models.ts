@@ -75,3 +75,24 @@ const requirementSchema = new Schema({
 }, { timestamps: true });
 requirementSchema.index({ programme: 1, version: 1, track: 1 }, { unique: true });
 export const ProgrammeRequirement = model('ProgrammeRequirement', requirementSchema);
+
+const messageSchema = new Schema({
+  title: { type: String, required: true, maxlength: 120 },
+  body: { type: String, required: true, maxlength: 5000 },
+  priority: { type: String, enum: ['NORMAL', 'HIGH'], required: true },
+  audience: { type: Schema.Types.Mixed, required: true },
+  senderId: { type: String, required: true },
+  sentAt: { type: Date, required: true, index: true },
+  recipientCount: { type: Number, required: true }
+});
+export const Message = model('Message', messageSchema);
+
+const receiptSchema = new Schema({
+  messageId: { type: String, required: true },
+  studentId: { type: String, required: true },
+  deliveredAt: { type: Date, required: true },
+  readAt: { type: Date }
+});
+receiptSchema.index({ studentId: 1, messageId: 1 }, { unique: true });
+receiptSchema.index({ messageId: 1, readAt: 1 });
+export const MessageReceipt = model('MessageReceipt', receiptSchema);

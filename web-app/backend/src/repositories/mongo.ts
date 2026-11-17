@@ -1,11 +1,11 @@
 import { isValidObjectId } from 'mongoose';
 import { isRole } from '../auth/permissions.js';
-import { AuditLog, Enrollment, RefreshToken, Student, User } from '../models.js';
+import { AuditLog, Enrollment, Message, MessageReceipt, RefreshToken, Student, User } from '../models.js';
 import { CurriculumRecord } from '../models/curriculum.js';
 import { selectCohortCurriculum } from '../domain/eligibility/cohort-selection.js';
 import type { ProgrammeRules } from '../domain/eligibility/programme-audit.js';
 import { PROVISIONAL_PASSING_GRADES } from '../register/provisional-pass.js';
-import type { AuditEntry, CourseRecord, CourseSummary, Repositories, StudentSummary, UserRecord } from './types.js';
+import type { AuditEntry, CourseRecord, CourseSummary, MessageAudience, MessagePriority, MessageRecord, Repositories, StudentSummary, UserRecord } from './types.js';
 
 function toUser(doc: { _id: unknown; identifier: string; passwordHash: string; role: string; studentId?: string | null; forcePasswordChange?: boolean | null; failedLogins?: number | null; lockedUntil?: Date | null; passwordChangedAt?: Date | null }): UserRecord {
   if (!isRole(doc.role)) throw new Error(`Unknown role on user ${String(doc._id)}`);
@@ -78,6 +78,46 @@ export function createMongoRepositories(): Repositories {
       async list({ limit, action }) {
         const docs = await AuditLog.find(action ? { action } : {}).sort({ at: -1 }).limit(limit).select({ _id: 0, __v: 0 }).lean();
         return docs as unknown as AuditEntry[];
+      }
+    },
+    messages: {
+      async send(message, recipientIds) {
+        const doc = await Message.create({ ...message, recipientCount: recipientIds.length });
+        const messageId = String(doc._id);
+        for (let i = 0; i < recipientIds.length; i += 1000) {
+          await MessageReceipt.insertMany(recipientIds.slice(i, i + 1000).map(studentId => ({ messageId, studentId, deliveredAt: message.sentAt })), { ordered: false });
+        }
+        return { ...message, id: messageId, recipientCount: recipientIds.length };
+      },
+      async inbox(studentId, limit) {
+        const receipts = await MessageReceipt.find({ studentId }).sort({ deliveredAt: -1 }).limit(limit).lean();
+        const messages = await Message.find({ _id: { $in: receipts.map(receipt => receipt.messageId).filter(isValidObjectId) } }).lean();
+        const byId = new Map(messages.map(message => [String(message._id), message]));
+        return receipts.flatMap(receipt => {
+          const message = byId.get(receipt.messageId);
+          return message ? [{
+            id: receipt.messageId, title: message.title, body: message.body, priority: message.priority as MessagePriority,
+            sentAt: message.sentAt, readAt: receipt.readAt ?? undefined
+          }] : [];
+        });
+      },
+      unreadCount: studentId => MessageReceipt.countDocuments({ studentId, readAt: { $exists: false } }),
+      async markRead(studentId, messageId) {
+        const result = await MessageReceipt.updateMany({ studentId, readAt: { $exists: false }, ...(messageId ? { messageId } : {}) }, { $set: { readAt: new Date() } });
+        return result.modifiedCount;
+      },
+      async listSent(limit) {
+        const messages = await Message.find({}).sort({ sentAt: -1 }).limit(limit).lean();
+        const reads = await MessageReceipt.aggregate<{ _id: string; readCount: number }>([
+          { $match: { messageId: { $in: messages.map(message => String(message._id)) }, readAt: { $exists: true } } },
+          { $group: { _id: '$messageId', readCount: { $sum: 1 } } }
+        ]);
+        const readCounts = new Map(reads.map(read => [read._id, read.readCount]));
+        return messages.map(message => ({
+          id: String(message._id), title: message.title, body: message.body, priority: message.priority as MessagePriority,
+          audience: message.audience as MessageAudience, senderId: message.senderId, sentAt: message.sentAt,
+          recipientCount: message.recipientCount, readCount: readCounts.get(String(message._id)) ?? 0
+        } satisfies MessageRecord & { readCount: number }));
       }
     },
     curricula: {

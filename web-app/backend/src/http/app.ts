@@ -9,6 +9,7 @@ import type { Repositories } from '../repositories/types.js';
 import { curriculumAdminRouter, curriculumStudentRouter } from '../routes/curriculum.js';
 import { adminRoutes } from './admin-routes.js';
 import { authRoutes } from './auth-routes.js';
+import { adminMessageRoutes, studentMessageRoutes } from './message-routes.js';
 import { reportRoutes } from './report-routes.js';
 import { authenticate, requestId, requirePasswordChanged, CSRF_HEADER } from './middleware.js';
 import { studentRoutes } from './student-routes.js';
@@ -68,6 +69,8 @@ export function createApp({ config, repositories, isHealthy, now = () => new Dat
   const protectedRoutes = [authenticate(config.accessTokenSecret), requirePasswordChanged()];
   app.use('/api/v1/auth', authRoutes(config, auth));
   app.use('/api/v1/students', ...protectedRoutes, studentRoutes(repositories, now), curriculumStudentRouter);
+  app.use('/api/v1/students/me/messages', ...protectedRoutes, studentMessageRoutes(repositories));
+  app.use('/api/v1/admin/messages', ...protectedRoutes, adminMessageRoutes(repositories, now));
   app.use('/api/v1/admin/reports', ...protectedRoutes, reportRoutes(repositories, now));
   app.use('/api/v1/admin', ...protectedRoutes, adminRoutes(repositories, auth, now), curriculumAdminRouter);
 

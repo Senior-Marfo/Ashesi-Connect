@@ -52,6 +52,7 @@ export type AuditAction =
   | 'ADMIN_REGISTER_VIEWED'
   | 'ADMIN_ELIGIBILITY_VIEWED'
   | 'ADMIN_REPORTS_VIEWED'
+  | 'ADMIN_MESSAGE_SENT'
   | 'ADMIN_REGISTER_EXPORTED';
 
 export interface AuditEntry {
@@ -128,10 +129,49 @@ export interface CurriculumRepository {
   findReviewed(programme: string, track: string, yearGroup: number): Promise<ReviewedCurriculum | undefined>;
 }
 
+export type MessagePriority = 'NORMAL' | 'HIGH';
+export type MessageAudience =
+  | { kind: 'ALL_STUDENTS' }
+  | { kind: 'PROGRAMME'; programme: string }
+  | { kind: 'YEAR_GROUP'; yearGroup: number }
+  | { kind: 'STANDING'; standing: 'RED' | 'YELLOW' | 'GREEN' }
+  | { kind: 'STUDENTS'; studentIds: string[] };
+
+export interface MessageRecord {
+  id: string;
+  title: string;
+  body: string;
+  priority: MessagePriority;
+  audience: MessageAudience;
+  senderId: string;
+  sentAt: Date;
+  recipientCount: number;
+}
+
+export interface InboxItem {
+  id: string;
+  title: string;
+  body: string;
+  priority: MessagePriority;
+  sentAt: Date;
+  readAt?: Date;
+}
+
+export interface MessageRepository {
+  /** Stores the message and one receipt per recipient (delivery to the in-app inbox). */
+  send(message: Omit<MessageRecord, 'id' | 'recipientCount'>, recipientIds: string[]): Promise<MessageRecord>;
+  inbox(studentId: string, limit: number): Promise<InboxItem[]>;
+  unreadCount(studentId: string): Promise<number>;
+  /** Marks one message, or every message when no ID is given, as read; returns how many changed. */
+  markRead(studentId: string, messageId?: string): Promise<number>;
+  listSent(limit: number): Promise<Array<MessageRecord & { readCount: number }>>;
+}
+
 export interface Repositories {
   users: UserRepository;
   refreshTokens: RefreshTokenRepository;
   auditLog: AuditLogRepository;
   students: StudentRepository;
   curricula: CurriculumRepository;
+  messages: MessageRepository;
 }

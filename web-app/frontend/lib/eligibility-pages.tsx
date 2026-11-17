@@ -1,6 +1,6 @@
 'use client';
 import type { ReactNode } from 'react';
-import { AppShell, FullPageLoading, Notice, STUDENT_NAV, SkeletonRows } from '../components/app-shell';
+import { AppShell, FullPageLoading, Notice, SkeletonRows, useStudentNav } from '../components/app-shell';
 import type { Eligibility } from './api';
 import { useRequireRole, useSession } from './session';
 import { useLoad } from './use-load';
@@ -10,9 +10,10 @@ export function StudentEligibilityPage({ title, eyebrow, children }: { title: st
   const session = useRequireRole('STUDENT');
   const { api } = useSession();
   const load = useLoad(() => api.myEligibility(), Boolean(session), 'me');
+  const nav = useStudentNav();
   if (!session) return <FullPageLoading />;
   return (
-    <AppShell eyebrow={eyebrow} title={title} nav={STUDENT_NAV}>
+    <AppShell eyebrow={eyebrow} title={title} nav={nav}>
       {load.status === 'loading' && <SkeletonRows rows={6} />}
       {load.status === 'error' && <Notice tone="error">Your graduation status could not be loaded. Refresh the page, and contact the Registry if this continues.</Notice>}
       {load.status === 'ready' && children(load.data)}
