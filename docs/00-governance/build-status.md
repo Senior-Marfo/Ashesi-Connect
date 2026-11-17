@@ -28,7 +28,7 @@ This branch is under active development and MUST NOT be deployed as a university
 ## Blocking work
 - Confirm the first green run of the CI `backend-mongodb` job; it has not run in the development container, which cannot download MongoDB.
 - Emailing reset notices and message copies (needs SMTP).
-- Signed-in part of the post-deploy smoke test: anonymous checks passed on 2026-11-17. The signed-in checks need the `SMOKE_*` repository secrets and a run of the manual **Post-deploy smoke test** workflow.
+- Signed-in part of the post-deploy smoke test: anonymous checks passed on 2026-11-17. The signed-in checks still need a run of the manual **Post-deploy smoke test** workflow, which uses the seeded accounts and their existing secrets.
 - Verified workbook ingestion, curriculum versioning, elective and track rules, and all eligibility cases.
 - Loading the official 2028 curriculum (needs `Degree_Audit_2028.xlsx` and Registry review) so real students get a standing. Then: imports, messaging, PDF exports, mobile app and deployment.
 - Registry confirmation of which courses need a C. Once confirmed, enter them under **Settings → Course pass marks**. Workbook discrepancies are still open.

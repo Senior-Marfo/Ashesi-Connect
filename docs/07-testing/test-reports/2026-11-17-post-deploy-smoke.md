@@ -18,14 +18,18 @@
 
 ## Signed-in checks — still to record
 
-Sign-in, the student's status, admin search, the register and report generation need a live student and admin account. Their passwords are deployment secrets, so they are not run from the development container.
+Sign-in, the student's status, admin search, the register and report generation use the accounts seeded in the earlier deployment session. No new accounts or secrets are needed:
 
-To run them:
+| Role | Account | Password secret (already set for the seeding workflows) |
+|---|---|---|
+| Student | a synthetic student, by default `92800001` (**Load or remove synthetic student records**) | `SYNTHETIC_STUDENT_PASSWORD` |
+| Admin | `STF-9001` (**seed-synthetic-staging**) | `DEMO_ADMIN_PASSWORD` |
 
-1. In GitHub, go to **Settings → Secrets and variables → Actions** and add `SMOKE_ADMIN_ID`, `SMOKE_ADMIN_PASSWORD`, `SMOKE_STUDENT_ID` and `SMOKE_STUDENT_PASSWORD`. Use accounts that have already replaced their temporary password, such as a synthetic student and a dedicated smoke-test admin.
-2. Go to **Actions → Post-deploy smoke test (manual only) → Run workflow**.
-3. Copy the table from the run summary into a new dated report in this folder.
+Go to **Actions → Post-deploy smoke test (manual only) → Run workflow**. You can change the IDs there, and a blank ID skips that role. Copy the table from the run summary into a new dated report in this folder.
+
+- If an account's password was changed after seeding, its secret no longer matches. Sign-in then fails once and the remaining checks for that role are skipped. One failed attempt cannot lock the account.
+- If the live database is not the staging database, `STF-9001` may not exist. Enter another admin ID whose password matches `DEMO_ADMIN_PASSWORD`, or leave the field blank.
 
 The same script passed all 15 checks, signed-in ones included, against the local demo server (`npm run dev:demo`) on 2026-11-17.
 
-Each run adds sign-in records and one failed sign-in for an account that doesn't exist to the audit log. It changes no student data.
+Each run adds sign-in records and one failed sign-in for an account that doesn't exist to the audit log. It changes no student data, accounts or passwords.

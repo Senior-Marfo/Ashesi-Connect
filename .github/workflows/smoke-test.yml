@@ -8,6 +8,16 @@ on:
         type: string
         required: true
         default: https://ashesi-graduation-tracker.onrender.com
+      student_id:
+        description: 'Seeded synthetic student (password: SYNTHETIC_STUDENT_PASSWORD secret); blank skips student checks'
+        type: string
+        required: false
+        default: '92800001'
+      admin_id:
+        description: 'Seeded staging admin (password: DEMO_ADMIN_PASSWORD secret); blank skips admin checks'
+        type: string
+        required: false
+        default: STF-9001
 
 permissions:
   contents: read
@@ -25,11 +35,11 @@ jobs:
       - name: Run smoke test
         env:
           SMOKE_BASE_URL: ${{ inputs.base_url }}
-          # Optional repository secrets; without them only the anonymous checks run.
-          SMOKE_ADMIN_ID: ${{ secrets.SMOKE_ADMIN_ID }}
-          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
-          SMOKE_STUDENT_ID: ${{ secrets.SMOKE_STUDENT_ID }}
-          SMOKE_STUDENT_PASSWORD: ${{ secrets.SMOKE_STUDENT_PASSWORD }}
+          # Reuses the credentials the seeding workflows already use; no new secrets.
+          SMOKE_STUDENT_ID: ${{ inputs.student_id }}
+          SMOKE_STUDENT_PASSWORD: ${{ secrets.SYNTHETIC_STUDENT_PASSWORD }}
+          SMOKE_ADMIN_ID: ${{ inputs.admin_id }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.DEMO_ADMIN_PASSWORD }}
         run: |
           set -o pipefail
           node web-app/backend/scripts/smoke-test.mjs | tee -a "$GITHUB_STEP_SUMMARY"

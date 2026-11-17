@@ -10,8 +10,8 @@ export type ElectiveRule = {
   /** Pass marks for individual courses in the pool, overriding `minimumGrade`. */
   courseMinimums?: Partial<Record<string, Grade>>;
 };
-/** Pass mark for an elective when neither the course nor its pool sets one (assumptions log: provisional D+). */
-export const ELECTIVE_DEFAULT_MINIMUM: Grade = 'D+';
+/** Pass mark for an elective when neither the course nor its pool sets one (unchanged engine behaviour; see requirements-discrepancies.md). */
+export const ELECTIVE_DEFAULT_MINIMUM: Grade = 'D';
 export const electiveMinimum = (pool: ElectiveRule, courseCode: string): Grade => pool.courseMinimums?.[courseCode] ?? pool.minimumGrade ?? ELECTIVE_DEFAULT_MINIMUM;
 export type ProgrammeRules = {
   programme: string; track: string; requiredCourses: CourseRule[];

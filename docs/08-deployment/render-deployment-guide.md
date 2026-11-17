@@ -67,7 +67,7 @@ You can also run it from a computer with Node.js 22: in `web-app/backend`, run `
 
 ## Smoke test after each deploy
 
-**Automated:** run **Actions → Post-deploy smoke test (manual only)**. It runs `web-app/backend/scripts/smoke-test.mjs`: health, the static client, security headers, anonymous refusal, then student and admin sign-in, status, search, register and reports if the `SMOKE_*` secrets are set. To run it locally: `SMOKE_BASE_URL=<origin> node web-app/backend/scripts/smoke-test.mjs`. Add `NODE_USE_ENV_PROXY=1` behind an HTTPS proxy.
+**Automated:** run **Actions → Post-deploy smoke test (manual only)**. It runs `web-app/backend/scripts/smoke-test.mjs`: health, the static client, security headers, anonymous refusal, then student and admin sign-in, status, search, register and reports. These use the seeded accounts (synthetic student `92800001` with `SYNTHETIC_STUDENT_PASSWORD`, staging admin `STF-9001` with `DEMO_ADMIN_PASSWORD`); the IDs can be changed when starting the run. To run it locally: `SMOKE_BASE_URL=<origin> node web-app/backend/scripts/smoke-test.mjs`. Add `NODE_USE_ENV_PROXY=1` behind an HTTPS proxy.
 
 **By hand,** for what the script cannot see:
 

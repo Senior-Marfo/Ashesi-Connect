@@ -17,13 +17,15 @@ Master build prompt §3.4 and §6.4: "Minimum passing grade is per course … Pr
 ## Rules
 
 - **Which pass mark applies:** the catalogue entry if there is one, otherwise the curriculum rule's own mark, otherwise D+. A catalogue entry can raise a curriculum's D+ to C or lower its C to D+.
-- **Electives:** a catalogue entry applies to that course inside an elective pool (`courseMinimums` in `ElectiveRule`). Other pool courses use the pool's own mark, or D+.
+- **Electives:** a catalogue entry applies to that course inside an elective pool (`courseMinimums` in `ElectiveRule`). Other pool courses use the pool's own mark, or the engine's existing default of D.
 - **Register and reports** do not read curricula, so they use the catalogue entry or D+. The MongoDB course-summary aggregation chooses the passing grades for each course with a `$switch` built from the catalogue.
 - Course codes are normalised: `math141` becomes `MATH 141` and must match `^[A-Z]{2,5} \d{3}[A-Z]?$`, the same rule as CSV imports.
 
-## Behaviour change
+## Compatibility with the earlier deployment session
 
-Elective pools without a pass mark used to pass a D in the audit engine, while the register and reports counted a D as a fail. Electives now default to D+ like every other course. A student with a D in an elective that has no pass mark now has that elective slot open. This matches the documented provisional rule (`assumptions-log.md`).
+With no pass marks set, the system behaves exactly as before. Searches (apart from the new match label), the register, reports, each student's audit and the student self-view were compared on 600 synthetic students between `main` (`f182094`) and this branch, and the output is byte-for-byte identical. Seeded accounts, seed scripts and existing collections are untouched. The only database additions are the new `passmarks` and `studentnotes` collections.
+
+The engine's elective default stays at **D**, as before. The register and reports use D+, as before. This inconsistency predates this work and is recorded in `requirements-discrepancies.md`.
 
 ## Not done, on purpose
 
@@ -32,7 +34,7 @@ There is no `catalogue-pass-thresholds.json` seed file. No confirmed list of C c
 ## Evidence
 
 - Unit tests: grade comparison, catalogue lookup with the D+ fallback, query grouping, override of required and elective courses, and an end-to-end engine result.
-- Requirement-breakdown test updated for the D+ elective default, plus a per-course elective mark.
+- The existing requirement-breakdown tests are unchanged, with one added test for a per-course elective mark.
 - Report tests for pass rates and failures under a C mark.
 - Repository contract tests for the pass-mark store and for course summaries under C marks (also against MongoDB in CI).
 - API tests: a C mark turns a D+ into a failure in the audit, register and reports, and removing it restores D+; validation; audit entries; RBAC for the three routes.

@@ -6,8 +6,9 @@
  *   SMOKE_ADMIN_ID / SMOKE_ADMIN_PASSWORD        optional; enables the admin checks
  *   SMOKE_STUDENT_ID / SMOKE_STUDENT_PASSWORD    optional; enables the student checks
  *
- * Accounts must already have changed their temporary password. Prints a Markdown table
- * (never IDs, passwords or tokens) and exits 1 if any check fails.
+ * Uses the already-seeded accounts and signs in to each at most once per run, so a wrong
+ * password cannot lock an account. Accounts must not need a password change. Prints a
+ * Markdown table (never IDs, passwords or tokens) and exits 1 if any check fails.
  */
 const base = (process.env.SMOKE_BASE_URL ?? '').replace(/\/+$/, '');
 if (!/^https?:\/\/[\w.-]+(:\d+)?$/.test(base)) {
