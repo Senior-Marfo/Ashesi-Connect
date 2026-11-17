@@ -36,6 +36,10 @@ export function createMongoRepositories(): Repositories {
         const unset = Object.entries(changes).filter(([, value]) => value === undefined).map(([key]) => [key, 1]);
         const set = Object.fromEntries(Object.entries(changes).filter(([, value]) => value !== undefined));
         await User.updateOne({ _id: id }, { $set: set, ...(unset.length ? { $unset: Object.fromEntries(unset) } : {}) });
+      },
+      async createIfAbsent(user) {
+        const result = await User.updateOne({ identifier: user.identifier }, { $setOnInsert: user }, { upsert: true });
+        return result.upsertedCount === 1;
       }
     },
     refreshTokens: {

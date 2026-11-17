@@ -34,6 +34,14 @@ export function repositoryContract(name: string, harness: ContractHarness) {
       expect(cleared?.lockedUntil).toBeUndefined();
     });
 
+    it('creates a user only when the identifier is free', async () => {
+      const { users } = harness.repositories();
+      const admin = { identifier: 'STF-2001', passwordHash: 'h', role: 'ADMIN' as const, forcePasswordChange: true, failedLogins: 0 };
+      expect(await users.createIfAbsent(admin)).toBe(true);
+      expect(await users.createIfAbsent({ ...admin, passwordHash: 'other' })).toBe(false);
+      expect(await users.findByIdentifier('STF-2001')).toMatchObject({ role: 'ADMIN', passwordHash: 'h', forcePasswordChange: true });
+    });
+
     it('revokes a refresh token exactly once and revokes families and users', async () => {
       const { refreshTokens } = harness.repositories();
       const expiresAt = new Date(Date.now() + 60_000);

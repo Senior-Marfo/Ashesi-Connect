@@ -21,6 +21,11 @@ export function createMemoryRepositories(): { repositories: Repositories; store:
       async update(id, changes) {
         const user = store.users.find(candidate => candidate.id === id);
         if (user) Object.assign(user, changes);
+      },
+      async createIfAbsent(user) {
+        if (store.users.some(existing => existing.identifier === user.identifier)) return false;
+        store.users.push({ ...user, id: `user-${store.users.length + 1}` });
+        return true;
       }
     },
     refreshTokens: {

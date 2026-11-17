@@ -16,7 +16,11 @@ const envSchema = z.object({
   LOGIN_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
   LOGIN_RATE_LIMIT_WINDOW_SECONDS: durationSeconds.default(15 * 60),
   LOCKOUT_THRESHOLD: z.coerce.number().int().positive().default(5),
-  LOCKOUT_MINUTES: z.coerce.number().int().positive().default(15)
+  LOCKOUT_MINUTES: z.coerce.number().int().positive().default(15),
+  STATIC_DIR: z.string().min(1).optional(),
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).optional(),
+  SEED_ADMIN_STAFF_ID: z.string().trim().min(1).optional(),
+  SEED_ADMIN_PASSWORD: z.string().min(1).optional()
 });
 
 export interface AppConfig {
@@ -32,13 +36,21 @@ export interface AppConfig {
   staffIdPattern: RegExp;
   loginRateLimit: { max: number; windowMs: number };
   lockout: { threshold: number; durationMs: number };
+  /** Built web client served from the API origin, so the refresh cookie stays first-party. */
+  staticDir?: string;
+  trustProxyHops: number;
+  bootstrapAdmin?: { identifier: string; password: string };
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
-  const parsed = envSchema.parse(env);
+  // Blank values (e.g. `KEY=` in .env or an empty dashboard field) mean "use the default".
+  const parsed = envSchema.parse(Object.fromEntries(Object.entries(env).filter(([, value]) => value !== '')));
   const production = parsed.NODE_ENV === 'production';
-  const sameSite = parsed.REFRESH_COOKIE_SAMESITE ?? (production ? 'none' : 'lax');
+  const sameSite = parsed.REFRESH_COOKIE_SAMESITE ?? 'strict';
   if (production && !parsed.MONGODB_URI) throw new Error('MONGODB_URI is required in production');
+  if (Boolean(parsed.SEED_ADMIN_STAFF_ID) !== Boolean(parsed.SEED_ADMIN_PASSWORD)) {
+    throw new Error('Set both SEED_ADMIN_STAFF_ID and SEED_ADMIN_PASSWORD, or neither');
+  }
   return {
     env: parsed.NODE_ENV,
     port: parsed.PORT,
@@ -51,6 +63,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     studentIdPattern: new RegExp(parsed.STUDENT_ID_REGEX),
     staffIdPattern: new RegExp(parsed.STAFF_ID_REGEX),
     loginRateLimit: { max: parsed.LOGIN_RATE_LIMIT_MAX, windowMs: parsed.LOGIN_RATE_LIMIT_WINDOW_SECONDS * 1000 },
-    lockout: { threshold: parsed.LOCKOUT_THRESHOLD, durationMs: parsed.LOCKOUT_MINUTES * 60_000 }
+    lockout: { threshold: parsed.LOCKOUT_THRESHOLD, durationMs: parsed.LOCKOUT_MINUTES * 60_000 },
+    staticDir: parsed.STATIC_DIR,
+    trustProxyHops: parsed.TRUST_PROXY_HOPS ?? (production ? 1 : 0),
+    bootstrapAdmin: parsed.SEED_ADMIN_STAFF_ID && parsed.SEED_ADMIN_PASSWORD
+      ? { identifier: parsed.SEED_ADMIN_STAFF_ID, password: parsed.SEED_ADMIN_PASSWORD }
+      : undefined
   };
 }

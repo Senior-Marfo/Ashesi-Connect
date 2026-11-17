@@ -16,6 +16,8 @@ export interface UserRepository {
   findByIdentifier(identifier: string): Promise<UserRecord | undefined>;
   findById(id: string): Promise<UserRecord | undefined>;
   update(id: string, changes: Partial<Omit<UserRecord, 'id' | 'identifier' | 'role'>>): Promise<void>;
+  /** Inserts a user unless the identifier exists; resolves whether a user was created. */
+  createIfAbsent(user: Omit<UserRecord, 'id'>): Promise<boolean>;
 }
 
 export interface RefreshTokenRecord {

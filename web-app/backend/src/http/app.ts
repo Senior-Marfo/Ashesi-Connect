@@ -2,6 +2,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { type ErrorRequestHandler, type Express } from 'express';
 import helmet from 'helmet';
+import { join, resolve } from 'node:path';
 import type { AppConfig } from '../config.js';
 import { AuthError, AuthService } from '../auth/service.js';
 import type { Repositories } from '../repositories/types.js';
@@ -28,9 +29,24 @@ export function createApp({ config, repositories, isHealthy }: AppDependencies):
   const app = express();
 
   app.disable('x-powered-by');
-  app.set('trust proxy', config.env === 'production' ? 1 : false);
+  app.set('trust proxy', config.trustProxyHops > 0 ? config.trustProxyHops : false);
   app.use(requestId());
-  app.use(helmet());
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        // Next.js static export bootstraps hydration with inline scripts.
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:'],
+        connectSrc: ["'self'"],
+        frameAncestors: ["'none'"],
+        formAction: ["'self'"],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"]
+      }
+    }
+  }));
   app.use(cors({
     origin: config.corsOrigins,
     credentials: true,
@@ -50,6 +66,8 @@ export function createApp({ config, repositories, isHealthy }: AppDependencies):
   app.use('/api/v1/students', ...protectedRoutes, studentRoutes(repositories));
   app.use('/api/v1/admin', ...protectedRoutes, adminRoutes(repositories, auth));
 
+  if (config.staticDir) serveWebClient(app, resolve(config.staticDir));
+
   app.use((_req, res) => { res.status(404).json({ error: 'NOT_FOUND' }); });
 
   const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
@@ -67,4 +85,20 @@ export function createApp({ config, repositories, isHealthy }: AppDependencies):
   app.use(errorHandler);
 
   return app;
+}
+
+function serveWebClient(app: Express, root: string): void {
+  app.use(express.static(root, {
+    redirect: true,
+    setHeaders: (res, path) => {
+      res.setHeader('cache-control', path.includes(`${join('_next', 'static')}`) ? 'public, max-age=31536000, immutable' : 'no-cache');
+    }
+  }));
+  app.use((req, res, next) => {
+    if ((req.method !== 'GET' && req.method !== 'HEAD') || req.path.startsWith('/api/') || req.path === '/health') {
+      next();
+      return;
+    }
+    res.status(404).sendFile(join(root, '404.html'), error => { if (error) next(); });
+  });
 }

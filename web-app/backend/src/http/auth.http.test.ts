@@ -47,16 +47,17 @@ describe('login', () => {
     const cookie = ([] as string[]).concat(response.headers['set-cookie']).find(value => value.startsWith(REFRESH_COOKIE));
     expect(cookie).toMatch(/HttpOnly/);
     expect(cookie).toMatch(/Path=\/api\/v1\/auth/);
-    expect(cookie).toMatch(/SameSite=Lax/);
+    expect(cookie).toMatch(/SameSite=Strict/);
+    expect(cookie).not.toMatch(/Secure/);
     expect(response.headers['cache-control']).toBe('no-store');
   });
 
-  it('marks the cookie Secure with SameSite=None in production', async () => {
+  it('marks the cookie Secure and first-party in production', async () => {
     const { app } = await buildTestApp({ NODE_ENV: 'production', MONGODB_URI: 'mongodb://unused' });
     const response = await login(app, '20260001', STUDENT_PASSWORD);
     const cookie = ([] as string[]).concat(response.headers['set-cookie']).find(value => value.startsWith(REFRESH_COOKIE));
     expect(cookie).toMatch(/Secure/);
-    expect(cookie).toMatch(/SameSite=None/);
+    expect(cookie).toMatch(/SameSite=Strict/);
   });
 
   it('returns the same error for unknown IDs, malformed IDs and wrong passwords', async () => {
