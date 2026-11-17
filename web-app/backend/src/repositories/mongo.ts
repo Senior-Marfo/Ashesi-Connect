@@ -6,7 +6,7 @@ import { CurriculumRecord } from '../models/curriculum.js';
 import { selectCohortCurriculum } from '../domain/eligibility/cohort-selection.js';
 import type { ProgrammeRules } from '../domain/eligibility/programme-audit.js';
 import { passingGradesByCourse } from '../domain/eligibility/pass-marks.js';
-import type { AuditEntry, CourseRecord, CourseSummary, ImportBatch, MessageAudience, MessagePriority, MessageRecord, PassMarkRecord, Repositories, StudentSummary, UserRecord } from './types.js';
+import type { AuditEntry, CourseRecord, CourseSummary, ImportBatch, MessageAudience, MessagePriority, MessageRecord, PassMarkRecord, Repositories, StoredCurriculum, StudentSummary, UserRecord } from './types.js';
 
 function toUser(doc: { _id: unknown; identifier: string; passwordHash: string; role: string; studentId?: string | null; forcePasswordChange?: boolean | null; failedLogins?: number | null; lockedUntil?: Date | null; passwordChangedAt?: Date | null }): UserRecord {
   if (!isRole(doc.role)) throw new Error(`Unknown role on user ${String(doc._id)}`);
@@ -210,6 +210,39 @@ export function createMongoRepositories(): Repositories {
         })));
         const selected = records.find(record => String(record.version) === selection.selectedVersion);
         return selected ? { version: String(selected.version), rules: { ...(selected.rules as ProgrammeRules), verifiedByRegistry: false } } : undefined;
+      },
+      async list() {
+        const docs = await CurriculumRecord.find({}).select('programme track version status validationIssues sourceWorkbookHash -_id')
+          .sort({ programme: 1, track: 1, version: -1 }).limit(200).lean() as unknown as Array<Record<string, unknown>>;
+        return docs.map(doc => ({
+          programme: String(doc.programme), track: String(doc.track), version: String(doc.version),
+          status: doc.status === 'REVIEWED' ? 'REVIEWED' as const : doc.status === 'SUPERSEDED' ? 'SUPERSEDED' as const : 'DRAFT' as const,
+          validationIssues: Array.isArray(doc.validationIssues) ? doc.validationIssues.map(String) : ['INVALID_VALIDATION_ISSUES'],
+          ...(typeof doc.sourceWorkbookHash === 'string' ? { sourceWorkbookHash: doc.sourceWorkbookHash } : {})
+        }));
+      },
+      async markReviewed(programme, track, version, review) {
+        const updated = await CurriculumRecord.findOneAndUpdate(
+          { programme, track, version, status: 'DRAFT', validationIssues: { $size: 0 } },
+          { $set: { status: 'REVIEWED', review, publishedAt: review.reviewedAt } },
+          { new: true, runValidators: true }
+        ).lean();
+        return updated ? this.findVersion(programme, track, version) : undefined;
+      },
+      async findVersion(programme, track, version) {
+        const docs = await CurriculumRecord.find({ programme, track, version }).limit(2).lean();
+        if (docs.length !== 1) return undefined;
+        const doc = docs[0] as unknown as Record<string, unknown>;
+        const review = doc.review as { reviewerId?: string; reviewedAt?: Date; evidenceReference?: string } | undefined;
+        return {
+          programme, track, version,
+          status: doc.status === 'REVIEWED' ? 'REVIEWED' : doc.status === 'SUPERSEDED' ? 'SUPERSEDED' : 'DRAFT',
+          rules: doc.rules as ProgrammeRules,
+          validationIssues: Array.isArray(doc.validationIssues) ? doc.validationIssues.map(String) : ['INVALID_VALIDATION_ISSUES'],
+          sources: Array.isArray(doc.sources) ? (doc.sources as StoredCurriculum['sources']).map(({ sourceUrl, sourceKind, retrievedAt, effectiveYear, contentHash }) => ({ sourceUrl, sourceKind, retrievedAt, effectiveYear, contentHash })) : [],
+          ...(typeof doc.sourceWorkbookHash === 'string' ? { sourceWorkbookHash: doc.sourceWorkbookHash } : {}),
+          ...(review?.reviewerId && review.reviewedAt ? { review: { reviewerId: review.reviewerId, reviewedAt: review.reviewedAt, evidenceReference: review.evidenceReference ?? '' } } : {})
+        };
       }
     },
     students: {

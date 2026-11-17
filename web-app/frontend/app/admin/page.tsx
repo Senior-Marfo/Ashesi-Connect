@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { ADMIN_NAV, AppShell, FullPageLoading, Notice, SkeletonRows } from '../../components/app-shell';
-import { CurriculumCatalogue, type CatalogueLoad } from '../../components/curriculum-catalogue';
 import { RequirementTree } from '../../components/requirements';
 import { StatusCard } from '../../components/standing';
 import { RecordEditor } from '../../components/record-editor';
@@ -37,7 +36,6 @@ export default function AdminPage() {
       setTemporary({ studentId, tone: 'error', text: cause instanceof ApiError && cause.code === 'USER_NOT_FOUND' ? `${studentId} has no sign-in account.` : 'A temporary password could not be issued.' });
     }
   }
-  const [catalogue, setCatalogue] = useState<CatalogueLoad>({ status: 'loading' });
   const [recent, setRecent] = useState<RecentStudent[]>([]);
   const [exportError, setExportError] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -82,15 +80,6 @@ export default function AdminPage() {
       setSelected(requested);
     }
   }, []);
-
-  useEffect(() => {
-    if (!session) return;
-    let active = true;
-    api.curricula()
-      .then(({ curricula }) => { if (active) setCatalogue({ status: 'ready', curricula }); })
-      .catch(() => { if (active) setCatalogue({ status: 'error' }); });
-    return () => { active = false; };
-  }, [api, session]);
 
   useEffect(() => { setEditing(false); }, [selected]);
 
@@ -199,7 +188,6 @@ export default function AdminPage() {
           )}
         </section>
       </div>
-      <div className="no-print"><CurriculumCatalogue load={catalogue} /></div>
     </AppShell>
   );
 }

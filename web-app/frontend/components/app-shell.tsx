@@ -21,6 +21,7 @@ export const ADMIN_NAV: NavItem[] = [
   { href: '/admin/reports/', label: 'Reports' },
   { href: '/admin/messages/', label: 'Messages' },
   { href: '/admin/imports/', label: 'Imports' },
+  { href: '/admin/curriculum/', label: 'Curriculum' },
   { href: '/admin/settings/', label: 'Settings' }
 ];
 

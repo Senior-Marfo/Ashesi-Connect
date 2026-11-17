@@ -59,7 +59,6 @@ test('admin finds a student by ID prefix and opens their record', async ({ page 
   await expect(page.getByRole('heading', { name: 'Kofi Synthetic Boateng' })).toBeVisible();
   await expect(page.getByRole('row', { name: /ECON 101/ })).toContainText('Incomplete');
   await expect(page.getByRole('region', { name: 'Graduation status' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Curriculum catalogue' })).toBeVisible();
 });
 
 test('admin finds a student by a misspelt name, keeps a note, sees messages and prints the audit', async ({ page }, testInfo) => {
@@ -359,4 +358,25 @@ test('a student reads their profile and reaches the password change', async ({ p
   await expect(page.locator('.facts')).toContainText('Standard');
   await page.getByRole('link', { name: 'Change password' }).click();
   await expect(page.getByRole('heading', { name: 'Change password' })).toBeVisible();
+});
+
+test('admin inspects a synthetic curriculum draft and reviews it with evidence', async ({ page }, testInfo) => {
+  await signIn(page, 'STF-1001');
+  await page.getByRole('link', { name: 'Curriculum' }).click();
+  await expect(page.getByRole('heading', { name: 'Curriculum catalogue' })).toBeVisible();
+  await page.getByRole('button', { name: 'View CS standard SYNTHETIC-DEMO-1' }).click();
+  const review = page.getByRole('region', { name: /CS · standard · SYNTHETIC-DEMO-1/ });
+  await expect(review.getByRole('row', { name: /MATH 141/ })).toContainText('C');
+  await expect(review.getByText(/AS 101 \(African Studies\)/)).toBeVisible();
+
+  // The demo server is shared by both projects: the desktop run reviews the draft, the phone run sees it reviewed.
+  if (testInfo.project.name === 'desktop') {
+    await review.getByLabel('Evidence of Registry approval').fill('Synthetic demo memo 1');
+    await review.getByLabel(/I have checked these requirements/).check();
+    page.once('dialog', dialog => void dialog.accept());
+    await review.getByRole('button', { name: 'Mark as reviewed' }).click();
+    await expect(review.getByText('CS standard SYNTHETIC-DEMO-1 is now reviewed.')).toBeVisible();
+  }
+  await expect(review.getByText(/Reviewed by STF-1001/)).toContainText('Synthetic demo memo 1');
+  await expect(page.getByRole('row', { name: /SYNTHETIC-DEMO-1/ })).toContainText('Reviewed');
 });

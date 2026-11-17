@@ -42,9 +42,13 @@ test('admin screens', async ({ page }) => {
   await page.getByRole('button', { name: /20280002/ }).click();
   await expect(page.getByRole('heading', { name: 'Kofi Synthetic Boateng' })).toBeVisible();
   await expectAccessible(page, 'Student lookup with a record open');
-  for (const [link, heading] of [['Register', 'Student register'], ['Reports', 'Reports'], ['Messages', 'Messages'], ['Imports', 'Imports'], ['Settings', 'Settings']]) {
+  for (const [link, heading] of [['Register', 'Student register'], ['Reports', 'Reports'], ['Messages', 'Messages'], ['Imports', 'Imports'], ['Curriculum', 'Curriculum'], ['Settings', 'Settings']]) {
     await page.getByRole('link', { name: link, exact: true }).click();
     await expect(page.getByRole('heading', { name: heading, level: 1 })).toBeVisible();
     await expectAccessible(page, link);
   }
+  await page.getByRole('link', { name: 'Curriculum', exact: true }).click();
+  await page.getByRole('button', { name: 'View CS standard SYNTHETIC-DEMO-1' }).click();
+  await expect(page.getByRole('row', { name: /MATH 141/ })).toBeVisible();
+  await expectAccessible(page, 'Curriculum draft open');
 });

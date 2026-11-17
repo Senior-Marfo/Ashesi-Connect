@@ -68,7 +68,8 @@ export type AuditAction =
   | 'ADMIN_STUDENT_UPDATED'
   | 'ADMIN_COURSE_RECORD_UPDATED'
   | 'ADMIN_COURSE_RECORD_REMOVED'
-  | 'ADMIN_MESSAGE_CANCELLED';
+  | 'ADMIN_MESSAGE_CANCELLED'
+  | 'ADMIN_CURRICULUM_REVIEWED';
 
 export interface AuditEntry {
   action: AuditAction;
@@ -144,9 +145,31 @@ export interface ReviewedCurriculum {
   rules: import('../domain/eligibility/programme-audit.js').ProgrammeRules;
 }
 
+/** A stored curriculum version, as a reviewer sees it. */
+export interface StoredCurriculum {
+  programme: string;
+  track: string;
+  version: string;
+  status: 'DRAFT' | 'REVIEWED' | 'SUPERSEDED';
+  rules: import('../domain/eligibility/programme-audit.js').ProgrammeRules;
+  validationIssues: string[];
+  sources: import('../domain/eligibility/curriculum-version.js').CurriculumSource[];
+  sourceWorkbookHash?: string;
+  review?: { reviewerId: string; reviewedAt: Date; evidenceReference: string };
+}
+
 export interface CurriculumRepository {
   /** The single Registry-reviewed, issue-free curriculum for this programme, track and cohort, if any. */
   findReviewed(programme: string, track: string, yearGroup: number): Promise<ReviewedCurriculum | undefined>;
+  /** Exactly one stored version, or undefined when there is none (or, defensively, more than one). */
+  findVersion(programme: string, track: string, version: string): Promise<StoredCurriculum | undefined>;
+  /**
+   * Marks a DRAFT with no validation issues as REVIEWED in one conditional update, so two
+   * reviewers cannot both succeed; resolves undefined when the version is no longer such a draft.
+   */
+  markReviewed(programme: string, track: string, version: string, review: NonNullable<StoredCurriculum['review']>): Promise<StoredCurriculum | undefined>;
+  /** Every stored version without its rules, by programme, track and newest version first (at most 200). */
+  list(): Promise<Array<Pick<StoredCurriculum, 'programme' | 'track' | 'version' | 'status' | 'validationIssues' | 'sourceWorkbookHash'>>>;
 }
 
 export type MessagePriority = 'NORMAL' | 'HIGH';

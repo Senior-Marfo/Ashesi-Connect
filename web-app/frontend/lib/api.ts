@@ -51,6 +51,20 @@ export interface CurriculumSummary {
   updatedAt?: string;
 }
 
+export interface CurriculumKey { programme: string; track: string; version: string }
+export interface StoredCurriculum extends CurriculumKey {
+  status: CurriculumSummary['status'];
+  validationIssues: string[];
+  sourceWorkbookHash?: string;
+  sources: Array<{ sourceUrl: string; sourceKind: string; retrievedAt: string; effectiveYear: number; contentHash: string }>;
+  rules: {
+    totalCredits: number;
+    requiredCourses: Array<{ courseCode: string; credits: number; minimumGrade: string; category: string }>;
+    electivePools: Array<{ category: string; creditsRequired: number; courseCodes: string[]; africanStudiesMinimum?: number; africanStudiesCodes?: string[]; minimumGrade?: string }>;
+  };
+  review?: { reviewerId: string; reviewerIdentifier?: string; reviewedAt: string; evidenceReference: string };
+}
+
 export type StandingLevel = 'GREEN' | 'YELLOW' | 'RED';
 export type StandingReason =
   | 'REQUIREMENTS_MET' | 'ON_TRACK' | 'FAILED_COURSE_TO_RETAKE' | 'INCOMPLETE_TO_RESOLVE' | 'HEAVY_LOAD_NEEDED'
@@ -265,6 +279,9 @@ export function createApiClient(baseUrl: string, fetchImpl: Fetch = (input, init
     myRecord: () => authorised<StudentRecord>('/api/v1/students/me'),
     myEligibility: () => authorised<Eligibility>('/api/v1/students/me/eligibility'),
     studentEligibility: (studentId: string) => authorised<Eligibility>(`/api/v1/admin/students/${encodeURIComponent(studentId)}/eligibility`),
+    curriculumDetail: (key: CurriculumKey) => authorised<{ curriculum: StoredCurriculum }>(`/api/v1/admin/curricula/detail?${new URLSearchParams({ ...key })}`),
+    curriculumReviewAccess: () => authorised<{ enabled: boolean; allowed: boolean }>('/api/v1/admin/curricula/review-access'),
+    reviewCurriculum: (key: CurriculumKey, evidenceReference: string) => authorised<{ curriculum: StoredCurriculum }>('/api/v1/admin/curricula/review', { method: 'POST', body: JSON.stringify({ ...key, evidenceReference }) }),
     curricula: () => authorised<{ curricula: CurriculumSummary[] }>('/api/v1/admin/curricula'),
     register: (query: RegisterQuery) => authorised<RegisterPage>(`/api/v1/admin/register?${registerParams(query)}`),
     inbox: () => authorised<{ messages: InboxItem[]; unread: number }>('/api/v1/students/me/messages'),

@@ -9,6 +9,9 @@ repositoryContract('in-memory', {
   async addCourses(studentId, courses) {
     current.store.courses.set(studentId, [...(current.store.courses.get(studentId) ?? []), ...courses]);
   },
+  async addCurriculum(curriculum) {
+    current.store.curricula.push({ ...structuredClone(curriculum), yearGroup: 2028 });
+  },
   async reset() {
     current = createMemoryRepositories();
     current.store.users.push({ id: 'u1', identifier: '20280001', passwordHash: 'hash', role: 'STUDENT', studentId: '20280001', forcePasswordChange: false, failedLogins: 0 });

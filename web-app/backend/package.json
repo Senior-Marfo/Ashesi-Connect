@@ -9,7 +9,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "dev:demo": "tsx src/testing/demo-server.ts",
-    "test:integration": "MONGO_INTEGRATION=1 vitest run src/repositories src/seed",
+    "test:integration": "MONGO_INTEGRATION=1 vitest run src/repositories src/seed src/routes",
     "seed:synthetic": "tsx scripts/seed-synthetic-records.ts"
   },
   "dependencies": {

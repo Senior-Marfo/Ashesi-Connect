@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { CourseRecord, Repositories } from './types.js';
+import type { CourseRecord, Repositories, StoredCurriculum } from './types.js';
 
 export interface ContractHarness {
   repositories: () => Repositories;
   /** Clears all data and inserts one student account, student record and course; returns the user's ID. */
   reset: () => Promise<string>;
   addCourses: (studentId: string, courses: CourseRecord[]) => Promise<void>;
+  addCurriculum: (curriculum: StoredCurriculum) => Promise<void>;
 }
 
 /** Behaviour every Repositories implementation must share; run against memory and MongoDB. */
@@ -224,6 +225,26 @@ export function repositoryContract(name: string, harness: ContractHarness) {
       expect(listed[1]).toEqual(first);
       expect(await notes.listFor('20280001', 1)).toHaveLength(1);
       expect(await notes.listFor('nobody', 10)).toEqual([]);
+    });
+
+    it('finds one stored curriculum version with its rules, issues and sources', async () => {
+      const { curricula } = harness.repositories();
+      const draft: StoredCurriculum = {
+        programme: 'CS', track: 'standard', version: '2028-v1', status: 'DRAFT', validationIssues: [],
+        rules: { programme: 'CS', track: 'standard', totalCredits: 1, verifiedByRegistry: false, requiredCourses: [{ courseCode: 'CS 111', credits: 1, minimumGrade: 'D+', category: 'Core' }], electivePools: [] },
+        sources: [{ sourceUrl: 'https://registry.example.edu/audit.xlsx', sourceKind: 'REGISTRY_PROVIDED_WORKBOOK', retrievedAt: '2026-11-17T00:00:00Z', effectiveYear: 2028, contentHash: 'abc' }],
+        sourceWorkbookHash: 'a'.repeat(64)
+      };
+      await harness.addCurriculum(draft);
+      expect(await curricula.findVersion('CS', 'standard', '2028-v1')).toEqual(draft);
+      expect(await curricula.findVersion('CS', 'standard', '2028-v2')).toBeUndefined();
+      expect(await curricula.findVersion('BA', 'standard', '2028-v1')).toBeUndefined();
+      expect(await curricula.list()).toEqual([{ programme: 'CS', track: 'standard', version: '2028-v1', status: 'DRAFT', validationIssues: [], sourceWorkbookHash: 'a'.repeat(64) }]);
+
+      const review = { reviewerId: 'admin-1', reviewedAt: new Date('2026-11-18T00:00:00Z'), evidenceReference: 'Registry memo 7' };
+      expect(await curricula.markReviewed('CS', 'standard', '2028-v1', review)).toMatchObject({ status: 'REVIEWED', review });
+      expect(await curricula.markReviewed('CS', 'standard', '2028-v1', review)).toBeUndefined();
+      expect(await curricula.findReviewed('CS', 'standard', 2028)).toMatchObject({ version: '2028-v1' });
     });
 
     it('reads students and courses, treating search input literally', async () => {

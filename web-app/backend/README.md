@@ -61,6 +61,8 @@ npm test               # unit and HTTP tests; no database needed
 | GET | `/api/v1/admin/reports` | `report:read`; filters `programme`, `yearGroup` |
 | GET | `/api/v1/admin/reports/{cohorts,programmes,courses}.csv` | `report:read`; same filters |
 | GET | `/api/v1/admin/curricula` | `curriculum:read` |
+| GET | `/api/v1/admin/curricula/detail?programme&track&version` | `curriculum:read`; one version's full rules, issues, sources and review |
+| GET | `/api/v1/admin/curricula/review-access` | `curriculum:read`; whether review is on and the admin is a listed reviewer |
 | POST | `/api/v1/admin/curricula/review` | `curriculum:review` + `ENABLE_CURRICULUM_REVIEW=yes` + allowlisted in `CURRICULUM_REVIEWER_IDS` |
 
 See `docs/06-sprints/sprint-02/US-01-secure-login.md` for the security design and `docs/02-requirements/rbac-permission-matrix.md` for permissions.
