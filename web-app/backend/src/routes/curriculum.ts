@@ -158,6 +158,17 @@ curriculumStudentRouter.get('/me/academic-preview', requirePermission('student:r
 /** Admin curriculum routes. Reviews are audit-logged; everything else is read-only. */
 export function curriculumAdminRoutes(repositories: Repositories, now: () => Date): Router {
  const router = Router();
+ /**
+  * CURRICULUM_REVIEWER_IDS may list internal account IDs or staff IDs (STF-0001). A staff ID is
+  * matched against the stored account, never the request, and only for admin accounts. Fails closed.
+  */
+ const isReviewer = async (userId: string | undefined): Promise<boolean> => {
+  const configured = process.env.CURRICULUM_REVIEWER_IDS;
+  if (!userId) return false;
+  if (isAllowedCurriculumReviewer(userId, configured)) return true;
+  const account = await repositories.users.findById(userId).catch(() => undefined);
+  return account?.role === 'ADMIN' && isAllowedCurriculumReviewer(account.identifier, configured);
+ };
 
 /**
  * Administrator review is deliberately non-certifying. Only a draft with
@@ -173,7 +184,7 @@ router.post('/curricula/review', requirePermission('curriculum:review'), async (
  const parsed = reviewRequestSchema.safeParse(req.body);
  if (!parsed.success) { res.status(400).json({ error:'INVALID_INPUT' }); return; }
  if (!req.auth?.sub) { res.status(401).json({ error:'UNAUTHORIZED' }); return; }
- if (!isAllowedCurriculumReviewer(req.auth.sub, process.env.CURRICULUM_REVIEWER_IDS)) {
+ if (!(await isReviewer(req.auth.sub))) {
   res.status(403).json({ error:'REVIEWER_NOT_AUTHORIZED' }); return;
  }
  try {
@@ -206,11 +217,8 @@ router.get('/curricula', requirePermission('curriculum:read'), async (_req, res)
   } catch { res.status(503).json({ error: 'CURRICULUM_UNAVAILABLE' }); }
  });
 
- router.get('/curricula/review-access', requirePermission('curriculum:read'), (req, res) => {
-  res.json({
-   enabled: isCurriculumReviewEnabled(process.env.ENABLE_CURRICULUM_REVIEW),
-   allowed: Boolean(req.auth?.sub) && isAllowedCurriculumReviewer(req.auth?.sub ?? '', process.env.CURRICULUM_REVIEWER_IDS)
-  });
+ router.get('/curricula/review-access', requirePermission('curriculum:read'), async (req, res) => {
+  res.json({ enabled: isCurriculumReviewEnabled(process.env.ENABLE_CURRICULUM_REVIEW), allowed: await isReviewer(req.auth?.sub) });
  });
 
  /** One version's full rules, so a reviewer can see exactly what they would approve. */

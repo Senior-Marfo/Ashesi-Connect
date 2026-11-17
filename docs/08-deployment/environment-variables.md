@@ -24,7 +24,7 @@ The API reads its configuration at startup (`web-app/backend/src/config.ts`) and
 | `TRUST_PROXY_HOPS` | no | `1` in production, otherwise `0` | Proxies in front of the app, so rate limits see the real client address |
 | `SEED_ADMIN_STAFF_ID`, `SEED_ADMIN_PASSWORD` | first deploy only | — | Creates the first admin once, with a forced password change. Remove both afterwards |
 | `ENABLE_CURRICULUM_REVIEW` | no | off | `yes` allows the curriculum review endpoint |
-| `CURRICULUM_REVIEWER_IDS` | with the above | — | Comma-separated admin user IDs allowed to review |
+| `CURRICULUM_REVIEWER_IDS` | with the above | — | Comma-separated admins allowed to review, by staff ID (`STF-0001, STF-0002`) or internal account ID |
 | `ALLOW_CURRICULUM_DRAFT_WRITE` | no | off | Allows the controlled curriculum draft import script to write |
 
 ## GitHub Actions secrets (manual workflows)

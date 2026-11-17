@@ -17,7 +17,7 @@ Permissions are granted per role in `web-app/backend/src/auth/permissions.ts` an
 | `records:import` | | ✓ | `/api/v1/admin/imports` (history, preview, apply, undo) |
 | `report:read` | | ✓ | `GET /api/v1/admin/reports`, `GET /api/v1/admin/reports/{cohorts,programmes,courses}.csv` |
 | `curriculum:read` | | ✓ | `GET /api/v1/admin/curricula`, `GET /api/v1/admin/curricula/detail`, `GET /api/v1/admin/curricula/review-access` |
-| `curriculum:review` | | ✓ | `POST /api/v1/admin/curricula/review`, which also requires `ENABLE_CURRICULUM_REVIEW=yes` and the admin's user ID in `CURRICULUM_REVIEWER_IDS` |
+| `curriculum:review` | | ✓ | `POST /api/v1/admin/curricula/review`, which also requires `ENABLE_CURRICULUM_REVIEW=yes` and the admin's staff ID (or account ID) in `CURRICULUM_REVIEWER_IDS` |
 
 Adding `SUPER_ADMIN` or `ADVISOR` means adding the role to `ROLES` and giving it a permission set. Routes and the database schema stay as they are.
 
