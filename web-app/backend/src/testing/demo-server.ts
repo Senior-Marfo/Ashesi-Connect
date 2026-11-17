@@ -2,6 +2,7 @@
  * Local demo API backed by in-memory synthetic records. Nothing is persisted and
  * no real student data is involved. Refuses to start in production.
  */
+import mongoose from 'mongoose';
 import { hashPassword } from '../auth/passwords.js';
 import { loadConfig } from '../config.js';
 import { createApp } from '../http/app.js';
@@ -17,6 +18,8 @@ export async function createDemoApp(env: NodeJS.ProcessEnv = process.env) {
     ...env,
     NODE_ENV: 'development'
   });
+  // No database here: curriculum routes query MongoDB directly, so make them fail fast (503) instead of waiting on a connection.
+  mongoose.set('bufferCommands', false);
   const { repositories, store } = createMemoryRepositories();
   const passwordHash = await hashPassword(DEMO_PASSWORD);
   const account = (id: string, identifier: string, role: 'STUDENT' | 'ADMIN', forcePasswordChange = false) =>

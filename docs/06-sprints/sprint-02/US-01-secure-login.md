@@ -25,15 +25,12 @@
 - The Next.js login page does not call these endpoints yet.
 - The reset flow returns the temporary password to the admin. Email delivery waits on SMTP credentials.
 
-## Merge note for `feat/2028-workbook-safe-import`
+## Merge of `feat/2028-workbook-safe-import`
 
-That branch's `routes/curriculum.ts` imports `requireAuth`, `requireRole` and `AuthenticatedRequest` from the removed `src/auth.ts`. When merging:
+Merged into `main` on 2026-11-17:
 
-- mount the router inside `createApp` after `authenticate(config.accessTokenSecret), requirePasswordChanged()`;
-- replace `requireRole('ADMIN')` with a new permission such as `curriculum:review`;
-- read `req.auth` directly (it is typed on `Request`).
-
-Its seed script creates the IDs `demo.student.2028` and `demo.admin`. Staging must therefore set `STUDENT_ID_REGEX` / `STAFF_ID_REGEX` to accept them, or the seed should switch to IDs that match the default formats.
+- The curriculum routes use the new middleware. Admin routes need `curriculum:read` or `curriculum:review`. Student routes need `student:read:own` and read the student ID from the access token only.
+- The staging seed now creates `20289001` (student) and `STF-9001` (admin), which match the default ID formats.
 
 ## Web client (second increment)
 

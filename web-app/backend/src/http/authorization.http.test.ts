@@ -7,7 +7,9 @@ const ADMIN_ROUTES: Array<['get' | 'post', string]> = [
   ['get', '/api/v1/admin/students'],
   ['get', '/api/v1/admin/students/20260002'],
   ['get', '/api/v1/admin/audit-log'],
-  ['post', '/api/v1/admin/users/reset-password']
+  ['post', '/api/v1/admin/users/reset-password'],
+  ['get', '/api/v1/admin/curricula'],
+  ['post', '/api/v1/admin/curricula/review']
 ];
 
 async function tokenFor(app: Awaited<ReturnType<typeof buildTestApp>>['app'], identifier: string, password: string): Promise<string> {

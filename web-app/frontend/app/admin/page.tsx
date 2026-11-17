@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { AppShell, FullPageLoading, Notice, SkeletonRows } from '../../components/app-shell';
+import { CurriculumCatalogue, type CatalogueLoad } from '../../components/curriculum-catalogue';
 import { StudentProfile } from '../../components/student-record';
 import type { StudentRecord, StudentSummary } from '../../lib/api';
 import { useRequireRole, useSession } from '../../lib/session';
@@ -17,6 +18,7 @@ export default function AdminPage() {
   const [results, setResults] = useState<Results>({ status: 'idle' });
   const [selected, setSelected] = useState<string>();
   const [profile, setProfile] = useState<Profile>({ status: 'none' });
+  const [catalogue, setCatalogue] = useState<CatalogueLoad>({ status: 'loading' });
   const validQuery = ID_FRAGMENT.test(query.trim());
 
   useEffect(() => {
@@ -34,6 +36,15 @@ export default function AdminPage() {
     }, 250);
     return () => { active = false; clearTimeout(timer); };
   }, [api, query, session, validQuery]);
+
+  useEffect(() => {
+    if (!session) return;
+    let active = true;
+    api.curricula()
+      .then(({ curricula }) => { if (active) setCatalogue({ status: 'ready', curricula }); })
+      .catch(() => { if (active) setCatalogue({ status: 'error' }); });
+    return () => { active = false; };
+  }, [api, session]);
 
   useEffect(() => {
     if (!selected) return;
@@ -86,6 +97,7 @@ export default function AdminPage() {
           )}
         </section>
       </div>
+      <CurriculumCatalogue load={catalogue} />
     </AppShell>
   );
 }
