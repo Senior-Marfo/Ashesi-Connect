@@ -30,6 +30,36 @@ export interface StudentRecord {
   courses: CourseRecord[];
 }
 
+export type RemainingReason = 'NOT_TAKEN' | 'FAILED' | 'IN_PROGRESS' | 'INCOMPLETE' | 'ELECTIVE_SLOT_OPEN' | 'AFRICAN_STUDIES_MISSING' | 'CREDIT_SHORTFALL';
+
+/** Advisory only: never an official audit, graduation approval or Registry certification. */
+export interface AcademicPreview {
+  status: 'INSUFFICIENT_DATA' | 'REQUIREMENTS_OUTSTANDING' | 'ACADEMIC_REQUIREMENTS_MET';
+  officialCertification: false;
+  programme: string;
+  track: string;
+  yearGroup: number;
+  curriculumVersion: string | null;
+  issues: string[];
+  exploratoryGpa?: { gpa: number | null; issues: string[] };
+  audit: null | {
+    creditsEarned: number;
+    creditsRequired: number;
+    creditsInProgress: number;
+    percentComplete: number;
+    remainingRequirements: Array<{ code: string; category: string; credits: number; reason: RemainingReason }>;
+  };
+}
+
+export interface CurriculumSummary {
+  programme: string;
+  track: string;
+  version: string;
+  status: 'DRAFT' | 'REVIEWED' | 'SUPERSEDED';
+  validationIssues: string[];
+  updatedAt?: string;
+}
+
 export class ApiError extends Error {
   constructor(readonly status: number, readonly code: string, message?: string) {
     super(message ?? code);
@@ -107,6 +137,8 @@ export function createApiClient(baseUrl: string, fetchImpl: Fetch = (input, init
       return acceptTokens(response);
     },
     myRecord: () => authorised<StudentRecord>('/api/v1/students/me'),
+    academicPreview: () => authorised<AcademicPreview>('/api/v1/students/me/academic-preview'),
+    curricula: () => authorised<{ curricula: CurriculumSummary[] }>('/api/v1/admin/curricula'),
     searchStudents: (query: string) => authorised<{ students: StudentSummary[] }>(`/api/v1/admin/students?q=${encodeURIComponent(query)}`),
     studentRecord: (studentId: string) => authorised<StudentRecord>(`/api/v1/admin/students/${encodeURIComponent(studentId)}`)
   };

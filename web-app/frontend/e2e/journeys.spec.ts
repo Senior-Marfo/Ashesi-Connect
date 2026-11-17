@@ -16,6 +16,9 @@ test('student sees their own record, stays signed in across reloads and can sign
   await expect(page.getByRole('heading', { name: 'Hello, Ama' })).toBeVisible();
   await expect(page.getByRole('row', { name: /MATH 141/ })).toContainText('Earlier: D (2024 Fall)');
   await expect(page.getByText('Kofi')).toHaveCount(0);
+  const progress = page.getByRole('region', { name: 'Graduation progress' });
+  await expect(progress).toContainText('Provisional');
+  await expect(progress).toContainText('unavailable right now');
 
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Hello, Ama' })).toBeVisible();
@@ -40,6 +43,7 @@ test('admin finds a student by ID prefix and opens their record', async ({ page 
   await page.getByRole('button', { name: /20280002/ }).click();
   await expect(page.getByRole('heading', { name: 'Kofi Synthetic Boateng' })).toBeVisible();
   await expect(page.getByRole('row', { name: /ECON 101/ })).toContainText('Incomplete');
+  await expect(page.getByRole('heading', { name: 'Curriculum catalogue' })).toBeVisible();
 });
 
 test('wrong password shows a generic error', async ({ page }) => {

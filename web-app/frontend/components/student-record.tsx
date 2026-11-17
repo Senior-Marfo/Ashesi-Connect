@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { CourseAttempt, CourseRecord, StudentRecord } from '../lib/api';
 
 const statusLabel: Record<CourseAttempt['status'], string> = {
@@ -19,7 +20,7 @@ export function creditTotals(courses: CourseRecord[]) {
   return { graded, inProgress };
 }
 
-export function StudentProfile({ record }: { record: StudentRecord }) {
+export function StudentProfile({ record, children }: { record: StudentRecord; children?: ReactNode }) {
   const { student, courses } = record;
   const totals = creditTotals(courses);
   return (
@@ -38,6 +39,7 @@ export function StudentProfile({ record }: { record: StudentRecord }) {
       <p className="caption">
         These figures summarise recorded courses only. They are not a graduation decision: pass marks and programme requirements are still awaiting Registry confirmation.
       </p>
+      {children}
       <CourseTable courses={courses} />
     </>
   );
