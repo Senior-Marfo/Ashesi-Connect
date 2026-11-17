@@ -50,8 +50,8 @@ The audit engine **intentionally does not declare any student eligible for gradu
 | Eligibility-engine unit tests | Running in CI |
 | Figma low-fidelity screens | Available |
 | High-fidelity clickable prototype | Incomplete |
-| Official 2028 curriculum workbook ingestion | Blocked: source workbook missing |
+| Official 2028 curriculum workbook | Received and reconciled; waiting on the Registry's course codes and answers to the discrepancies ([report](docs/02-requirements/degree-audit-2028/reconciliation.md)) |
 | Render deployment | Live at https://ashesi-graduation-tracker.onrender.com with MongoDB Atlas; admin sign-in confirmed by the owner |
 | Flutter app (Android, iOS) | Student and streamlined admin screens; tested in CI, which also builds the Android APK ([mobile-app](mobile-app/README.md)) |
 
-**Critical source needed:** `Degree_Audit_2028.xlsx` for validated curriculum requirements, including any C versus D+ course minima and discrepancies in printed programme credit totals.
+**Needed from the Registry:** course codes, elective lists and C pass marks for the 2028 curriculum ([mapping template](docs/02-requirements/degree-audit-2028/curriculum-course-mapping.csv)), and answers to the [verified workbook discrepancies](docs/00-governance/requirements-discrepancies.md) in CS, CE, ME, MT and BE.

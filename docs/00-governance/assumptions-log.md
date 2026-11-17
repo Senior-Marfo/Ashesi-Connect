@@ -1,6 +1,6 @@
 # Assumptions and blockers
 
-- The source Degree_Audit_2028.xlsx workbook is unavailable in the attached project sources; graduation requirements cannot be verified yet.
+- `Degree_Audit_2028.xlsx` was received on 2026-11-17 (SHA-256 `6c88df76…c354`) and reconciled. It lists courses by name only. Course codes, elective lists and C pass marks must come from the Registry; none are inferred.
 - Minimum per-course passing grade D+ is a provisional default. The official catalogue must confirm any C thresholds, including programme-specific major courses.
 - **No course is set to C.** The build prompt asks for a seed file of C courses (`catalogue-pass-thresholds.json`). It is deliberately not provided: no Registry source names those courses, and guessing would mark real students as failing. Admins enter confirmed C pass marks under **Settings → Course pass marks**, citing the source.
 - A catalogue pass mark overrides the pass mark in any curriculum, raising or lowering it, because it is the Registry's latest decision on that course.
