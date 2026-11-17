@@ -9,6 +9,8 @@ const ADMIN_ROUTES: Array<['get' | 'post', string]> = [
   ['get', '/api/v1/admin/audit-log'],
   ['post', '/api/v1/admin/users/reset-password'],
   ['get', '/api/v1/admin/curricula'],
+  ['get', '/api/v1/admin/register'],
+  ['get', '/api/v1/admin/register.csv'],
   ['post', '/api/v1/admin/curricula/review']
 ];
 

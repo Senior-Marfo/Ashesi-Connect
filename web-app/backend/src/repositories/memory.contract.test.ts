@@ -6,6 +6,9 @@ let current: { repositories: Repositories; store: MemoryStore };
 
 repositoryContract('in-memory', {
   repositories: () => current.repositories,
+  async addCourses(studentId, courses) {
+    current.store.courses.set(studentId, [...(current.store.courses.get(studentId) ?? []), ...courses]);
+  },
   async reset() {
     current = createMemoryRepositories();
     current.store.users.push({ id: 'u1', identifier: '20280001', passwordHash: 'hash', role: 'STUDENT', studentId: '20280001', forcePasswordChange: false, failedLogins: 0 });

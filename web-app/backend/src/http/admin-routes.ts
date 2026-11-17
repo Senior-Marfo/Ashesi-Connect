@@ -1,6 +1,7 @@
 import { Router, type Request } from 'express';
 import { z } from 'zod';
 import type { AuthService } from '../auth/service.js';
+import { REGISTER_FLAGS, REGISTER_SORTS, buildRegister, filterAndSort, registerCsv, registerRows } from '../register/register.js';
 import type { AuditAction, AuditEntry, Repositories } from '../repositories/types.js';
 import { asyncHandler, contextOf, requirePermission } from './middleware.js';
 
@@ -9,6 +10,15 @@ const studentIdSchema = z.string().regex(/^[\w-]{1,64}$/);
 const auditQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(50),
   action: z.string().regex(/^[A-Z_]+$/).optional()
+});
+const registerSchema = z.object({
+  programme: z.string().regex(/^[A-Z]{2,6}$/).optional(),
+  yearGroup: z.coerce.number().int().min(2000).max(2100).optional(),
+  flag: z.enum(REGISTER_FLAGS).optional(),
+  sort: z.enum(REGISTER_SORTS).default('studentId'),
+  order: z.enum(['asc', 'desc']).default('asc'),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(10).max(200).default(50)
 });
 const resetSchema = z.object({ identifier: z.string().trim().min(3).max(64) });
 
@@ -41,6 +51,40 @@ export function adminRoutes(repositories: Repositories, auth: AuthService): Rout
     }
     await audit(req, 'ADMIN_STUDENT_VIEWED', student.studentId);
     res.json({ student, courses: await repositories.students.listCourses(student.studentId) });
+  }));
+
+  const loadRegister = async (filter: { programme?: string; yearGroup?: number }) => {
+    const students = await repositories.students.list(filter);
+    return { students, summaries: await repositories.students.courseSummaries(students.map(student => student.studentId)) };
+  };
+  const registerFilters = (query: z.infer<typeof registerSchema>) =>
+    Object.fromEntries(Object.entries({ programme: query.programme, yearGroup: query.yearGroup, flag: query.flag }).filter(([, value]) => value !== undefined)) as Record<string, string | number>;
+
+  router.get('/register', requirePermission('student:read:any'), asyncHandler(async (req, res) => {
+    const parsed = registerSchema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'INVALID_INPUT' });
+      return;
+    }
+    const { students, summaries } = await loadRegister(parsed.data);
+    const page = buildRegister(students, summaries, parsed.data);
+    await audit(req, 'ADMIN_REGISTER_VIEWED', undefined, { ...registerFilters(parsed.data), page: page.page });
+    res.json(page);
+  }));
+
+  router.get('/register.csv', requirePermission('student:read:any'), asyncHandler(async (req, res) => {
+    const parsed = registerSchema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'INVALID_INPUT' });
+      return;
+    }
+    const { students, summaries } = await loadRegister(parsed.data);
+    const rows = filterAndSort(registerRows(students, summaries), parsed.data);
+    await audit(req, 'ADMIN_REGISTER_EXPORTED', undefined, { ...registerFilters(parsed.data), rows: rows.length });
+    res.setHeader('content-type', 'text/csv; charset=utf-8');
+    res.setHeader('content-disposition', 'attachment; filename="student-register.csv"');
+    res.setHeader('cache-control', 'no-store');
+    res.send(`\uFEFF${registerCsv(rows)}`);
   }));
 
   router.post('/users/reset-password', requirePermission('user:reset-password'), asyncHandler(async (req, res) => {

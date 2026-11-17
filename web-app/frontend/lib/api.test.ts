@@ -75,4 +75,25 @@ describe('api client', () => {
     await api.searchStudents('a b&c');
     expect(fetchMock.mock.calls[0][0]).toBe('https://api.test/api/v1/admin/students?q=a%20b%26c');
   });
+
+  it('sends only the register filters that are set, and downloads CSV with a refresh on 401', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(tokens('stale'))
+      .mockResolvedValueOnce(json(200, { rows: [], total: 0, page: 1, pageSize: 50, pageCount: 1, counts: {} }))
+      .mockResolvedValueOnce(json(401, { error: 'UNAUTHORIZED' }))
+      .mockResolvedValueOnce(tokens('fresh'))
+      .mockResolvedValueOnce(new Response('a,b\r\n', { status: 200, headers: { 'content-type': 'text/csv' } }));
+    const api = createApiClient('https://api.test', fetchMock);
+    await api.login('STF-1001', 'secret');
+    await api.register({ programme: 'CS', sort: 'passedCredits', order: 'desc', page: 2 });
+    expect(fetchMock.mock.calls[1][0]).toBe('https://api.test/api/v1/admin/register?programme=CS&sort=passedCredits&order=desc&page=2');
+    const blob = await api.registerCsv({ sort: 'studentId', order: 'asc', page: 1 });
+    expect(await blob.text()).toBe('a,b\r\n');
+    expect(header(fetchMock.mock.calls[4], 'authorization')).toBe('Bearer fresh');
+  });
+
+  it('turns a failed CSV download into an ApiError', async () => {
+    const api = createApiClient('https://api.test', vi.fn().mockResolvedValue(json(403, { error: 'FORBIDDEN' })));
+    await expect(api.registerCsv({ sort: 'studentId', order: 'asc', page: 1 })).rejects.toMatchObject({ status: 403, code: 'FORBIDDEN' });
+  });
 });

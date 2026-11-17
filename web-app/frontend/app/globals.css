@@ -152,3 +152,24 @@ body { margin: 0; background: var(--surface); color: var(--ink); font: 16px/1.5 
 .catalogue { margin-top: var(--space-7); padding-top: var(--space-6); border-top: 1px solid var(--line); }
 .catalogue .caption { margin-top: var(--space-2); }
 .synthetic-notice { margin: 0 0 var(--space-5); }
+
+/* Admin navigation and register */
+.topbar { flex-wrap: wrap; }
+.topnav { display: flex; gap: var(--space-1); margin-right: auto; margin-left: var(--space-5); }
+.topnav a { padding: var(--space-2) var(--space-3); border-radius: var(--radius); color: var(--ink-soft); text-decoration: none; font-size: 14px; font-weight: 600; }
+.topnav a:hover { color: var(--ink); }
+.topnav a[aria-current='page'] { color: var(--maroon); background: var(--maroon-tint); }
+@media (max-width: 559px) { .topnav { order: 3; width: 100%; margin: var(--space-2) 0 0; } }
+.filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-3); align-items: end; margin: var(--space-5) 0; }
+.register-counts { margin-bottom: var(--space-5); }
+.register th .sort { all: unset; cursor: pointer; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; }
+.register th .sort:focus-visible { outline: 2px solid var(--maroon); outline-offset: 2px; }
+.register th[aria-sort] { color: var(--ink); }
+.register td .chip { margin: 0 var(--space-1) var(--space-1) 0; }
+.register a { color: var(--maroon); }
+.tag { margin-left: var(--space-2); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+.pager { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-4); font-size: 14px; color: var(--ink-soft); }
+.filters .field { min-width: 0; }
+.filters .input { width: 100%; min-width: 0; text-overflow: ellipsis; }
+.register .num { padding-right: var(--space-4); }
+.register thead th { vertical-align: bottom; }

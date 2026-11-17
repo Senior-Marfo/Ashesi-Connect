@@ -24,6 +24,9 @@ describe.runIf(process.env.MONGO_INTEGRATION === '1')('MongoDB', () => {
 
   repositoryContract('mongo', {
     repositories: createMongoRepositories,
+    async addCourses(studentId, courses) {
+      await Enrollment.insertMany(courses.map(course => ({ studentId, ...course })));
+    },
     async reset() {
       await Promise.all(models.map(model => model.deleteMany({})));
       const user = await User.create({ identifier: '20280001', passwordHash: 'hash', role: 'STUDENT', studentId: '20280001', forcePasswordChange: false });

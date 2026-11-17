@@ -48,7 +48,9 @@ export type AuditAction =
   | 'ADMIN_PASSWORD_RESET'
   | 'ADMIN_STUDENT_SEARCHED'
   | 'ADMIN_STUDENT_VIEWED'
-  | 'ADMIN_AUDIT_LOG_VIEWED';
+  | 'ADMIN_AUDIT_LOG_VIEWED'
+  | 'ADMIN_REGISTER_VIEWED'
+  | 'ADMIN_REGISTER_EXPORTED';
 
 export interface AuditEntry {
   action: AuditAction;
@@ -88,10 +90,28 @@ export interface CourseRecord {
   attempts: CourseAttempt[];
 }
 
+export interface StudentFilter {
+  programme?: string;
+  yearGroup?: number;
+}
+
+/** Facts derived from a student's latest attempt at each course, using the provisional pass mark. */
+export interface CourseSummary {
+  studentId: string;
+  coursesOnRecord: number;
+  passedCredits: number;
+  inProgressCredits: number;
+  unresolvedFailures: number;
+  incompletes: number;
+}
+
 export interface StudentRepository {
   findById(studentId: string): Promise<StudentSummary | undefined>;
   searchByIdPrefix(prefix: string, limit: number): Promise<StudentSummary[]>;
   listCourses(studentId: string): Promise<CourseRecord[]>;
+  list(filter: StudentFilter): Promise<StudentSummary[]>;
+  /** Summaries for students that have course records; students without any are omitted. */
+  courseSummaries(studentIds: string[]): Promise<CourseSummary[]>;
 }
 
 export interface Repositories {

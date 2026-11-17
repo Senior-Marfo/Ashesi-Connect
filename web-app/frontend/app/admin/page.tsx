@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { AppShell, FullPageLoading, Notice, SkeletonRows } from '../../components/app-shell';
+import { ADMIN_NAV, AppShell, FullPageLoading, Notice, SkeletonRows } from '../../components/app-shell';
 import { CurriculumCatalogue, type CatalogueLoad } from '../../components/curriculum-catalogue';
 import { StudentProfile } from '../../components/student-record';
 import type { StudentRecord, StudentSummary } from '../../lib/api';
@@ -37,6 +37,15 @@ export default function AdminPage() {
     return () => { active = false; clearTimeout(timer); };
   }, [api, query, session, validQuery]);
 
+  // The register links here with ?student=<id> to open a record directly.
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get('student');
+    if (requested && ID_FRAGMENT.test(requested)) {
+      setQuery(requested);
+      setSelected(requested);
+    }
+  }, []);
+
   useEffect(() => {
     if (!session) return;
     let active = true;
@@ -59,7 +68,7 @@ export default function AdminPage() {
   if (!session) return <FullPageLoading />;
 
   return (
-    <AppShell eyebrow="Registry workspace" title="Student lookup">
+    <AppShell eyebrow="Registry workspace" title="Student lookup" nav={ADMIN_NAV}>
       <div className="workspace">
         <section aria-labelledby="search-heading">
           <h2 id="search-heading" className="visually-hidden">Search</h2>

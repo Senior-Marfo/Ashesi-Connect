@@ -1,4 +1,5 @@
-import type { AuditEntry, CourseRecord, RefreshTokenRecord, Repositories, StudentSummary, UserRecord } from '../repositories/types.js';
+import { PROVISIONAL_PASSING_GRADES } from '../register/provisional-pass.js';
+import type { AuditEntry, CourseRecord, CourseSummary, RefreshTokenRecord, Repositories, StudentSummary, UserRecord } from '../repositories/types.js';
 
 export interface MemoryStore {
   users: UserRecord[];
@@ -50,7 +51,29 @@ export function createMemoryRepositories(): { repositories: Repositories; store:
       findById: async studentId => structuredClone(store.students.find(student => student.studentId === studentId)),
       searchByIdPrefix: async (prefix, limit) =>
         store.students.filter(student => student.studentId.startsWith(prefix)).slice(0, limit).map(student => structuredClone(student)),
-      listCourses: async studentId => structuredClone(store.courses.get(studentId) ?? [])
+      listCourses: async studentId => structuredClone(store.courses.get(studentId) ?? []),
+      list: async filter => store.students
+        .filter(student => (!filter.programme || student.programme === filter.programme) && (filter.yearGroup === undefined || student.yearGroup === filter.yearGroup))
+        .sort((a, b) => a.studentId.localeCompare(b.studentId))
+        .map(student => structuredClone(student)),
+      async courseSummaries(studentIds) {
+        const summaries: CourseSummary[] = [];
+        for (const studentId of studentIds) {
+          const latest = (store.courses.get(studentId) ?? []).map(course => course.attempts.at(-1)).filter(attempt => attempt !== undefined);
+          if (latest.length === 0) continue;
+          const sum = (attempts: typeof latest) => attempts.reduce((total, attempt) => total + attempt.credits, 0);
+          const graded = latest.filter(attempt => attempt.status === 'COMPLETED' && attempt.grade !== undefined);
+          summaries.push({
+            studentId,
+            coursesOnRecord: latest.length,
+            passedCredits: sum(graded.filter(attempt => PROVISIONAL_PASSING_GRADES.includes(attempt.grade as string))),
+            inProgressCredits: sum(latest.filter(attempt => attempt.status === 'ENROLLED')),
+            unresolvedFailures: graded.filter(attempt => !PROVISIONAL_PASSING_GRADES.includes(attempt.grade as string)).length,
+            incompletes: latest.filter(attempt => attempt.status === 'INCOMPLETE').length
+          });
+        }
+        return summaries;
+      }
     }
   };
   return { repositories, store };

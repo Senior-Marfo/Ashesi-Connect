@@ -75,3 +75,23 @@ test('the legacy fictional demo stays available under /demo/', async ({ page }) 
   await page.goto('/demo/');
   await expect(page.getByText('Demonstration only')).toBeVisible();
 });
+
+test('admin filters and sorts the register, then opens a student from it', async ({ page }) => {
+  await signIn(page, 'STF-1001');
+  await page.getByRole('link', { name: 'Register' }).click();
+  await expect(page.getByRole('heading', { name: 'Student register' })).toBeVisible();
+  await expect(page.getByText(/Page 1 of \d+ · 63 students/)).toBeVisible();
+
+  await page.getByLabel('Programme').selectOption('BA');
+  await expect(page.getByText(/· 7 students/)).toBeVisible();
+  await page.getByRole('button', { name: 'Passed credits' }).click();
+  await expect(page.getByRole('columnheader', { name: /Passed credits/ })).toHaveAttribute('aria-sort', 'descending');
+
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download CSV' }).click();
+  expect((await download).suggestedFilename()).toBe('student-register.csv');
+
+  await page.getByRole('link', { name: '20280002' }).click();
+  await expect(page).toHaveURL(/\/admin\/\?student=20280002/);
+  await expect(page.getByRole('heading', { name: 'Kofi Synthetic Boateng' })).toBeVisible();
+});

@@ -61,6 +61,44 @@ export interface CurriculumSummary {
   updatedAt?: string;
 }
 
+export type RegisterFlag = 'UNRESOLVED_FAILURE' | 'INCOMPLETE' | 'NO_RECORDS';
+export type RegisterSort = 'studentId' | 'fullName' | 'programme' | 'yearGroup' | 'passedCredits' | 'inProgressCredits' | 'unresolvedFailures';
+
+export interface RegisterQuery {
+  programme?: string;
+  yearGroup?: number;
+  flag?: RegisterFlag;
+  sort: RegisterSort;
+  order: 'asc' | 'desc';
+  page: number;
+  pageSize?: number;
+}
+
+export interface RegisterRow extends StudentSummary {
+  coursesOnRecord: number;
+  passedCredits: number;
+  inProgressCredits: number;
+  unresolvedFailures: number;
+  incompletes: number;
+  flags: RegisterFlag[];
+  severity: 'UNDETERMINED';
+}
+
+export interface RegisterPage {
+  rows: RegisterRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+  pageCount: number;
+  counts: { students: number } & Record<RegisterFlag, number>;
+}
+
+function registerParams(query: RegisterQuery): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) if (value !== undefined && value !== '') params.set(key, String(value));
+  return params.toString();
+}
+
 export class ApiError extends Error {
   constructor(readonly status: number, readonly code: string, message?: string) {
     super(message ?? code);
@@ -114,11 +152,15 @@ export function createApiClient(baseUrl: string, fetchImpl: Fetch = (input, init
     return refreshing;
   }
 
-  async function authorised<T>(path: string, init?: RequestInit): Promise<T> {
+  async function sendAuthorised(path: string, init?: RequestInit): Promise<Response> {
     const response = await send(path, init);
-    if (response.status !== 401 || !accessToken) return parse<T>(response);
+    if (response.status !== 401 || !accessToken) return response;
     await refresh();
-    return parse<T>(await send(path, init));
+    return send(path, init);
+  }
+
+  async function authorised<T>(path: string, init?: RequestInit): Promise<T> {
+    return parse<T>(await sendAuthorised(path, init));
   }
 
   return {
@@ -140,6 +182,12 @@ export function createApiClient(baseUrl: string, fetchImpl: Fetch = (input, init
     myRecord: () => authorised<StudentRecord>('/api/v1/students/me'),
     academicPreview: () => authorised<AcademicPreview>('/api/v1/students/me/academic-preview'),
     curricula: () => authorised<{ curricula: CurriculumSummary[] }>('/api/v1/admin/curricula'),
+    register: (query: RegisterQuery) => authorised<RegisterPage>(`/api/v1/admin/register?${registerParams(query)}`),
+    async registerCsv(query: RegisterQuery): Promise<Blob> {
+      const response = await sendAuthorised(`/api/v1/admin/register.csv?${registerParams(query)}`);
+      if (!response.ok) await parse(response);
+      return response.blob();
+    },
     searchStudents: (query: string) => authorised<{ students: StudentSummary[] }>(`/api/v1/admin/students?q=${encodeURIComponent(query)}`),
     studentRecord: (studentId: string) => authorised<StudentRecord>(`/api/v1/admin/students/${encodeURIComponent(studentId)}`)
   };

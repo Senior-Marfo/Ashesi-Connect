@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { Repositories } from './types.js';
+import type { CourseRecord, Repositories } from './types.js';
 
 export interface ContractHarness {
   repositories: () => Repositories;
   /** Clears all data and inserts one student account, student record and course; returns the user's ID. */
   reset: () => Promise<string>;
+  addCourses: (studentId: string, courses: CourseRecord[]) => Promise<void>;
 }
 
 /** Behaviour every Repositories implementation must share; run against memory and MongoDB. */
@@ -72,6 +73,29 @@ export function repositoryContract(name: string, harness: ContractHarness) {
       expect(all[0].metadata).toEqual({ source: 'test' });
       expect(await auditLog.list({ limit: 10, action: 'AUTH_LOGIN_SUCCEEDED' })).toHaveLength(1);
       expect(await auditLog.list({ limit: 1 })).toHaveLength(1);
+    });
+
+    it('lists students by programme and year group', async () => {
+      const { students } = harness.repositories();
+      expect((await students.list({})).map(student => student.studentId)).toEqual(['20280001']);
+      expect(await students.list({ programme: 'CS', yearGroup: 2028 })).toHaveLength(1);
+      expect(await students.list({ programme: 'BA' })).toHaveLength(0);
+      expect(await students.list({ yearGroup: 2027 })).toHaveLength(0);
+    });
+
+    it('summarises each student from the latest attempt at every course', async () => {
+      const { students } = harness.repositories();
+      await harness.addCourses('20280001', [
+        { courseCode: 'MATH 141', attempts: [{ credits: 1, grade: 'E', status: 'COMPLETED' }, { credits: 1, grade: 'C', status: 'COMPLETED' }] },
+        { courseCode: 'CS 212', attempts: [{ credits: 1, grade: 'D', status: 'COMPLETED' }] },
+        { courseCode: 'LEAD 111', attempts: [{ credits: 0.5, grade: 'D+', status: 'COMPLETED' }] },
+        { courseCode: 'CS 415', attempts: [{ credits: 1, status: 'ENROLLED' }] },
+        { courseCode: 'ECON 101', attempts: [{ credits: 1, status: 'INCOMPLETE' }] }
+      ]);
+      expect(await students.courseSummaries(['20280001', 'nobody'])).toEqual([{
+        studentId: '20280001', coursesOnRecord: 6, passedCredits: 2.5, inProgressCredits: 1, unresolvedFailures: 1, incompletes: 1
+      }]);
+      expect(await students.courseSummaries([])).toEqual([]);
     });
 
     it('reads students and courses, treating search input literally', async () => {

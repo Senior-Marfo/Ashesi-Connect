@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import { hashPassword } from '../auth/passwords.js';
 import { loadConfig } from '../config.js';
 import { createApp } from '../http/app.js';
+import { generateSyntheticDataset } from '../seed/synthetic-data.js';
 import { createMemoryRepositories } from './memory-repositories.js';
 
 export const DEMO_PASSWORD = 'Synthetic-Demo-2028';
@@ -50,6 +51,13 @@ export async function createDemoApp(env: NodeJS.ProcessEnv = process.env) {
     { courseCode: 'BUSA 101', attempts: [{ credits: 1, grade: 'C+', status: 'COMPLETED', semester: '2024 Fall' }] },
     { courseCode: 'ECON 101', attempts: [{ credits: 1, status: 'INCOMPLETE', semester: '2025 Spring' }] }
   ]);
+
+  // A wider synthetic cohort (reserved 9xxxxxxx IDs, no sign-in accounts) so the register has data to show.
+  const generated = generateSyntheticDataset({ count: 60, today: new Date('2026-11-17T00:00:00Z') });
+  store.students.push(...generated.students);
+  for (const enrollment of generated.enrollments) {
+    store.courses.set(enrollment.studentId, [...(store.courses.get(enrollment.studentId) ?? []), { courseCode: enrollment.courseCode, attempts: enrollment.attempts }]);
+  }
 
   return { app: createApp({ config, repositories, isHealthy: () => true }), config };
 }
