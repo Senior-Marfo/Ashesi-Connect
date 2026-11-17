@@ -2,38 +2,51 @@
 
 > **Independent development prototype; not an official Ashesi University service.** No real student data or university systems are connected.
 
-## Try the prototype
+## Run it locally
 
-Open [the interactive dashboard](web-app/frontend/index.html) locally in a browser. It includes sample progress, editable demo grades, an outstanding-requirements view, CSV export, and browser print-to-PDF. The example records are fictional and **do not represent a complete programme audit**.
+```sh
+cd web-app/frontend && npm install && npm run build
+cd ../backend && npm install && STATIC_DIR=../frontend/out PORT=3000 npm run dev:demo
+```
+
+Open http://localhost:3000 and sign in as `20280001` (student) or `STF-1001` (admin), password `Synthetic-Demo-2028`. The demo API holds synthetic records in memory only.
+
+The original fictional browser-only dashboard is served at `/demo/` ([source](web-app/frontend/public/demo/index.html)).
+
+## Deploy
+
+One Render web service from `render.yaml`. See the [Render deployment guide](docs/08-deployment/render-deployment-guide.md) and [ADR 0001](docs/04-architecture/adr/0001-single-origin-render-service.md).
+
+## Links
 
 - [Figma design](https://www.figma.com/design/oEZD3Gm9qLxUgRZh1hY3nL)
-- [Interactive 2028 prototype reference](web-app/frontend/degree-audit-2028-prototype.html)
+- [Build status](docs/00-governance/build-status.md)
 - [Current implementation and limits](docs/01-implementation/iteration-2.md)
 - [Master build prompt](docs/00-governance/master-build-prompt.md)
 - [Workbook discrepancies](docs/00-governance/requirements-discrepancies.md)
 - [Previous Ashesi Connect proposal, archived](docs/00-governance/previous-ashesi-connect-proposal.md)
 
-## Development
+## Tests
 
 ```sh
-cd web-app/backend
-npm install
-npm test
+cd web-app/backend && npm test                      # API, auth, RBAC, audit engine
+cd web-app/frontend && npm test && npm run test:e2e # client unit tests and browser journeys
 ```
 
-The TypeScript audit starter has focused unit tests. It **intentionally does not declare any student eligible for graduation**, even when all demo requirements are passed: the full rulebook is not implemented.
+The audit engine **intentionally does not declare any student eligible for graduation**: the full rulebook is not implemented.
 
 ## Status
 
 | Workstream | State |
 |---|---|
-| Responsive web demonstration | Implemented, fictional data |
-| Course grades and report export | Implemented, browser-local only |
-| Eligibility-engine unit tests | Added; not yet verified in CI |
+| Secure sign-in, sessions, RBAC and audit log (US-01) | Implemented and tested in CI |
+| Student record and admin lookup screens | Implemented; synthetic data |
+| Legacy browser-only demonstration | Available at `/demo/`, fictional data |
+| Eligibility-engine unit tests | Running in CI |
 | Figma low-fidelity screens | Available |
 | High-fidelity clickable prototype | Incomplete |
 | Official 2028 curriculum workbook ingestion | Blocked: source workbook missing |
-| Backend API, database and login | Not implemented |
-| Flutter app and Render deployment | Not implemented |
+| Render deployment | Blueprint ready; awaiting MongoDB Atlas URI |
+| Flutter app | Not implemented |
 
 **Critical source needed:** `Degree_Audit_2028.xlsx` for validated curriculum requirements, including any C versus D+ course minima and discrepancies in printed programme credit totals.

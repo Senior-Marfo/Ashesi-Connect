@@ -1,20 +1,32 @@
-# Static demo only: no server, authentication, or real student records.
+# Render Blueprint: one Node web service delivers the API and the static web client
+# from the same origin (see docs/04-architecture/adr/0001-single-origin-render-service.md).
 services:
   - type: web
-    name: ashesi-graduation-tracker-demo
-    runtime: static
+    name: ashesi-graduation-tracker
+    runtime: node
+    plan: free
+    region: frankfurt
     repo: https://github.com/Senior-Marfo/Ashesi-Connect
     branch: main
-    buildCommand: echo "Publishing static Ashesi Graduation Tracker demo"
-    staticPublishPath: ./web-app/frontend
+    rootDir: web-app
+    buildCommand: >-
+      cd frontend && npm ci --include=dev && npm run build &&
+      cd ../backend && npm ci --include=dev && npm run build
+    startCommand: cd backend && node dist/server.js
+    healthCheckPath: /health
     autoDeployTrigger: commit
-    headers:
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-      - path: /*
-        name: Referrer-Policy
-        value: strict-origin-when-cross-origin
-      - path: /*
-        name: X-Frame-Options
-        value: DENY
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: STATIC_DIR
+        value: ../frontend/out
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: SEED_ADMIN_STAFF_ID
+        sync: false
+      - key: SEED_ADMIN_PASSWORD
+        sync: false

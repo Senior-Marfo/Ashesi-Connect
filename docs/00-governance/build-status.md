@@ -1,5 +1,7 @@
 # Implementation status — 2026-11-17
 
+Deployment target: one Render web service from `Senior-Marfo/Ashesi-Connect` `main`, serving the API and the web client from one origin. The legacy fictional demo stays at `/demo/`.
+
 This branch is under active development and MUST NOT be deployed as a university production service.
 
 ## Implemented in branch
@@ -16,7 +18,7 @@ This branch is under active development and MUST NOT be deployed as a university
 ## Blocking work
 - Confirm the first green run of the CI `backend-mongodb` job; it has not run in the development container, which cannot download MongoDB.
 - Emailing reset notices (needs SMTP). Admin UI for password resets and the audit log.
-- Deploying the Next.js client: `render.yaml` still publishes the legacy static demo until these screens reach parity.
+- First live deploy: `render.yaml` is ready as a one-service Blueprint (`docs/08-deployment/render-deployment-guide.md`). It needs a MongoDB Atlas connection string, and the post-deploy smoke test must be recorded.
 - Verified workbook ingestion, curriculum versioning, elective and track rules, and all eligibility cases.
 - Eligibility status, requirements and remaining-work screens (US-02 to US-04), severity register, reports, imports, messaging, PDF exports, mobile app and deployment.
 - Registry confirmation of course-specific grade thresholds and discrepancies.
