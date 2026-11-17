@@ -1,11 +1,11 @@
 import { isValidObjectId } from 'mongoose';
 import { isRole } from '../auth/permissions.js';
-import { AuditLog, Enrollment, Message, MessageReceipt, RefreshToken, Student, User } from '../models.js';
+import { AuditLog, Enrollment, ImportBatchModel, Message, MessageReceipt, RefreshToken, Student, User } from '../models.js';
 import { CurriculumRecord } from '../models/curriculum.js';
 import { selectCohortCurriculum } from '../domain/eligibility/cohort-selection.js';
 import type { ProgrammeRules } from '../domain/eligibility/programme-audit.js';
 import { PROVISIONAL_PASSING_GRADES } from '../register/provisional-pass.js';
-import type { AuditEntry, CourseRecord, CourseSummary, MessageAudience, MessagePriority, MessageRecord, Repositories, StudentSummary, UserRecord } from './types.js';
+import type { AuditEntry, CourseRecord, CourseSummary, ImportBatch, MessageAudience, MessagePriority, MessageRecord, Repositories, StudentSummary, UserRecord } from './types.js';
 
 function toUser(doc: { _id: unknown; identifier: string; passwordHash: string; role: string; studentId?: string | null; forcePasswordChange?: boolean | null; failedLogins?: number | null; lockedUntil?: Date | null; passwordChangedAt?: Date | null }): UserRecord {
   if (!isRole(doc.role)) throw new Error(`Unknown role on user ${String(doc._id)}`);
@@ -40,6 +40,9 @@ export function createMongoRepositories(): Repositories {
         const unset = Object.entries(changes).filter(([, value]) => value === undefined).map(([key]) => [key, 1]);
         const set = Object.fromEntries(Object.entries(changes).filter(([, value]) => value !== undefined));
         await User.updateOne({ _id: id }, { $set: set, ...(unset.length ? { $unset: Object.fromEntries(unset) } : {}) });
+      },
+      async removeByIdentifier(identifier) {
+        await User.deleteOne({ identifier });
       },
       async createIfAbsent(user) {
         const result = await User.updateOne({ identifier: user.identifier }, { $setOnInsert: user }, { upsert: true });
@@ -78,6 +81,32 @@ export function createMongoRepositories(): Repositories {
       async list({ limit, action }) {
         const docs = await AuditLog.find(action ? { action } : {}).sort({ at: -1 }).limit(limit).select({ _id: 0, __v: 0 }).lean();
         return docs as unknown as AuditEntry[];
+      }
+    },
+    imports: {
+      async create(batch) {
+        const doc = await ImportBatchModel.create(batch);
+        return { ...batch, id: String(doc._id) };
+      },
+      async list(limit) {
+        const docs = await ImportBatchModel.find({}, { undo: 0 }).sort({ createdAt: -1 }).limit(limit).lean();
+        return docs.map(({ _id, __v: _version, ...rest }) => ({ ...(rest as unknown as Omit<ImportBatch, 'id' | 'undo'>), id: String(_id) }));
+      },
+      async find(id) {
+        if (!isValidObjectId(id)) return undefined;
+        const doc = await ImportBatchModel.findById(id).lean();
+        if (!doc) return undefined;
+        const { _id, __v: _version, ...rest } = doc;
+        return { ...(rest as unknown as Omit<ImportBatch, 'id'>), id: String(_id) };
+      },
+      async latestApplied() {
+        const doc = await ImportBatchModel.findOne({ status: 'APPLIED' }).sort({ createdAt: -1 }).lean();
+        if (!doc) return undefined;
+        const { _id, __v: _version, ...rest } = doc;
+        return { ...(rest as unknown as Omit<ImportBatch, 'id'>), id: String(_id) };
+      },
+      async markRolledBack(id, at) {
+        await ImportBatchModel.updateOne({ _id: id }, { $set: { status: 'ROLLED_BACK', rolledBackAt: at } });
       }
     },
     messages: {
@@ -173,6 +202,17 @@ export function createMongoRepositories(): Repositories {
           { $project: { _id: 0, studentId: '$_id', coursesOnRecord: 1, passedCredits: 1, inProgressCredits: 1, unresolvedFailures: 1, incompletes: 1 } }
         ]);
         return docs;
+      },
+      async upsert(student) {
+        const { synthetic, ...fields } = student;
+        await Student.updateOne({ studentId: student.studentId }, { $set: fields, ...(synthetic ? {} : { $unset: { synthetic: 1 } }) }, { upsert: true });
+      },
+      async remove(studentId) {
+        await Student.deleteOne({ studentId });
+      },
+      async setCourse(studentId, courseCode, attempts) {
+        if (attempts === null) await Enrollment.deleteOne({ studentId, courseCode });
+        else await Enrollment.updateOne({ studentId, courseCode }, { $set: { attempts } }, { upsert: true });
       },
       async coursesFor(studentIds) {
         const byStudent = new Map<string, CourseRecord[]>();

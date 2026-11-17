@@ -9,6 +9,7 @@ import type { Repositories } from '../repositories/types.js';
 import { curriculumAdminRouter, curriculumStudentRouter } from '../routes/curriculum.js';
 import { adminRoutes } from './admin-routes.js';
 import { authRoutes } from './auth-routes.js';
+import { importRoutes } from './import-routes.js';
 import { adminMessageRoutes, studentMessageRoutes } from './message-routes.js';
 import { reportRoutes } from './report-routes.js';
 import { authenticate, requestId, requirePasswordChanged, CSRF_HEADER } from './middleware.js';
@@ -58,7 +59,9 @@ export function createApp({ config, repositories, isHealthy, now = () => new Dat
     allowedHeaders: ['authorization', 'content-type', CSRF_HEADER, 'x-request-id'],
     exposedHeaders: ['x-request-id']
   }));
-  app.use(express.json({ limit: '1mb' }));
+  // Imports parse larger bodies themselves; everything else is capped at 1 MB.
+  const json = express.json({ limit: '1mb' });
+  app.use((req, res, next) => (req.path.startsWith('/api/v1/admin/imports') ? next() : json(req, res, next)));
   app.use(cookieParser());
 
   app.get('/health', (_req, res) => {
@@ -72,6 +75,7 @@ export function createApp({ config, repositories, isHealthy, now = () => new Dat
   app.use('/api/v1/students/me/messages', ...protectedRoutes, studentMessageRoutes(repositories));
   app.use('/api/v1/admin/messages', ...protectedRoutes, adminMessageRoutes(repositories, now));
   app.use('/api/v1/admin/reports', ...protectedRoutes, reportRoutes(repositories, now));
+  app.use('/api/v1/admin/imports', ...protectedRoutes, importRoutes(config, repositories, now));
   app.use('/api/v1/admin', ...protectedRoutes, adminRoutes(repositories, auth, now), curriculumAdminRouter);
 
   if (config.staticDir) serveWebClient(app, resolve(config.staticDir));

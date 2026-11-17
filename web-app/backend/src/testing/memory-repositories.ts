@@ -1,5 +1,5 @@
 import { PROVISIONAL_PASSING_GRADES } from '../register/provisional-pass.js';
-import type { AuditEntry, CourseRecord, CourseSummary, MessageRecord, ReviewedCurriculum, RefreshTokenRecord, Repositories, StudentSummary, UserRecord } from '../repositories/types.js';
+import type { AuditEntry, CourseRecord, CourseSummary, ImportBatch, MessageRecord, ReviewedCurriculum, RefreshTokenRecord, Repositories, StudentSummary, UserRecord } from '../repositories/types.js';
 
 export interface MemoryStore {
   users: UserRecord[];
@@ -10,10 +10,11 @@ export interface MemoryStore {
   curricula: Array<ReviewedCurriculum & { programme: string; track: string; yearGroup: number }>;
   messages: MessageRecord[];
   receipts: Array<{ messageId: string; studentId: string; deliveredAt: Date; readAt?: Date }>;
+  imports: ImportBatch[];
 }
 
 export function createMemoryRepositories(): { repositories: Repositories; store: MemoryStore } {
-  const store: MemoryStore = { users: [], refreshTokens: [], auditLog: [], students: [], courses: new Map(), curricula: [], messages: [], receipts: [] };
+  const store: MemoryStore = { users: [], refreshTokens: [], auditLog: [], students: [], courses: new Map(), curricula: [], messages: [], receipts: [], imports: [] };
   const revokeWhere = (predicate: (record: RefreshTokenRecord) => boolean) => {
     for (const record of store.refreshTokens) if (!record.revokedAt && predicate(record)) record.revokedAt = new Date();
   };
@@ -25,6 +26,9 @@ export function createMemoryRepositories(): { repositories: Repositories; store:
       async update(id, changes) {
         const user = store.users.find(candidate => candidate.id === id);
         if (user) Object.assign(user, changes);
+      },
+      async removeByIdentifier(identifier) {
+        store.users = store.users.filter(user => user.identifier !== identifier);
       },
       async createIfAbsent(user) {
         if (store.users.some(existing => existing.identifier === user.identifier)) return false;
@@ -49,6 +53,20 @@ export function createMemoryRepositories(): { repositories: Repositories; store:
       async append(entry) { store.auditLog.push(structuredClone(entry)); },
       list: async ({ limit, action }) =>
         store.auditLog.filter(entry => !action || entry.action === action).slice().reverse().slice(0, limit)
+    },
+    imports: {
+      async create(batch) {
+        const record = { ...structuredClone(batch), id: `import-${store.imports.length + 1}` };
+        store.imports.push(record);
+        return structuredClone(record);
+      },
+      list: async limit => [...store.imports].reverse().slice(0, limit).map(({ undo: _undo, ...rest }) => structuredClone(rest)),
+      find: async id => structuredClone(store.imports.find(batch => batch.id === id)),
+      latestApplied: async () => structuredClone([...store.imports].reverse().find(batch => batch.status === 'APPLIED')),
+      async markRolledBack(id, at) {
+        const batch = store.imports.find(candidate => candidate.id === id);
+        if (batch) Object.assign(batch, { status: 'ROLLED_BACK', rolledBackAt: at });
+      }
     },
     messages: {
       async send(message, recipientIds) {
@@ -89,6 +107,20 @@ export function createMemoryRepositories(): { repositories: Repositories; store:
         .filter(student => (!filter.programme || student.programme === filter.programme) && (filter.yearGroup === undefined || student.yearGroup === filter.yearGroup))
         .sort((a, b) => a.studentId.localeCompare(b.studentId))
         .map(student => structuredClone(student)),
+      async upsert(student) {
+        const index = store.students.findIndex(existing => existing.studentId === student.studentId);
+        if (index >= 0) store.students[index] = structuredClone(student);
+        else store.students.push(structuredClone(student));
+      },
+      async remove(studentId) {
+        store.students = store.students.filter(student => student.studentId !== studentId);
+      },
+      async setCourse(studentId, courseCode, attempts) {
+        const others = (store.courses.get(studentId) ?? []).filter(course => course.courseCode !== courseCode);
+        const next = attempts === null ? others : [...others, { courseCode, attempts: structuredClone(attempts) }];
+        if (next.length) store.courses.set(studentId, next);
+        else store.courses.delete(studentId);
+      },
       async coursesFor(studentIds) {
         return new Map(studentIds.filter(id => (store.courses.get(id) ?? []).length > 0).map(id => [id, structuredClone(store.courses.get(id) ?? [])]));
       },

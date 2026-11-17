@@ -162,3 +162,40 @@ test('admin messages a student, who reads it in the inbox', async ({ browser }, 
   await expect(student.getByRole('button', { name: 'Mark all as read' })).toBeDisabled();
   await expect(inboxLink.locator('.badge')).toHaveCount(0);
 });
+
+test('admin imports a student, issues a temporary password, then undoes the import', async ({ browser }, testInfo) => {
+  const id = testInfo.project.name === 'desktop' ? '20310001' : '20310002';
+  const admin = await (await browser.newContext()).newPage();
+  await signIn(admin, 'STF-1001');
+  await admin.getByRole('link', { name: 'Imports' }).click();
+  await expect(admin.getByRole('heading', { name: 'New import' })).toBeVisible();
+
+  const file = (body: string) => ({ name: 'students.csv', mimeType: 'text/csv', buffer: Buffer.from(`studentId,fullName,programme,yearGroup\n${body}`) });
+  await admin.getByLabel('CSV file').setInputFiles(file(`${id},Imported Student,CS,2031\nbad,,ART,never\n`));
+  await expect(admin.getByText('Fix these problems')).toBeVisible();
+  await expect(admin.getByRole('cell', { name: /is not a valid student ID/ })).toBeVisible();
+
+  await admin.getByLabel('CSV file').setInputFiles(file(`${id},Imported Student,CS,2031\n`));
+  admin.once('dialog', dialog => void dialog.accept());
+  await admin.getByRole('button', { name: 'Apply import' }).click();
+  await expect(admin.getByText(/Imported students.csv: 1 new/)).toBeVisible();
+
+  await admin.getByRole('link', { name: 'Student lookup' }).click();
+  await admin.getByLabel('Student ID').fill(id);
+  await admin.getByRole('button', { name: new RegExp(id) }).click();
+  admin.once('dialog', dialog => void dialog.accept());
+  await admin.getByRole('button', { name: 'Issue temporary password' }).click();
+  const notice = admin.getByText(/Temporary password for/);
+  await expect(notice).toBeVisible();
+  const temporary = (await notice.textContent())!.match(/: (\S+) — share/)![1];
+
+  const student = await (await browser.newContext()).newPage();
+  await signIn(student, id, temporary);
+  await expect(student).toHaveURL(/\/change-password\/$/);
+
+  await admin.getByRole('link', { name: 'Imports' }).click();
+  admin.once('dialog', dialog => void dialog.accept());
+  await admin.getByRole('button', { name: 'Undo this import' }).click();
+  await expect(admin.getByText('Undid students.csv.')).toBeVisible();
+  await expect(admin.locator('.sent-list > li').first()).toContainText('Undone');
+});

@@ -16,6 +16,7 @@ export interface UserRepository {
   findByIdentifier(identifier: string): Promise<UserRecord | undefined>;
   findById(id: string): Promise<UserRecord | undefined>;
   update(id: string, changes: Partial<Omit<UserRecord, 'id' | 'identifier' | 'role'>>): Promise<void>;
+  removeByIdentifier(identifier: string): Promise<void>;
   /** Inserts a user unless the identifier exists; resolves whether a user was created. */
   createIfAbsent(user: Omit<UserRecord, 'id'>): Promise<boolean>;
 }
@@ -53,6 +54,8 @@ export type AuditAction =
   | 'ADMIN_ELIGIBILITY_VIEWED'
   | 'ADMIN_REPORTS_VIEWED'
   | 'ADMIN_MESSAGE_SENT'
+  | 'ADMIN_IMPORT_APPLIED'
+  | 'ADMIN_IMPORT_ROLLED_BACK'
   | 'ADMIN_REGISTER_EXPORTED';
 
 export interface AuditEntry {
@@ -117,6 +120,11 @@ export interface StudentRepository {
   courseSummaries(studentIds: string[]): Promise<CourseSummary[]>;
   /** Course records for many students at once; students without records are omitted. */
   coursesFor(studentIds: string[]): Promise<Map<string, CourseRecord[]>>;
+  /** Creates or replaces a student's details. */
+  upsert(student: StudentSummary): Promise<void>;
+  remove(studentId: string): Promise<void>;
+  /** Replaces a student's attempts at one course; null removes the course record. */
+  setCourse(studentId: string, courseCode: string, attempts: CourseAttempt[] | null): Promise<void>;
 }
 
 export interface ReviewedCurriculum {
@@ -167,6 +175,36 @@ export interface MessageRepository {
   listSent(limit: number): Promise<Array<MessageRecord & { readCount: number }>>;
 }
 
+export type ImportKind = 'STUDENTS' | 'COURSES';
+export type UndoStep =
+  | { type: 'student'; studentId: string; before: StudentSummary | null }
+  | { type: 'course'; studentId: string; courseCode: string; before: CourseAttempt[] | null }
+  | { type: 'account'; identifier: string };
+
+export interface ImportBatch {
+  id: string;
+  kind: ImportKind;
+  filename: string;
+  createdBy: string;
+  createdAt: Date;
+  rows: number;
+  created: number;
+  updated: number;
+  status: 'APPLIED' | 'ROLLED_BACK';
+  rolledBackAt?: Date;
+  /** What each change replaced, applied in reverse to undo the batch. */
+  undo: UndoStep[];
+}
+
+export interface ImportRepository {
+  create(batch: Omit<ImportBatch, 'id'>): Promise<ImportBatch>;
+  list(limit: number): Promise<Array<Omit<ImportBatch, 'undo'>>>;
+  find(id: string): Promise<ImportBatch | undefined>;
+  /** The most recent batch that is still applied. */
+  latestApplied(): Promise<ImportBatch | undefined>;
+  markRolledBack(id: string, at: Date): Promise<void>;
+}
+
 export interface Repositories {
   users: UserRepository;
   refreshTokens: RefreshTokenRepository;
@@ -174,4 +212,5 @@ export interface Repositories {
   students: StudentRepository;
   curricula: CurriculumRepository;
   messages: MessageRepository;
+  imports: ImportRepository;
 }

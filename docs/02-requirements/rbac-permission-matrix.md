@@ -10,6 +10,7 @@ Permissions are granted per role in `web-app/backend/src/auth/permissions.ts` an
 | `audit-log:read` | | ✓ | `GET /api/v1/admin/audit-log` |
 | `message:send` | | ✓ | `/api/v1/admin/messages` (compose, preview, templates, sent list with read receipts) |
 | `message:read:own` | ✓ | | `/api/v1/students/me/messages` (inbox, unread count, mark read) |
+| `records:import` | | ✓ | `/api/v1/admin/imports` (history, preview, apply, undo) |
 | `report:read` | | ✓ | `GET /api/v1/admin/reports`, `GET /api/v1/admin/reports/{cohorts,programmes,courses}.csv` |
 | `curriculum:read` | | ✓ | `GET /api/v1/admin/curricula` |
 | `curriculum:review` | | ✓ | `POST /api/v1/admin/curricula/review`, which also requires `ENABLE_CURRICULUM_REVIEW=yes` and the admin's user ID in `CURRICULUM_REVIEWER_IDS` |

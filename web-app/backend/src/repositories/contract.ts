@@ -131,6 +131,38 @@ export function repositoryContract(name: string, harness: ContractHarness) {
       expect(sent[1].audience).toEqual({ kind: 'ALL_STUDENTS' });
     });
 
+    it('writes, replaces and removes students, courses and accounts', async () => {
+      const { students, users } = harness.repositories();
+      await students.upsert({ studentId: '20290001', fullName: 'New', programme: 'BA', yearGroup: 2029, track: 'standard' });
+      await students.upsert({ studentId: '20280001', fullName: 'Renamed', programme: 'CS', yearGroup: 2028, track: 'standard' });
+      expect(await students.findById('20290001')).toEqual({ studentId: '20290001', fullName: 'New', programme: 'BA', yearGroup: 2029, track: 'standard' });
+      expect((await students.findById('20280001'))?.fullName).toBe('Renamed');
+      await students.setCourse('20290001', 'BUSA 161', [{ credits: 1, grade: 'A', status: 'COMPLETED', semester: '2025 Fall' }]);
+      await students.setCourse('20280001', 'CS 111', [{ credits: 1, grade: 'C', status: 'COMPLETED' }]);
+      expect((await students.listCourses('20290001')).map(c => c.courseCode)).toEqual(['BUSA 161']);
+      expect((await students.listCourses('20280001'))[0].attempts[0].grade).toBe('C');
+      await students.setCourse('20290001', 'BUSA 161', null);
+      expect(await students.listCourses('20290001')).toEqual([]);
+      await students.remove('20290001');
+      expect(await students.findById('20290001')).toBeUndefined();
+      await users.removeByIdentifier('20280001');
+      expect(await users.findByIdentifier('20280001')).toBeUndefined();
+    });
+
+    it('records import batches, newest first, and tracks undo', async () => {
+      const { imports } = harness.repositories();
+      const base = { kind: 'STUDENTS' as const, filename: 'a.csv', createdBy: 'admin', rows: 1, created: 1, updated: 0, status: 'APPLIED' as const };
+      const first = await imports.create({ ...base, createdAt: new Date('2026-11-01T00:00:00Z'), undo: [{ type: 'account', identifier: '1' }] });
+      const second = await imports.create({ ...base, filename: 'b.csv', createdAt: new Date('2026-11-02T00:00:00Z'), undo: [] });
+      expect((await imports.list(10)).map(batch => batch.filename)).toEqual(['b.csv', 'a.csv']);
+      expect((await imports.find(first.id))?.undo).toEqual([{ type: 'account', identifier: '1' }]);
+      expect((await imports.latestApplied())?.id).toBe(second.id);
+      await imports.markRolledBack(second.id, new Date('2026-11-03T00:00:00Z'));
+      expect((await imports.latestApplied())?.id).toBe(first.id);
+      expect((await imports.find(second.id))?.status).toBe('ROLLED_BACK');
+      expect(await imports.find('missing')).toBeUndefined();
+    });
+
     it('reads students and courses, treating search input literally', async () => {
       const { students } = harness.repositories();
       expect(await students.findById('20280001')).toEqual({ studentId: '20280001', fullName: 'Synthetic Student', programme: 'CS', yearGroup: 2028, track: 'standard' });

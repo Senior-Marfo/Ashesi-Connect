@@ -96,3 +96,15 @@ const receiptSchema = new Schema({
 receiptSchema.index({ studentId: 1, messageId: 1 }, { unique: true });
 receiptSchema.index({ messageId: 1, readAt: 1 });
 export const MessageReceipt = model('MessageReceipt', receiptSchema);
+
+const importBatchSchema = new Schema({
+  kind: { type: String, enum: ['STUDENTS', 'COURSES'], required: true },
+  filename: { type: String, required: true },
+  createdBy: { type: String, required: true },
+  createdAt: { type: Date, required: true, index: true },
+  rows: Number, created: Number, updated: Number,
+  status: { type: String, enum: ['APPLIED', 'ROLLED_BACK'], required: true },
+  rolledBackAt: Date,
+  undo: { type: [Schema.Types.Mixed], default: [] }
+});
+export const ImportBatchModel = model('ImportBatch', importBatchSchema);

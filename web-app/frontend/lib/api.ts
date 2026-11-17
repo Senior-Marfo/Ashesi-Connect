@@ -101,6 +101,11 @@ export interface SentMessage { id: string; title: string; body: string; priority
 export interface MessageTemplate { id: string; title: string; body: string; priority: MessagePriority }
 export interface NewMessage { title: string; body: string; priority: MessagePriority; audience: MessageAudience }
 
+export type ImportKind = 'STUDENTS' | 'COURSES';
+export interface ImportPreview { kind: ImportKind; rows: number; created: number; updated: number; errorCount: number; errors: Array<{ row: number; column?: string; message: string }> }
+export interface ImportBatch { id: string; kind: ImportKind; filename: string; createdAt: string; rows: number; created: number; updated: number; status: 'APPLIED' | 'ROLLED_BACK'; rolledBackAt?: string; canUndo?: boolean }
+export interface ImportUpload { kind: ImportKind; filename: string; content: string }
+
 export type StandingCounts = Record<StandingLevel | 'UNDETERMINED', number>;
 export const NON_COMPLETION_REASONS = ['FAILED_COURSE', 'INCOMPLETE_COURSE', 'REQUIRED_COURSE_NOT_TAKEN', 'CAPSTONE_OUTSTANDING', 'ELECTIVES_SHORT', 'CREDIT_SHORTFALL', 'STILL_IN_PROGRESS'] as const;
 export type NonCompletionReason = (typeof NON_COMPLETION_REASONS)[number];
@@ -251,6 +256,11 @@ export function createApiClient(baseUrl: string, fetchImpl: Fetch = (input, init
     previewAudience: (audience: MessageAudience) => authorised<{ recipientCount: number; unknownIds: string[] }>('/api/v1/admin/messages/preview', { method: 'POST', body: JSON.stringify({ audience }) }),
     sendMessage: (message: NewMessage) => authorised<{ message: SentMessage; unknownIds: string[] }>('/api/v1/admin/messages', { method: 'POST', body: JSON.stringify(message) }),
     sentMessages: () => authorised<{ messages: SentMessage[] }>('/api/v1/admin/messages'),
+    importHistory: () => authorised<{ batches: ImportBatch[] }>('/api/v1/admin/imports'),
+    previewImport: (upload: ImportUpload) => authorised<ImportPreview>('/api/v1/admin/imports/preview', { method: 'POST', body: JSON.stringify(upload) }),
+    applyImport: (upload: ImportUpload) => authorised<{ batch: ImportBatch }>('/api/v1/admin/imports', { method: 'POST', body: JSON.stringify(upload) }),
+    undoImport: (batchId: string) => authorised<{ status: string }>(`/api/v1/admin/imports/${encodeURIComponent(batchId)}/rollback`, { method: 'POST' }),
+    issueTemporaryPassword: (identifier: string) => authorised<{ temporaryPassword: string }>('/api/v1/admin/users/reset-password', { method: 'POST', body: JSON.stringify({ identifier }) }),
     reports: (filters: ReportFilters) => authorised<Reports>(`/api/v1/admin/reports?${queryString(filters)}`),
     async reportCsv(section: 'cohorts' | 'programmes' | 'courses', filters: ReportFilters): Promise<Blob> {
       const response = await sendAuthorised(`/api/v1/admin/reports/${section}.csv?${queryString(filters)}`);

@@ -7,8 +7,9 @@ import { currentTerm } from '../domain/eligibility/terms.js';
  * reserved 9xxxxxxx range so it can be removed without touching real records.
  */
 
-export const PROGRAMMES = ['BA', 'ECON', 'LLB', 'MIS', 'CS', 'CE', 'EE', 'ME', 'MT', 'BE'] as const;
-export type Programme = (typeof PROGRAMMES)[number];
+import { PROGRAMMES, type Programme } from '../domain/programmes.js';
+
+export { PROGRAMMES, type Programme };
 
 export type AttemptStatus = 'COMPLETED' | 'ENROLLED' | 'INCOMPLETE';
 export interface SyntheticAttempt { credits: number; grade?: string; status: AttemptStatus; semester: string }

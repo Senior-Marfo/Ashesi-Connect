@@ -5,7 +5,7 @@ import { CurriculumCatalogue, type CatalogueLoad } from '../../components/curric
 import { RequirementTree } from '../../components/requirements';
 import { StatusCard } from '../../components/standing';
 import { StudentProfile } from '../../components/student-record';
-import type { Eligibility } from '../../lib/api';
+import { ApiError, type Eligibility } from '../../lib/api';
 import type { StudentRecord, StudentSummary } from '../../lib/api';
 import { useRequireRole, useSession } from '../../lib/session';
 
@@ -21,6 +21,17 @@ export default function AdminPage() {
   const [results, setResults] = useState<Results>({ status: 'idle' });
   const [selected, setSelected] = useState<string>();
   const [profile, setProfile] = useState<Profile>({ status: 'none' });
+  const [temporary, setTemporary] = useState<{ studentId: string; text: string; tone: 'info' | 'error' } | null>(null);
+
+  async function issuePassword(studentId: string) {
+    if (!window.confirm(`Issue a temporary password for ${studentId}? Their current password and sessions stop working.`)) return;
+    try {
+      const { temporaryPassword } = await api.issueTemporaryPassword(studentId);
+      setTemporary({ studentId, tone: 'info', text: `Temporary password for ${studentId}: ${temporaryPassword} — share it privately. It must be changed at first sign-in and is not shown again.` });
+    } catch (cause) {
+      setTemporary({ studentId, tone: 'error', text: cause instanceof ApiError && cause.code === 'USER_NOT_FOUND' ? `${studentId} has no sign-in account.` : 'A temporary password could not be issued.' });
+    }
+  }
   const [catalogue, setCatalogue] = useState<CatalogueLoad>({ status: 'loading' });
   const validQuery = ID_FRAGMENT.test(query.trim());
 
@@ -106,7 +117,11 @@ export default function AdminPage() {
           {profile.status === 'error' && <Notice tone="error">This record could not be loaded.</Notice>}
           {profile.status === 'ready' && (
             <>
-              <h2 className="profile-title" id="profile-heading">{profile.record.student.fullName}</h2>
+              <div className="report-head">
+                <h2 className="profile-title" id="profile-heading">{profile.record.student.fullName}</h2>
+                <button type="button" className="button ghost" onClick={() => void issuePassword(profile.record.student.studentId)}>Issue temporary password</button>
+              </div>
+              {temporary?.studentId === profile.record.student.studentId && <div className="synthetic-notice"><Notice tone={temporary.tone}>{temporary.text}</Notice></div>}
               <StudentProfile record={profile.record} passMarks={profile.eligibility && Object.fromEntries(profile.eligibility.requirements.flatMap(group => group.items.map(item => [item.code, item.minimumGrade])))}>
                 {profile.eligibility
                   ? <>
