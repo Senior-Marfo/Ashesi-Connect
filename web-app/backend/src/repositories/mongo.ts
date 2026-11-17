@@ -18,7 +18,7 @@ function toUser(doc: { _id: unknown; identifier: string; passwordHash: string; r
   };
 }
 
-const studentProjection = { _id: 0, studentId: 1, fullName: 1, programme: 1, yearGroup: 1, track: 1 } as const;
+const studentProjection = { _id: 0, studentId: 1, fullName: 1, programme: 1, yearGroup: 1, track: 1, synthetic: 1 } as const;
 
 export function createMongoRepositories(): Repositories {
   return {

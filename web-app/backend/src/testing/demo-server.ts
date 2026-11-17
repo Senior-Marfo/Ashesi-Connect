@@ -32,9 +32,9 @@ export async function createDemoApp(env: NodeJS.ProcessEnv = process.env) {
     account('demo-admin-1', 'STF-1001', 'ADMIN')
   );
   store.students.push(
-    { studentId: '20280001', fullName: 'Ama Synthetic Mensah', programme: 'CS', yearGroup: 2028, track: 'standard' },
-    { studentId: '20280002', fullName: 'Kofi Synthetic Boateng', programme: 'BA', yearGroup: 2028, track: 'pre-calculus' },
-    { studentId: '20280003', fullName: 'Esi Synthetic Owusu', programme: 'ME', yearGroup: 2029, track: 'calculus-1-2' }
+    { studentId: '20280001', fullName: 'Ama Synthetic Mensah', programme: 'CS', yearGroup: 2028, track: 'standard', synthetic: true },
+    { studentId: '20280002', fullName: 'Kofi Synthetic Boateng', programme: 'BA', yearGroup: 2028, track: 'pre-calculus', synthetic: true },
+    { studentId: '20280003', fullName: 'Esi Synthetic Owusu', programme: 'ME', yearGroup: 2029, track: 'calculus-1-2', synthetic: true }
   );
   store.courses.set('20280001', [
     { courseCode: 'CS 111', attempts: [{ credits: 1, grade: 'B+', status: 'COMPLETED', semester: '2024 Fall' }] },

@@ -72,6 +72,7 @@ export interface StudentSummary {
   programme: string;
   yearGroup: number;
   track: string;
+  synthetic?: boolean;
 }
 
 export interface CourseAttempt {

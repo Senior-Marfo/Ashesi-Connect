@@ -9,7 +9,9 @@ const userSchema = new Schema({
   forcePasswordChange: { type: Boolean, default: true },
   failedLogins: { type: Number, default: 0 },
   lockedUntil: { type: Date },
-  passwordChangedAt: { type: Date }
+  passwordChangedAt: { type: Date },
+  /** Generated demonstration data; removable without touching real accounts. */
+  synthetic: { type: Boolean, index: true }
 }, { timestamps: true });
 export const User = model('User', userSchema);
 
@@ -41,7 +43,8 @@ const studentSchema = new Schema({
   fullName: { type: String, required: true },
   programme: { type: String, required: true, index: true },
   yearGroup: { type: Number, required: true, index: true },
-  track: { type: String, default: 'standard' }
+  track: { type: String, default: 'standard' },
+  synthetic: { type: Boolean, index: true }
 }, { timestamps: true });
 studentSchema.index({ programme: 1, yearGroup: 1 });
 export const Student = model('Student', studentSchema);
@@ -56,7 +59,8 @@ const attemptSchema = new Schema({
 const enrollmentSchema = new Schema({
   studentId: { type: String, required: true, index: true },
   courseCode: { type: String, required: true },
-  attempts: [attemptSchema]
+  attempts: [attemptSchema],
+  synthetic: { type: Boolean, index: true }
 }, { timestamps: true });
 enrollmentSchema.index({ studentId: 1, courseCode: 1 }, { unique: true });
 export const Enrollment = model('Enrollment', enrollmentSchema);
