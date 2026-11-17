@@ -47,11 +47,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         PopupMenuButton<String>(
           tooltip: 'Account',
           icon: const Icon(Icons.account_circle_outlined),
-          onSelected: (choice) => choice == 'password'
-              ? context.push('/change-password')
+          onSelected: (choice) => choice == 'security'
+              ? context.push('/security')
               : ref.read(sessionProvider.notifier).signOut(),
           itemBuilder: (_) => const [
-            PopupMenuItem(value: 'password', child: Text('Change password')),
+            PopupMenuItem(value: 'security', child: Text('Unlock and password')),
             PopupMenuItem(value: 'signout', child: Text('Sign out')),
           ],
         ),

@@ -6,6 +6,8 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Face ID unlocks Graduation Tracker when you turn on unlock in Security.</string>
 	<key>CFBundleDisplayName</key>
 	<string>Graduation Tracker</string>
 	<key>CFBundleExecutable</key>

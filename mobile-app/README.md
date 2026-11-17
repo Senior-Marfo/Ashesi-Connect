@@ -21,7 +21,7 @@ Flutter 3.47.9 (Dart 3.13), the version pinned in CI.
 ```sh
 dart format --output=none --set-exit-if-changed lib test
 flutter analyze        # very_good_analysis, with the two exceptions noted in analysis_options.yaml
-flutter test           # API client, models, role routing and whole-app widget tests
+flutter test           # API client, models, role routing, app lock and whole-app widget tests
 flutter build apk --release
 ```
 
@@ -41,12 +41,12 @@ CI (`.github/workflows/mobile-ci.yml`) runs all of these on every change under `
 
 - **Sign-in and roles:** one ID field. The server decides the role, and the router only opens that role's screens. A temporary password must be changed before anything else.
 - **Tokens:** the 15-minute access token is kept in memory only. The rotating refresh token, an httpOnly cookie on the web, is stored in the platform keystore (Keychain or Android Keystore) and sent back as a cookie. A burst of expired requests triggers a single refresh. Android cloud backup is off, so the stored session never leaves the device.
+- **Biometric unlock (optional):** turned on under Profile → Unlock and password (admins: account menu). It asks with Face ID, fingerprint or the device passcode when the app opens, and when it comes back after a minute or more in the background. Turning it on needs one passing check, and signing out turns it off. "Sign out instead" is always available on the lock screen.
 - **Offline:** the last loaded status and course record are cached on the device. When the server can't be reached they are shown with an "Offline" banner. Signing out clears them.
 - **Design:** colour, spacing and type tokens mirror `web-app/frontend/app/globals.css`, in light and dark themes. Standing always has an icon and text as well as colour. Large titles collapse as you scroll, the floating tab bar blurs what is behind it and gives a light haptic tick, and the progress ring stays still when the phone asks for reduced motion.
 
 ## Not built yet
 
 - **Push notifications (FCM):** they need a Firebase project and its config files. The inbox works through the API and shows an unread badge.
-- **Biometric unlock:** it needs `local_auth` and a decision on lock timing.
 - **Store signing:** CI APKs are signed with the debug key. See `docs/08-deployment/mobile-release-guide.md`.
 - **Code generation (freezed):** skipped. The models are small hand-written classes, tested against API-shaped fixtures.

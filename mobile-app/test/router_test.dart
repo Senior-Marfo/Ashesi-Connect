@@ -41,6 +41,12 @@ void main() {
     expect(redirectFor(signedIn(Role.admin), '/student'), '/admin');
   });
 
+  test('both roles can open security settings, online or offline', () {
+    expect(redirectFor(signedIn(Role.student, offline: true), '/security'), isNull);
+    expect(redirectFor(signedIn(Role.admin), '/security'), isNull);
+    expect(redirectFor(const AsyncData(null), '/security'), '/sign-in');
+  });
+
   test('a voluntary password change is allowed online only', () {
     expect(redirectFor(signedIn(Role.student), '/change-password'), isNull);
     expect(redirectFor(signedIn(Role.student, offline: true), '/change-password'), '/student');
