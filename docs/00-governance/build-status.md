@@ -12,6 +12,7 @@ This branch is under active development and MUST NOT be deployed as a university
 - Student self-record, admin student search and admin student profile endpoints.
 - App factory with injected repositories, so the HTTP layer is tested without a database.
 - Next.js static-export web client wired to the API: sign-in, silent token refresh and session restore, sign-out, forced and voluntary password change, a student record screen and an admin student lookup. Pages are role-guarded on the client; the API enforces permissions.
+- Controlled curriculum import, validation and review workflow from `feat/2028-workbook-safe-import`, merged 2026-11-17. Students see a provisional progress preview, and admins see a read-only curriculum catalogue. Review writes stay off unless `ENABLE_CURRICULUM_REVIEW=yes` is set and the reviewer is on the allowlist.
 - Repository contract tests shared by the in-memory and MongoDB implementations; the MongoDB run happens in the CI `backend-mongodb` job.
 - In-memory demo API with synthetic accounts (`npm run dev:demo` in `web-app/backend`) and Playwright end-to-end journeys at desktop and phone sizes.
 

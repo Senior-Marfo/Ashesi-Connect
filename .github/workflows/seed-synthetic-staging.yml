@@ -44,7 +44,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: ac728360c26b4d19a1b41ae8accc43c6b9b14858
+          ref: 9c5a860ce0e2a0253f151538fe8321884e5d4832
       - name: Install Node
         uses: actions/setup-node@v4
         with:
