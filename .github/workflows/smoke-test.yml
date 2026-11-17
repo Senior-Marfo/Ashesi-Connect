@@ -1,0 +1,35 @@
+name: Post-deploy smoke test (manual only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Service origin to test'
+        type: string
+        required: true
+        default: https://ashesi-graduation-tracker.onrender.com
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    if: ${{ github.repository == 'Senior-Marfo/Ashesi-Connect' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run smoke test
+        env:
+          SMOKE_BASE_URL: ${{ inputs.base_url }}
+          # Optional repository secrets; without them only the anonymous checks run.
+          SMOKE_ADMIN_ID: ${{ secrets.SMOKE_ADMIN_ID }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
+          SMOKE_STUDENT_ID: ${{ secrets.SMOKE_STUDENT_ID }}
+          SMOKE_STUDENT_PASSWORD: ${{ secrets.SMOKE_STUDENT_PASSWORD }}
+        run: |
+          set -o pipefail
+          node web-app/backend/scripts/smoke-test.mjs | tee -a "$GITHUB_STEP_SUMMARY"

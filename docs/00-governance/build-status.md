@@ -1,6 +1,6 @@
 # Implementation status — 2026-11-17
 
-Deployment target: one Render web service from `Senior-Marfo/Ashesi-Connect` `main`, serving the API and the web client from one origin. The legacy fictional demo stays at `/demo/`.
+Deployed: https://ashesi-graduation-tracker.onrender.com, one Render web service from `Senior-Marfo/Ashesi-Connect` `main` with a MongoDB Atlas database. It serves the API and the web client from one origin; the legacy fictional demo stays at `/demo/`. Smoke-test record: `docs/07-testing/test-reports/2026-11-17-post-deploy-smoke.md`.
 
 This branch is under active development and MUST NOT be deployed as a university production service.
 
@@ -27,7 +27,7 @@ This branch is under active development and MUST NOT be deployed as a university
 ## Blocking work
 - Confirm the first green run of the CI `backend-mongodb` job; it has not run in the development container, which cannot download MongoDB.
 - Emailing reset notices and message copies (needs SMTP).
-- First live deploy: `render.yaml` is ready as a one-service Blueprint (`docs/08-deployment/render-deployment-guide.md`). It needs a MongoDB Atlas connection string, and the post-deploy smoke test must be recorded.
+- Signed-in part of the post-deploy smoke test: anonymous checks passed on 2026-11-17. The signed-in checks need the `SMOKE_*` repository secrets and a run of the manual **Post-deploy smoke test** workflow.
 - Verified workbook ingestion, curriculum versioning, elective and track rules, and all eligibility cases.
 - Loading the official 2028 curriculum (needs `Degree_Audit_2028.xlsx` and Registry review) so real students get a standing. Then: imports, messaging, PDF exports, mobile app and deployment.
 - Registry confirmation of course-specific grade thresholds and discrepancies.

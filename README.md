@@ -15,6 +15,9 @@ The original fictional browser-only dashboard is served at `/demo/` ([source](we
 
 ## Deploy
 
+Live: https://ashesi-graduation-tracker.onrender.com
+
+
 One Render web service from `render.yaml`. See the [Render deployment guide](docs/08-deployment/render-deployment-guide.md) and [ADR 0001](docs/04-architecture/adr/0001-single-origin-render-service.md).
 
 ## Links
@@ -46,7 +49,7 @@ The audit engine **intentionally does not declare any student eligible for gradu
 | Figma low-fidelity screens | Available |
 | High-fidelity clickable prototype | Incomplete |
 | Official 2028 curriculum workbook ingestion | Blocked: source workbook missing |
-| Render deployment | Blueprint ready; awaiting MongoDB Atlas URI |
+| Render deployment | Live at https://ashesi-graduation-tracker.onrender.com with MongoDB Atlas; anonymous smoke test passed, signed-in run pending ([report](docs/07-testing/test-reports/2026-11-17-post-deploy-smoke.md)) |
 | Flutter app | Not implemented |
 
 **Critical source needed:** `Degree_Audit_2028.xlsx` for validated curriculum requirements, including any C versus D+ course minima and discrepancies in printed programme credit totals.
