@@ -1,0 +1,18 @@
+include: package:very_good_analysis/analysis_options.yaml
+
+formatter:
+  page_width: 100
+
+linter:
+  rules:
+    # An app, not a published package: public API docs would document every widget twice.
+    public_member_api_docs: false
+    # Matches the formatter's 100-column width above.
+    lines_longer_than_80_chars: false
+    # Prefers the new Dart 3.13 constructor shorthand; the classic form stays more familiar to reviewers.
+    unnecessary_type_name_in_constructor: false
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
