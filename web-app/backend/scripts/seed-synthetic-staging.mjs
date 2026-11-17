@@ -28,10 +28,11 @@ const Student = mongoose.models.Student ?? mongoose.model('Student', new Schema(
 }, { timestamps: true }));
 
 const dbName = 'ashesi_graduation_staging';
-const studentId = 'DEMO-2028-001';
+// IDs follow the default STUDENT_ID_REGEX (8 digits) and STAFF_ID_REGEX (STF- plus digits).
+const studentId = '20289001';
 const accounts = [
-  { identifier: 'demo.student.2028', role: 'STUDENT', studentId, password: process.env.DEMO_STUDENT_PASSWORD },
-  { identifier: 'demo.admin', role: 'ADMIN', password: process.env.DEMO_ADMIN_PASSWORD }
+  { identifier: studentId, role: 'STUDENT', studentId, password: process.env.DEMO_STUDENT_PASSWORD },
+  { identifier: 'STF-9001', role: 'ADMIN', password: process.env.DEMO_ADMIN_PASSWORD }
 ];
 const fail = (message) => { throw new Error(message); };
 const uri = process.env.MONGODB_URI;
