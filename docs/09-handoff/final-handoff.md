@@ -26,7 +26,7 @@
 
 ## Needed from the Registry or owner
 
-1. `Degree_Audit_2028.xlsx`, and confirmation of the discrepancies and of which courses need a C.
+1. Course codes, elective lists and C pass marks in [`curriculum-course-mapping.csv`](../02-requirements/degree-audit-2028/curriculum-course-mapping.csv), and answers to the [verified workbook discrepancies](../00-governance/requirements-discrepancies.md).
 2. A decision on the elective pass-mark default.
 3. SMTP settings; a Firebase project for push; store signing keys and developer accounts.
 4. Approval to load real student data, with a retention policy.

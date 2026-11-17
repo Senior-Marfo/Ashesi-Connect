@@ -42,7 +42,7 @@ Stories follow the master build prompt's numbering (`US-xx`). **Done** means bui
 | US-29 | See credits remaining and projected graduation for current cohorts | Done | `sprint-03/remaining-web-features.md` |
 | US-30 | See messaging reach (delivered and read rates) | Done | as above |
 | US-31 | Use a streamlined admin experience on mobile | Done (search, record, notes) | `sprint-04/mobile-app.md` |
-| US-32 | Load and review the official 2028 curriculum | Blocked: `Degree_Audit_2028.xlsx` not provided; tooling exists | `controlled-curriculum-staging-runbook.md` |
+| US-32 | Load and review the official 2028 curriculum | Partial: workbook reconciled; waiting on the Registry's course codes and answers to the discrepancies | `02-requirements/degree-audit-2028/` |
 | US-33 | Manage curriculum versions, grade scale and academic calendar in settings | Not started | `09-handoff/future-roadmap.md` |
 | US-34 | Receive temporary passwords and messages by email | Blocked: needs SMTP | `09-handoff/known-issues.md` |
 
