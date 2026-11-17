@@ -2,11 +2,12 @@ import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { afterAll, beforeAll, describe } from 'vitest';
 import { AuditLog, Enrollment, ImportBatchModel, SettingsModel, StudentNoteModel, PassMarkModel, Message, MessageReceipt, RefreshToken, Student, User } from '../models.js';
+import { CurriculumRecord } from '../models/curriculum.js';
 import { repositoryContract } from './contract.js';
 import { createMongoRepositories } from './mongo.js';
 
 // Needs a MongoDB binary download, so it runs only when MONGO_INTEGRATION=1 (the CI integration job).
-const models = [User, RefreshToken, AuditLog, Student, Enrollment, Message, MessageReceipt, ImportBatchModel, SettingsModel, StudentNoteModel, PassMarkModel] as unknown as mongoose.Model<unknown>[];
+const models = [User, RefreshToken, AuditLog, Student, Enrollment, Message, MessageReceipt, ImportBatchModel, SettingsModel, StudentNoteModel, PassMarkModel, CurriculumRecord] as unknown as mongoose.Model<unknown>[];
 
 describe.runIf(process.env.MONGO_INTEGRATION === '1')('MongoDB', () => {
   let server: MongoMemoryServer;
@@ -24,6 +25,9 @@ describe.runIf(process.env.MONGO_INTEGRATION === '1')('MongoDB', () => {
 
   repositoryContract('mongo', {
     repositories: createMongoRepositories,
+    async addCurriculum(curriculum) {
+      await CurriculumRecord.create(curriculum);
+    },
     async addCourses(studentId, courses) {
       await Enrollment.insertMany(courses.map(course => ({ studentId, ...course })));
     },

@@ -35,6 +35,6 @@ npx tsx scripts/build-curriculum-drafts.ts ../../docs/02-requirements/degree-aud
 1. The script checks every row and writes one draft per programme and track (for example `CS-standard.json`, `CS-pre-calculus.json`) and `drafts-summary.md`. Any problem is listed with its row number, and that programme gets no draft. Fix the CSV and run it again.
 2. Each draft's total is the sum of its components, because several printed totals disagree with them. The summary shows every total so the Registry can confirm it.
 3. Import each draft to the staging database: `scripts/import-curriculum-draft.ts <draft.json>` (a dry run by default; see [`../../controlled-curriculum-staging-runbook.md`](../../controlled-curriculum-staging-runbook.md)).
-4. A listed Registry reviewer marks each draft reviewed in the app. Only then do real students on that programme and track get a standing.
+4. A listed Registry reviewer opens **Curriculum** in the admin menu, checks each draft (**View**), and marks it reviewed with the approval reference. Only then do real students on that programme and track get a standing.
 
 To check a new version of the workbook, run `scripts/ingest-degree-audit.ts <workbook.xlsx> <output-dir>`. It writes a fresh reconciliation report and template; compare them with the ones here.

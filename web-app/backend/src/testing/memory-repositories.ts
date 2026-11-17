@@ -1,6 +1,6 @@
 import { passesCourse } from '../domain/eligibility/pass-marks.js';
 import { DEFAULT_STANDING_CONFIG } from '../domain/eligibility/standing.js';
-import type { AppSettings, AuditEntry, CourseRecord, CourseSummary, ImportBatch, MessageRecord, ReviewedCurriculum, PassMarkRecord, RefreshTokenRecord, Repositories, StudentNote, StudentSummary, UserRecord } from '../repositories/types.js';
+import type { AppSettings, AuditEntry, CourseRecord, CourseSummary, ImportBatch, MessageRecord, ReviewedCurriculum, PassMarkRecord, RefreshTokenRecord, Repositories, StoredCurriculum, StudentNote, StudentSummary, UserRecord } from '../repositories/types.js';
 
 export interface MemoryStore {
   users: UserRecord[];
@@ -8,7 +8,7 @@ export interface MemoryStore {
   auditLog: AuditEntry[];
   students: StudentSummary[];
   courses: Map<string, CourseRecord[]>;
-  curricula: Array<ReviewedCurriculum & { programme: string; track: string; yearGroup: number }>;
+  curricula: Array<ReviewedCurriculum & { programme: string; track: string; yearGroup: number } & Partial<Omit<StoredCurriculum, 'programme' | 'track' | 'version' | 'rules'>>>;
   messages: MessageRecord[];
   receipts: Array<{ messageId: string; studentId: string; deliveredAt: Date; readAt?: Date }>;
   imports: ImportBatch[];
@@ -129,8 +129,26 @@ export function createMemoryRepositories(): { repositories: Repositories; store:
     },
     curricula: {
       async findReviewed(programme, track, yearGroup) {
-        const matches = store.curricula.filter(c => c.programme === programme && c.track === track && c.yearGroup === yearGroup);
+        // Like MongoDB: only a reviewed curriculum without validation issues applies (entries without a status are reviewed fixtures).
+        const matches = store.curricula.filter(c => c.programme === programme && c.track === track && c.yearGroup === yearGroup
+          && (c.status ?? 'REVIEWED') === 'REVIEWED' && !(c.validationIssues?.length));
         return matches.length === 1 ? structuredClone({ version: matches[0].version, rules: matches[0].rules }) : undefined;
+      },
+      list: async () => store.curricula
+        .map(c => ({ programme: c.programme, track: c.track, version: c.version, status: c.status ?? 'REVIEWED', validationIssues: c.validationIssues ?? [], ...(c.sourceWorkbookHash ? { sourceWorkbookHash: c.sourceWorkbookHash } : {}) }))
+        .sort((a, b) => a.programme.localeCompare(b.programme) || a.track.localeCompare(b.track) || b.version.localeCompare(a.version))
+        .slice(0, 200),
+      async markReviewed(programme, track, version, review) {
+        const entry = store.curricula.find(c => c.programme === programme && c.track === track && c.version === version && c.status === 'DRAFT' && !(c.validationIssues?.length));
+        if (!entry) return undefined;
+        Object.assign(entry, { status: 'REVIEWED', review: structuredClone(review) });
+        return this.findVersion(programme, track, version);
+      },
+      async findVersion(programme, track, version) {
+        const matches = store.curricula.filter(c => c.programme === programme && c.track === track && c.version === version);
+        if (matches.length !== 1) return undefined;
+        const { yearGroup: _cohort, ...stored } = structuredClone(matches[0]);
+        return { status: 'REVIEWED', validationIssues: [], sources: [], ...stored };
       }
     },
     students: {

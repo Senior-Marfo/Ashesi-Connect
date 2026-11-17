@@ -562,16 +562,39 @@ paths:
       responses:
         '200': { description: 'Curricula with status and validation issues' }
 
+  /api/v1/admin/curricula/detail:
+    get:
+      tags: [Curriculum]
+      summary: One curriculum version with its full rules, validation issues, sources and review
+      x-permission: curriculum:read
+      parameters:
+        - { name: programme, in: query, required: true, schema: { type: string } }
+        - { name: track, in: query, required: true, schema: { type: string } }
+        - { name: version, in: query, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 'The version; the reviewer is shown by staff ID' }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+        '404': { description: 'CURRICULUM_NOT_FOUND' }
+
+  /api/v1/admin/curricula/review-access:
+    get:
+      tags: [Curriculum]
+      summary: Whether review is switched on, and whether the signed-in admin is on the reviewer list
+      x-permission: curriculum:read
+      responses:
+        '200': { description: 'Access', content: { application/json: { schema: { type: object, properties: { enabled: { type: boolean }, allowed: { type: boolean } } } } } }
+
   /api/v1/admin/curricula/review:
     post:
       tags: [Curriculum]
       summary: Mark a validated curriculum as Registry-reviewed
-      description: Disabled unless `ENABLE_CURRICULUM_REVIEW=yes`, and the reviewer must be listed in `CURRICULUM_REVIEWER_IDS`.
+      description: Disabled unless `ENABLE_CURRICULUM_REVIEW=yes`, and the reviewer must be listed in `CURRICULUM_REVIEWER_IDS`. Only a DRAFT with no validation issues can be reviewed, in one conditional update. Each review is audit-logged (`ADMIN_CURRICULUM_REVIEWED`, with the evidence reference).
       x-permission: curriculum:review
       responses:
         '200': { description: 'Reviewed' }
         '403': { description: 'REVIEWER_NOT_AUTHORIZED' }
         '404': { description: 'CURRICULUM_NOT_FOUND' }
+        '409': { description: 'CURRICULUM_REVIEW_BLOCKED (not a draft, or validation issues) or CURRICULUM_REVIEW_CONFLICT (reviewed concurrently)' }
         '503': { description: 'CURRICULUM_REVIEW_DISABLED' }
 
   /api/v1/admin/audit-log:

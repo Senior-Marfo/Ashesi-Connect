@@ -49,6 +49,24 @@ export async function createDemoApp(env: NodeJS.ProcessEnv = process.env) {
     { courseCode: 'ECON 101', attempts: [{ credits: 1, status: 'INCOMPLETE', semester: '2025 Spring' }] }
   ]);
 
+  // One synthetic draft so the curriculum review screen has something to show. Year group 2099 keeps it
+  // from ever applying to a demo student, even after it is reviewed.
+  store.curricula.push({
+    programme: 'CS', track: 'standard', version: 'SYNTHETIC-DEMO-1', yearGroup: 2099, status: 'DRAFT', validationIssues: [],
+    rules: {
+      programme: 'CS', track: 'standard', totalCredits: 5, verifiedByRegistry: false,
+      requiredCourses: [
+        { courseCode: 'CS 111', credits: 1, minimumGrade: 'D+', category: 'Computing' },
+        { courseCode: 'MATH 141', credits: 1, minimumGrade: 'C', category: 'Mathematics & Quantitative' },
+        { courseCode: 'LEAD 111', credits: 0.5, minimumGrade: 'D+', category: 'Humanities & Social Sciences' },
+        { courseCode: 'LEAD 112', credits: 0.5, minimumGrade: 'D+', category: 'Humanities & Social Sciences' }
+      ],
+      electivePools: [{ category: 'Non-Major Electives', creditsRequired: 2, courseCodes: ['AS 101', 'AS 102', 'ECON 210'], africanStudiesMinimum: 1, africanStudiesCodes: ['AS 101', 'AS 102'] }]
+    },
+    sources: [{ sourceUrl: 'https://example.edu/synthetic-degree-audit.xlsx', sourceKind: 'REGISTRY_PROVIDED_WORKBOOK', retrievedAt: '2026-11-17T00:00:00Z', effectiveYear: 2099, contentHash: 'synthetic' }],
+    sourceWorkbookHash: '0'.repeat(64)
+  });
+
   // A wider synthetic cohort (reserved 9xxxxxxx IDs, no sign-in accounts) so the register has data to show.
   const generated = generateSyntheticDataset({ count: 60, today: new Date('2026-11-17T00:00:00Z') });
   store.students.push(...generated.students);

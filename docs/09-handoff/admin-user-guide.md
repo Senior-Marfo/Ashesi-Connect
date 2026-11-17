@@ -37,6 +37,12 @@ Write a message, or start from a template, then choose who receives it: all stud
 
 Standing now, graduation outcomes for past year groups (with reasons when requirements were not met), progress and outlook for current year groups (credits still to complete, projected graduation), programme comparison, course pass rates and grades, and messaging reach. Filter by programme and year group. **Print or save PDF** prints the whole page, and each section has its own CSV.
 
+## Curriculum
+
+Lists every imported curriculum version (programme, track, version, status, validation issues). **View** shows a version's full requirements: required courses by category with credits and pass marks, elective slots with their allowed courses (African Studies ones marked), totals and the source workbook.
+
+A **draft** becomes the curriculum real students are assessed against only when a Registry reviewer marks it reviewed. Enter the evidence of Registry approval (for example the memo reference), confirm you have checked the requirements, and choose **Mark as reviewed**. Each review is logged. Review needs to be switched on for the deployment, and your account must be on the reviewer list; the page says when either is missing.
+
 ## Settings
 
 | Section | What it does |

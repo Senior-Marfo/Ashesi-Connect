@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 import type { AppConfig } from '../config.js';
 import { AuthError, AuthService } from '../auth/service.js';
 import type { Repositories } from '../repositories/types.js';
-import { curriculumAdminRouter, curriculumStudentRouter } from '../routes/curriculum.js';
+import { curriculumAdminRoutes, curriculumStudentRouter } from '../routes/curriculum.js';
 import { adminRoutes } from './admin-routes.js';
 import { authRoutes } from './auth-routes.js';
 import { importRoutes } from './import-routes.js';
@@ -82,7 +82,7 @@ export function createApp({ config, repositories, isHealthy, now = () => new Dat
   app.use('/api/v1/admin/settings', ...protectedRoutes, settingsRoutes(config, repositories, now));
   app.use('/api/v1/admin/students', ...protectedRoutes, studentProfileRoutes(repositories, now));
   app.use('/api/v1/admin/records', ...protectedRoutes, recordRoutes(config, repositories, now));
-  app.use('/api/v1/admin', ...protectedRoutes, adminRoutes(repositories, auth, now), curriculumAdminRouter);
+  app.use('/api/v1/admin', ...protectedRoutes, adminRoutes(repositories, auth, now), curriculumAdminRoutes(repositories, now));
 
   if (config.staticDir) serveWebClient(app, resolve(config.staticDir));
 
