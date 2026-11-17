@@ -26,3 +26,14 @@ describe('student record', () => {
     expect(screen.getByText('No courses are on record yet.')).toBeInTheDocument();
   });
 });
+
+describe('synthetic records', () => {
+  it('are labelled as fictional demonstration data', async () => {
+    const { StudentProfile } = await import('./student-record');
+    const student = { studentId: '92800001', fullName: 'Ama Mensah', programme: 'CS', yearGroup: 2028, track: 'standard' };
+    const { rerender } = render(<StudentProfile record={{ student: { ...student, synthetic: true }, courses: [] }} />);
+    expect(screen.getByText(/Synthetic record/)).toBeInTheDocument();
+    rerender(<StudentProfile record={{ student, courses: [] }} />);
+    expect(screen.queryByText(/Synthetic record/)).not.toBeInTheDocument();
+  });
+});

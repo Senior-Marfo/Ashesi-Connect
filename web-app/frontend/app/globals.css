@@ -151,3 +151,4 @@ body { margin: 0; background: var(--surface); color: var(--ink); font: 16px/1.5 
 .issues li { padding: var(--space-2) 0 var(--space-2) var(--space-4); border-left: 2px solid var(--line); margin-bottom: var(--space-2); color: var(--ink-soft); }
 .catalogue { margin-top: var(--space-7); padding-top: var(--space-6); border-top: 1px solid var(--line); }
 .catalogue .caption { margin-top: var(--space-2); }
+.synthetic-notice { margin: 0 0 var(--space-5); }

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { CourseAttempt, CourseRecord, StudentRecord } from '../lib/api';
+import { Notice } from './app-shell';
 
 const statusLabel: Record<CourseAttempt['status'], string> = {
   COMPLETED: 'Graded',
@@ -25,6 +26,11 @@ export function StudentProfile({ record, children }: { record: StudentRecord; ch
   const totals = creditTotals(courses);
   return (
     <>
+      {student.synthetic && (
+        <div className="synthetic-notice">
+          <Notice>Synthetic record: a fictional student with illustrative courses, loaded for demonstration. Not real academic data.</Notice>
+        </div>
+      )}
       <dl className="facts">
         <div><dt>Student ID</dt><dd className="mono">{student.studentId}</dd></div>
         <div><dt>Programme</dt><dd>{student.programme}</dd></div>

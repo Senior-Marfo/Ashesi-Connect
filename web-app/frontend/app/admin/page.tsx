@@ -78,7 +78,7 @@ export default function AdminPage() {
                 <li key={student.studentId}>
                   <button type="button" aria-current={student.studentId === selected} onClick={() => setSelected(student.studentId)}>
                     <span className="mono">{student.studentId}</span>
-                    <small>{student.fullName} · {student.programme} {student.yearGroup}</small>
+                    <small>{student.fullName} · {student.programme} {student.yearGroup}{student.synthetic ? ' · Synthetic' : ''}</small>
                   </button>
                 </li>
               ))}
